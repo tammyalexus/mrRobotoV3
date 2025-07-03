@@ -12,6 +12,7 @@
   "dependencies": {
     "@cometchat/chat-sdk-javascript": "^4.0.13",
     "axios": "^1.10.0",
-    "dotenv": "^17.0.1"
+    "dotenv": "^17.0.1",
+    "uuid": "^11.1.0"
   }
 }

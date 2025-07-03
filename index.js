@@ -1,3 +1,4 @@
+const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 const axios = require('axios');
 
@@ -8,7 +9,10 @@ const {
   COMETCHAT_APP_ID,
   COMETCHAT_UID,
   COMETCHAT_RECEIVER_UID,
-  COMETCHAT_GROUP_ID
+  COMETCHAT_GROUP_ID,
+  CHAT_AVATAR_ID,
+  CHAT_NAME,
+  CHAT_COLOUR
 } = process.env;
 
 const BASE_URL = `https://${COMETCHAT_API_KEY}.apiclient-us.cometchat.io/v3`;
@@ -20,33 +24,66 @@ const headers = {
 };
 
 async function sendPrivateMessage() {
+  const theMessage = 'Hello Mr. Roboto version 3!';
+  
+  const customData = {
+    message: theMessage,
+    avatarId: CHAT_AVATAR_ID,
+    userName: CHAT_NAME,
+    color: `#${ CHAT_COLOUR }`,
+    mentions: [],
+    userUuid: COMETCHAT_UID,
+    badges: [ 'VERIFIED', 'STAFF' ],
+    id: uuidv4()
+  }
+
   const payload = {
     receiver: COMETCHAT_RECEIVER_UID,
     receiverType: 'user',
     category: 'message',
     type: 'text',
     data: {
-      text: 'Hello from Node.js via REST API!'
+      text: theMessage,
+      metadata: {
+        chatMessage: customData
+      }
     }
   };
 
   const response = await axios.post(`${BASE_URL}/messages`, payload, { headers });
-  console.log('✅ Private message sent:', response.data);
+  console.log('✅ Private message sent:', JSON.stringify(response.data,  null, 2) );
 }
 
 async function sendGroupMessage() {
+  const theMessage = 'Hello Mr. Roboto version 3!';
+
+  const customData = {
+    message: theMessage,
+    avatarId: CHAT_AVATAR_ID,
+    userName: CHAT_NAME,
+    color: `#${ CHAT_COLOUR }`,
+    mentions: [],
+    userUuid: COMETCHAT_UID,
+    badges: [ 'VERIFIED', 'STAFF' ],
+    id: uuidv4()
+  }
+
   const payload = {
     receiver: COMETCHAT_GROUP_ID,
     receiverType: 'group',
     category: 'message',
     type: 'text',
     data: {
-      text: 'Hello group from Node.js!'
+      text: theMessage,
+      metadata: {
+        chatMessage: customData
+      }
+
     }
   };
 
   const response = await axios.post(`${BASE_URL}/messages`, payload, { headers });
-  console.log('✅ Group message sent:', response.data);
+  console.log('✅ Group message sent:', JSON.stringify(response.data,  null, 2) );
 }
 
 async function fetchPrivateMessages() {
