@@ -1,0 +1,17 @@
+{
+  "name": "mrrobotov3",
+  "version": "1.0.0",
+  "description": "Version 3 of Mr. Roboto...trying to start again with the basics and dedicated to hang.fm rather than repurposed from another system",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@cometchat/chat-sdk-javascript": "^4.0.13",
+    "axios": "^1.10.0",
+    "dotenv": "^17.0.1"
+  }
+}
