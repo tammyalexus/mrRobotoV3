@@ -1,30 +1,26 @@
-import { v4 as uuidv4 } from 'uuid';
-import { apiClient, BASE_URL } from './cometchatApi.js';
-import buildUrl from '../lib/buildUrl.js';
-import {
-  BOT_UID,
-  COMETCHAT_RECEIVER_UID,
-  HANGOUT_ID,
-  CHAT_AVATAR_ID,
-  CHAT_NAME,
-  CHAT_COLOUR
-} from '../config.js';
+// src/services/messageService.js
+const { v4: uuidv4 } = require('uuid');
+const axios = require('axios');
+const buildUrl = require('../lib/buildUrl');
+const cometchatApi = require('./cometchatApi.js');
+const config = require('../config.js');
 
-export async function sendPrivateMessage() {
+async function sendPrivateMessage() {
   const theMessage = 'Hello Mr. Roboto version 3!';
+
   const customData = {
     message: theMessage,
-    avatarId: CHAT_AVATAR_ID,
-    userName: CHAT_NAME,
-    color: `#${CHAT_COLOUR}`,
+    avatarId: config.CHAT_AVATAR_ID,
+    userName: config.CHAT_NAME,
+    color: `#${ config.CHAT_COLOUR }`,
     mentions: [],
-    userUuid: BOT_UID,
-    badges: ['VERIFIED', 'STAFF'],
+    userUuid: config.BOT_UID,
+    badges: [ 'VERIFIED', 'STAFF' ],
     id: uuidv4()
-  };
+  }
 
   const payload = {
-    receiver: COMETCHAT_RECEIVER_UID,
+    receiver: config.COMETCHAT_RECEIVER_UID,
     receiverType: 'user',
     category: 'message',
     type: 'text',
@@ -36,25 +32,26 @@ export async function sendPrivateMessage() {
     }
   };
 
-  const res = await apiClient.post(`/v3.0/messages`, payload);
-  console.log('✅ Private message sent:', JSON.stringify(res.data, null, 2));
+  const response = await axios.post(`${cometchatApi.BASE_URL}/v3.0/messages`, payload, { headers: cometchatApi.headers });
+  console.log('✅ Private message sent:', JSON.stringify(response.data,  null, 2) );
 }
 
-export async function sendGroupMessage() {
+async function sendGroupMessage() {
   const theMessage = 'Hello Mr. Roboto version 3!';
+
   const customData = {
     message: theMessage,
-    avatarId: CHAT_AVATAR_ID,
-    userName: CHAT_NAME,
-    color: `#${CHAT_COLOUR}`,
+    avatarId: config.CHAT_AVATAR_ID,
+    userName: config.CHAT_NAME,
+    color: `#${ config.CHAT_COLOUR }`,
     mentions: [],
-    userUuid: BOT_UID,
-    badges: ['VERIFIED', 'STAFF'],
+    userUuid: config.BOT_UID,
+    badges: [ 'VERIFIED', 'STAFF' ],
     id: uuidv4()
-  };
+  }
 
   const payload = {
-    receiver: HANGOUT_ID,
+    receiver: config.HANGOUT_ID,
     receiverType: 'group',
     category: 'message',
     type: 'text',
@@ -66,23 +63,23 @@ export async function sendGroupMessage() {
     }
   };
 
-  const res = await apiClient.post(`/v3.0/messages`, payload);
-  console.log('✅ Group message sent:', JSON.stringify(res.data, null, 2));
+  const response = await axios.post(`${cometchatApi.BASE_URL}/v3.0/messages`, payload, { headers: cometchatApi.headers });
+  console.log('✅ Group message sent:', JSON.stringify(response.data,  null, 2) );
 }
 
-export async function fetchPrivateMessages() {
-  const url = buildUrl(BASE_URL, [
+async function fetchPrivateMessages() {
+  const url = buildUrl(cometchatApi.BASE_URL, [
     'v3',
     'users',
-    COMETCHAT_RECEIVER_UID,
+    config.COMETCHAT_RECEIVER_UID,
     'conversation'
   ], [
     ['conversationType', 'user'],
     ['limit', 50],
-    ['uid', BOT_UID]
+    ['uid', config.BOT_UID]
   ]);
 
-  const res = await apiClient.get(url);
+  const res = await cometchatApi.apiClient.get(url);
   const msg = res.data.data.lastMessage;
   if (msg) {
     console.log(`📥 Private message from ${msg.sender}: ${msg.data?.text || '[No Text]'}`);
@@ -91,9 +88,9 @@ export async function fetchPrivateMessages() {
   }
 }
 
-export async function fetchGroupMessages() {
-  const url = buildUrl(BASE_URL, [
-    'v3.0', 'groups', HANGOUT_ID, 'messages'
+async function fetchGroupMessages() {
+  const url = buildUrl(cometchatApi.BASE_URL, [
+    'v3.0', 'groups', config.HANGOUT_ID, 'messages'
   ], [
     ['per_page', 50],
     ['hideMessagesFromBlockedUsers', 0],
@@ -105,7 +102,14 @@ export async function fetchGroupMessages() {
     ['id', 25323881]
   ]);
 
-  const res = await apiClient.get(url);
+  const res = await cometchatApi.apiClient.get(url);
   const messages = res.data.data.map(msg => `${msg.sender}: ${msg.data.text}`);
   console.log('📥 Group messages:', messages);
 }
+
+module.exports = {
+  sendPrivateMessage,
+  sendGroupMessage,
+  fetchGroupMessages,
+  fetchPrivateMessages
+};
