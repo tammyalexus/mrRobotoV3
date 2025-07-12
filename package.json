@@ -4,6 +4,8 @@
   "description": "Version 3 of Mr. Roboto...trying to start again with the basics and dedicated to hang.fm rather than repurposed from another system",
   "main": "index.js",
   "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -13,6 +15,8 @@
     "@cometchat/chat-sdk-javascript": "^4.0.13",
     "axios": "^1.10.0",
     "dotenv": "^17.0.1",
-    "uuid": "^11.1.0"
-  }
+    "uuid": "^11.1.0",
+    "winston": "^3.17.0"
+  },
+  "type": "module"
 }
