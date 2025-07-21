@@ -7,7 +7,7 @@ function startGroupMessagePolling(interval = 1000) {
       const groupMessages = await messageService.fetchGroupMessages();
       if (groupMessages.length > 0) {
         const sorted = groupMessages.sort((a, b) => a.id - b.id);
-        parseCommands(sorted);
+        await parseCommands(sorted);
       }
     } catch (err) {
       console.error('❌ Group polling error:', err.message);
