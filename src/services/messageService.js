@@ -5,10 +5,25 @@ const buildUrl = require('../lib/buildUrl');
 const cometchatApi = require('./cometchatApi.js');
 const config = require('../config.js');
 
+// variables
 const RECEIVER_TYPE = {
   USER: "user",
   GROUP: "group"
 };
+
+let latestGroupMessageId = null;
+
+// ===============
+
+// Helper functions
+
+function setLatestGroupMessageId(id) {
+  latestGroupMessageId = id;
+}
+
+function getLatestGroupMessageId() {
+  return latestGroupMessageId;
+}
 
 async function buildCustomData( theMessage ) {
   return {
@@ -38,9 +53,15 @@ async function buildPayload( receiver, receiverType, customData, theMessage ) {
   };
 }
 
+// ===============
+
+// exported functions
+
 const messageService = {
   buildCustomData,
   buildPayload,
+  getLatestGroupMessageId,
+  setLatestGroupMessageId,
 
   sendPrivateMessage: async function(theMessage) {
     try {
@@ -57,8 +78,8 @@ const messageService = {
     try {
       const customData = await this.buildCustomData( theMessage );
       const payload = await this.buildPayload( config.HANGOUT_ID, RECEIVER_TYPE.GROUP, customData, theMessage )
-      const response = await axios.post( `${ cometchatApi.BASE_URL }/v3.0/messages`, payload, { headers: cometchatApi.headers } );
-      console.log( '✅ Group message sent:', JSON.stringify( response.data, null, 2 ) );
+      await axios.post( `${ cometchatApi.BASE_URL }/v3.0/messages`, payload, { headers: cometchatApi.headers } );
+      // console.log( '✅ Group message sent:', JSON.stringify( response.data.data.data.text, null, 2 ) );
     } catch (err) {
       console.error('❌ Failed to send private message:', err.response?.data || err.message);
     }
@@ -89,27 +110,97 @@ const messageService = {
     }
   },
 
-  fetchGroupMessages: async function() {
+  fetchGroupMessagesRaw: async function(params = []) {
+    const defaultParams = [
+      ['hideMessagesFromBlockedUsers', 0],
+      ['unread', 0],
+      ['withTags', 0],
+      ['hideDeleted', 0],
+      ['affix', 'append']
+    ];
+
+    const url = buildUrl(cometchatApi.BASE_URL, [
+      'v3.0', 'groups', config.HANGOUT_ID, 'messages'
+    ], [...defaultParams, ...params]);
+
     try {
-      const url = buildUrl( cometchatApi.BASE_URL, [
+      const res = await cometchatApi.apiClient.get(url);
+      return res.data?.data || [];
+    } catch (err) {
+      console.error('❌ Error fetching group messages:', err.message);
+      return [];
+    }
+  },
+  
+  fetchGroupMessages: async function() {
+    const params = [
+      ['per_page', 50],
+      ['undelivered', 1]
+    ];
+
+    if (this.getLatestGroupMessageId() !== null) {
+      params.push(['id', latestGroupMessageId]);
+    } else {
+      // Fallback to current timestamp for initial fetch
+      params.push(['updatedAt', Math.floor(Date.now() / 1000)]);
+    }
+
+    const messages = await this.fetchGroupMessagesRaw(params);
+    
+    if (messages.length === 0) {
+      console.log('📥 No new group messages.');
+      return;
+    }
+    
+    const summary = messages.map(
+      msg => `${msg.id}: ${msg.sentAt}: ${msg.sender}: ${msg.data?.text || '[No Text]'}`
+    );
+
+    console.log('📥 Group messages:', summary);
+    
+    // Update latest message ID based on last message in list
+    this.setLatestGroupMessageId(messages[messages.length - 1].id);
+  },
+
+  returnLatestGroupMessageId: async function() {
+    const MAX_LOOKBACK_MINUTES = 10;
+    const now = Math.floor(Date.now() / 1000);
+
+    for (let i = 0; i <= MAX_LOOKBACK_MINUTES; i++) {
+      const lookbackTimestamp = now - i * 60;
+
+      const url = buildUrl(cometchatApi.BASE_URL, [
         'v3.0', 'groups', config.HANGOUT_ID, 'messages'
       ], [
-        [ 'per_page', 50 ],
-        [ 'hideMessagesFromBlockedUsers', 0 ],
-        [ 'unread', 0 ],
-        [ 'undelivered', 1 ],
-        [ 'withTags', 0 ],
-        [ 'hideDeleted', 0 ],
-        [ 'affix', 'append' ],
-        [ 'id', 25323881 ]
-      ] );
+        ['per_page', 1],
+        ['hideMessagesFromBlockedUsers', 0],
+        ['unread', 0],
+        ['undelivered', 0],
+        ['withTags', 0],
+        ['hideDeleted', 0],
+        ['affix', 'append'],
+        ['updatedAt', lookbackTimestamp]
+      ]);
 
-      const res = await cometchatApi.apiClient.get( url );
-      const messages = res.data.data.map( msg => `${ msg.sender }: ${ msg.data?.text || '[No Text]' }` );
-      console.log( '📥 Group messages:', messages );
-    } catch ( err ) {
-      console.error( '❌ Error fetching group messages:', err.message );
+      try {
+        const res = await cometchatApi.apiClient.get(url);
+        const messages = res.data?.data;
+
+        if (Array.isArray(messages) && messages.length > 0) {
+          const latest = messages[0];
+          console.log(`✅ Found message: ID ${latest.id} at sentAt ${latest.sentAt} (lookback ${i}m)`);
+          this.setLatestGroupMessageId(messages[messages.length - 1].id);
+          return latest.id;
+        }
+        console.log(`🔍 No messages at ${lookbackTimestamp} (${i} min ago)`);
+      } catch (err) {
+        console.error(`❌ Error fetching messages at lookback ${i}m:`, err.message);
+        return null;
+      }
     }
+
+    console.warn('⚠️ No messages found in lookback window');
+    return null;
   }
 };
 
