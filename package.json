@@ -14,6 +14,7 @@
   "dependencies": {
     "@cometchat/chat-sdk-javascript": "^4.0.13",
     "axios": "^1.10.0",
+    "axios-mock-adapter": "^2.1.0",
     "dotenv": "^17.0.1",
     "uuid": "^11.1.0",
     "winston": "^3.17.0"
