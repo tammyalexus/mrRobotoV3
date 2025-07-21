@@ -1,7 +1,8 @@
-function parseCommands(messages) {
+const { messageService } = require('../services/messageService.js');
+async function parseCommands(messages) {
   for (const msg of messages) {
     console.log(`⚙️ Parsing command: ${msg.data.text}`);
-    // Add your command parsing and execution logic here
+    await messageService.sendGroupMessage(`I heard the command ${msg.data.text}`);
   }
 }
 
