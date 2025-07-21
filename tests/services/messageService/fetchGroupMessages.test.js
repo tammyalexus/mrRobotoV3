@@ -1,4 +1,4 @@
-const { fetchGroupMessages } = require('../../../src/services/messageService');
+const { messageService } = require('../../../src/services/messageService.js');
 const cometchatApi = require('../../../src/services/cometchatApi');
 
 jest.mock('../../../src/services/cometchatApi');
@@ -38,7 +38,7 @@ describe('fetchGroupMessages', () => {
       })
     };
 
-    await fetchGroupMessages();
+    await messageService.fetchGroupMessages();
 
     expect(cometchatApi.apiClient.get).toHaveBeenCalledTimes(1);
 
@@ -59,7 +59,7 @@ describe('fetchGroupMessages', () => {
 
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    await fetchGroupMessages();
+    await messageService.fetchGroupMessages();
 
     expect(console.error).toHaveBeenCalledWith(
       '❌ Error fetching group messages:',
@@ -74,7 +74,7 @@ describe('fetchGroupMessages', () => {
       get: jest.fn().mockResolvedValue({ data: { data: [] } })
     };
 
-    await fetchGroupMessages();
+    await messageService.fetchGroupMessages();
 
     expect(console.log).toHaveBeenCalledWith('📥 Group messages:', []);
   });
@@ -92,7 +92,7 @@ describe('fetchGroupMessages', () => {
       get: jest.fn().mockResolvedValue({ data: { data: mockMessages } })
     };
 
-    await fetchGroupMessages();
+    await messageService.fetchGroupMessages();
 
     expect(console.log).toHaveBeenCalledWith('📥 Group messages:', ['user-1: [No Text]']);
   });

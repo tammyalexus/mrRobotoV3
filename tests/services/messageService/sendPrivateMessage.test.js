@@ -1,5 +1,5 @@
 const axios = require('axios');
-const helpers = require('../../../src/services/messageService.js');
+const { messageService } = require('../../../src/services/messageService.js');
 
 jest.mock('axios');
 
@@ -19,7 +19,7 @@ describe('messageService', () => {
       data: { success: true, message: 'Message sent successfully!' }
     });
 
-    await helpers.sendPrivateMessage('Hello Test');
+    await messageService.sendPrivateMessage('Hello Test');
 
     expect(axios.post).toHaveBeenCalledTimes(1);
     const calledPayload = axios.post.mock.calls[0][1]; // second argument of axios.post

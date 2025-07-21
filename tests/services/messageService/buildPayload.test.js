@@ -1,4 +1,4 @@
-const helpers = require('../../../src/services/messageService.js');
+const { messageService } = require('../../../src/services/messageService.js');
 
 jest.mock('axios');
 
@@ -28,7 +28,7 @@ describe('messageService', () => {
       id: 'uuid-1234'
     }
 
-    const result = await helpers.buildPayload( fakeReceiver, fakeReceiverType, fakeCustomData, theMessage);
+    const result = await messageService.buildPayload( fakeReceiver, fakeReceiverType, fakeCustomData, theMessage);
 
     expect(result).toEqual( {
       receiver: fakeReceiver,
