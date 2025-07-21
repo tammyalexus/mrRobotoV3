@@ -1,4 +1,4 @@
-const helpers = require('../../../src/services/messageService.js');
+const { messageService } = require('../../../src/services/messageService.js');
 
 jest.mock('axios');
 
@@ -14,7 +14,7 @@ describe('messageService', () => {
   });
 
   test('buildCustomData creates expected structure', async () => {
-    const result = await helpers.buildCustomData('Hello test');
+    const result = await messageService.buildCustomData('Hello test');
 
     expect(result).toMatchObject({
       message: 'Hello test',

@@ -1,4 +1,4 @@
-const { fetchPrivateMessages } = require('../../../src/services/messageService');
+const { messageService } = require('../../../src/services/messageService.js');
 const cometchatApi = require('../../../src/services/cometchatApi');
 
 jest.mock('../../../src/services/cometchatApi');
@@ -35,7 +35,7 @@ describe('fetchPrivateMessages', () => {
       })
     };
 
-    await fetchPrivateMessages();
+    await messageService.fetchPrivateMessages();
 
     expect(logSpy).toHaveBeenCalledWith(
       '📥 Private message from abcdef-ccd3-4c1b-9846-5336fbd3b415: Hello Mr. Roboto version 3!'
@@ -58,7 +58,7 @@ describe('fetchPrivateMessages', () => {
       })
     };
 
-    await fetchPrivateMessages();
+    await messageService.fetchPrivateMessages();
 
     expect(logSpy).toHaveBeenCalledWith(
       '📥 Private message from user-123: [No Text]'
@@ -76,7 +76,7 @@ describe('fetchPrivateMessages', () => {
       })
     };
 
-    await fetchPrivateMessages();
+    await messageService.fetchPrivateMessages();
 
     expect(logSpy).toHaveBeenCalledWith('📥 No private messages found.');
   });
@@ -88,7 +88,7 @@ describe('fetchPrivateMessages', () => {
 
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    await fetchPrivateMessages();
+    await messageService.fetchPrivateMessages();
 
     expect(errorSpy).toHaveBeenCalledWith(
       '❌ Error fetching private messages:',

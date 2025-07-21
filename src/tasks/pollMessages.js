@@ -1,9 +1,9 @@
-const { fetchPrivateMessages, fetchGroupMessages } = require('../services/messageService.js');
+const { messageService } = require('../services/messageService.js');
 
-function startPolling(interval = 5000) {
+function startPolling(interval = 1000 * 1) { // 1000ms * x seconds to change polling interval
   setInterval(() => {
-    fetchPrivateMessages().catch(console.error);
-    fetchGroupMessages().catch(console.error);
+    messageService.fetchPrivateMessages().catch(console.error);
+    messageService.fetchGroupMessages().catch(console.error);
   }, interval);
 }
 
