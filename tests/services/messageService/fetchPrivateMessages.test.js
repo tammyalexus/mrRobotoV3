@@ -125,4 +125,15 @@ describe('fetchPrivateMessages', () => {
 
     expect(result).toEqual([mockLastMessage]);
   });
+
+  test('fetchPrivateMessages does not return array if message does not start with switch', async () => {
+    cometchatApi.apiClient = {
+      get: jest.fn().mockResolvedValue({
+        data: { data: { lastMessage: { sender: 'u1', data: { text: 'hello world' } } } }
+      })
+    };
+
+    const result = await messageService.fetchPrivateMessages();
+    expect(result).toBeUndefined(); // no return
+  });
 });

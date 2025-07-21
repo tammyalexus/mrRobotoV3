@@ -1,17 +1,22 @@
 const { messageService } = require('../../../src/services/messageService.js');
 const cometchatApi = require('../../../src/services/cometchatApi');
+const { buildUrl } = require('../../../src/lib/buildUrl');
+
 jest.mock('../../../src/services/cometchatApi');
+jest.mock('../../../src/lib/buildUrl', () => ({
+  buildUrl: jest.fn()
+}));
 
 describe('fetchGroupMessagesRaw', () => {
-  beforeAll(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+  let errorSpy;
+
+  beforeEach(() => {
+    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    buildUrl.mockImplementation(() => 'https://fakeurl.com/api/messages');
   });
 
-  afterAll(() => {
-    console.error.mockRestore();
-  });
-  
-  beforeEach(() => {
+  afterEach(() => {
+    errorSpy.mockRestore();
     jest.clearAllMocks();
   });
 
@@ -20,14 +25,50 @@ describe('fetchGroupMessagesRaw', () => {
     cometchatApi.apiClient.get.mockResolvedValue({ data: { data: fakeMessages } });
 
     const result = await messageService.fetchGroupMessagesRaw([['per_page', 1]]);
+
     expect(result).toEqual(fakeMessages);
     expect(cometchatApi.apiClient.get).toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled(); // no error expected here
   });
 
-  test('returns empty array when API throws an error', async () => {
-    cometchatApi.apiClient.get.mockRejectedValue(new Error('Network error'));
+  test('returns empty array and logs error when API throws an error (async rejection)', async () => {
+    const error = new Error('Network error');
+    cometchatApi.apiClient.get.mockRejectedValue(error);
 
     const result = await messageService.fetchGroupMessagesRaw([['per_page', 1]]);
+
     expect(result).toEqual([]);
+    expect(console.error).toHaveBeenCalledWith('❌ Error fetching group messages:', error.message);
   });
+
+  test('returns empty array and logs error when API throws an error (sync throw)', async () => {
+    const error = new Error('Sync error');
+    cometchatApi.apiClient.get.mockImplementation(() => { throw error; });
+
+    const result = await messageService.fetchGroupMessagesRaw([['per_page', 1]]);
+
+    expect(result).toEqual([]);
+    expect(console.error).toHaveBeenCalledWith('❌ Error fetching group messages:', error.message);
+  });
+
+  test('returns empty array and logs error when buildUrl throws', async () => {
+    buildUrl.mockImplementation(() => {
+      throw new Error('buildUrl failed');
+    });
+
+    const result = await messageService.fetchGroupMessagesRaw([['per_page', 1]]);
+
+    expect(result).toEqual([]);
+    expect(console.error).toHaveBeenCalledWith('❌ Error fetching group messages:', 'buildUrl failed');
+  });
+
+  test('returns empty array if response data.data is missing', async () => {
+    cometchatApi.apiClient.get.mockResolvedValue({ data: {} });
+
+    const result = await messageService.fetchGroupMessagesRaw();
+
+    expect(result).toEqual([]);
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
 });

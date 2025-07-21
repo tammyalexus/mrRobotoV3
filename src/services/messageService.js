@@ -81,7 +81,7 @@ const messageService = {
       await axios.post( `${ cometchatApi.BASE_URL }/v3.0/messages`, payload, { headers: cometchatApi.headers } );
       // console.log( '✅ Group message sent:', JSON.stringify( response.data.data.data.text, null, 2 ) );
     } catch (err) {
-      console.error('❌ Failed to send private message:', err.response?.data || err.message);
+      console.error('❌ Failed to send group message:', err.response?.data || err.message);
     }
   },
 
@@ -122,11 +122,11 @@ const messageService = {
       ['affix', 'append']
     ];
 
-    const url = buildUrl(cometchatApi.BASE_URL, [
-      'v3.0', 'groups', config.HANGOUT_ID, 'messages'
-    ], [...defaultParams, ...params]);
-
     try {
+      const url = buildUrl(cometchatApi.BASE_URL, [
+        'v3.0', 'groups', config.HANGOUT_ID, 'messages'
+      ], [...defaultParams, ...params]);
+
       const res = await cometchatApi.apiClient.get(url);
       return res.data?.data || [];
     } catch (err) {
