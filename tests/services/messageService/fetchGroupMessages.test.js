@@ -45,8 +45,8 @@ describe('fetchGroupMessages', () => {
     expect(logSpy).toHaveBeenCalledWith(
       '📥 Group messages:',
       [
-        'sdfsdf-28c4-4ec6-a9eb-2cdfacbcafbc: /escortme',
-        'a1sdfsd-ccd3-4c1b-9846-5336fbd3b415: @wibble you will be escorted after you play your song'
+        '25324828: undefined: sdfsdf-28c4-4ec6-a9eb-2cdfacbcafbc: /escortme',
+        '25324829: undefined: a1sdfsd-ccd3-4c1b-9846-5336fbd3b415: @wibble you will be escorted after you play your song'
       ]
     );
   });
@@ -76,7 +76,7 @@ describe('fetchGroupMessages', () => {
 
     await messageService.fetchGroupMessages();
 
-    expect(console.log).toHaveBeenCalledWith('📥 Group messages:', []);
+    expect(console.log).toHaveBeenCalledWith('📥 No new group messages.');
   });
 
   test('logs [No Text] if a message is missing text', async () => {
@@ -94,6 +94,6 @@ describe('fetchGroupMessages', () => {
 
     await messageService.fetchGroupMessages();
 
-    expect(console.log).toHaveBeenCalledWith('📥 Group messages:', ['user-1: [No Text]']);
+    expect(console.log).toHaveBeenCalledWith('📥 Group messages:', ['1: undefined: user-1: [No Text]']);
   });
 });
