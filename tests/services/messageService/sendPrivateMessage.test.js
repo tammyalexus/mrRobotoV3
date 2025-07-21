@@ -5,13 +5,18 @@ jest.mock('axios');
 
 describe('messageService', () => {
   let logSpy;
+  let errorSpy;
 
   beforeEach(() => {
     logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+    if (errorSpy && errorSpy.mockRestore) {
+      errorSpy.mockRestore();
+    }
   });
 
   test('sendPrivateMessage sends correct payload with resolved customData', async () => {
@@ -30,15 +35,15 @@ describe('messageService', () => {
   });
 
   test('sendPrivateMessage logs error on axios failure', async () => {
-    // Spy on console.error to verify error logging
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    // Mock axios.post to reject with an error object
     const error = {
       response: {
-        data: { message: 'Unauthorized' }
-      }
+        data: 'Unauthorized'
+      },
+      message: 'Unauthorized'
     };
+
     axios.post.mockRejectedValue(error);
 
     await messageService.sendPrivateMessage('Hello Error');
@@ -47,6 +52,20 @@ describe('messageService', () => {
     expect(errorSpy).toHaveBeenCalledWith(
       '❌ Failed to send private message:',
       error.response.data
+    );
+
+    errorSpy.mockRestore();
+  });
+
+  test('sendPrivateMessage logs error message when err.response is undefined', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const error = new Error('Network failure');
+    axios.post.mockRejectedValue(error);
+    await messageService.sendPrivateMessage('Hello Error');
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      '❌ Failed to send private message:',
+      error.message
     );
 
     errorSpy.mockRestore();
@@ -64,7 +83,7 @@ describe('messageService', () => {
     };
     axios.post.mockRejectedValue(error);
 
-    await messageService.sendGroupMessage('Test group message');
+    await messageService.sendPrivateMessage('Test private message');
 
     expect(axios.post).toHaveBeenCalledTimes(1);
     expect(errorSpy).toHaveBeenCalledWith(

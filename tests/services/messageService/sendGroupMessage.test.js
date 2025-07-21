@@ -71,4 +71,56 @@ describe('messageService', () => {
     // Verify console log contains confirmation message
     // expect(logSpy.mock.calls[0][0]).toEqual(expect.stringContaining('✅ Group message sent:'));
   });
+
+  test('sendGroupMessage calls API and completes successfully', async () => {
+    axios.post.mockResolvedValue({ data: { success: true } });
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    await messageService.sendGroupMessage('Group hello');
+    expect(axios.post).toHaveBeenCalledTimes(1);
+    expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining('❌'));
+    logSpy.mockRestore();
+  });
+
+  test('sendGroupMessage handles API errors and logs console.error', async () => {
+    const error = new Error('Group failed');
+    axios.post.mockRejectedValue(error);
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await messageService.sendGroupMessage('Offline');
+    expect(errorSpy).toHaveBeenCalledWith(
+      '❌ Failed to send group message:',
+      error.message
+    );
+    errorSpy.mockRestore();
+  });
+
+  test('logs success and does not use console.error on successful API call', async () => {
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    axios.post.mockResolvedValue({ data: { success: true } });
+    await messageService.sendGroupMessage('Group Hello');
+
+    expect(axios.post).toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
+
+    logSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
+
+  test('calls console.error on API failure', async () => {
+    const error = new Error('API failure');
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    axios.post.mockRejectedValue(error);
+    await messageService.sendGroupMessage('Oops');
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      '❌ Failed to send group message:',
+      error.message
+    );
+
+    errorSpy.mockRestore();
+  });
 });
