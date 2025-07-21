@@ -8,6 +8,8 @@ describe('fetchPrivateMessages', () => {
 
   beforeEach(() => {
     logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.resetModules();
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
@@ -96,5 +98,31 @@ describe('fetchPrivateMessages', () => {
     );
 
     errorSpy.mockRestore();
+  });
+
+  test('returns array with message if it starts with command switch', async () => {
+    const { COMMAND_SWITCH } = process.env;
+    const commandText = `${COMMAND_SWITCH}do-something`;
+
+    const mockLastMessage = {
+      sender: 'test-user',
+      data: {
+        text: commandText
+      }
+    };
+
+    cometchatApi.apiClient = {
+      get: jest.fn().mockResolvedValue({
+        data: {
+          data: {
+            lastMessage: mockLastMessage
+          }
+        }
+      })
+    };
+
+    const result = await messageService.fetchPrivateMessages();
+
+    expect(result).toEqual([mockLastMessage]);
   });
 });

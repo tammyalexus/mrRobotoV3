@@ -28,4 +28,50 @@ describe('messageService', () => {
     expect(calledPayload).toHaveProperty('data.metadata.chatMessage.message', 'Hello Test');
     expect(typeof calledPayload.data.metadata.chatMessage).toBe('object');
   });
+
+  test('sendPrivateMessage logs error on axios failure', async () => {
+    // Spy on console.error to verify error logging
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Mock axios.post to reject with an error object
+    const error = {
+      response: {
+        data: { message: 'Unauthorized' }
+      }
+    };
+    axios.post.mockRejectedValue(error);
+
+    await messageService.sendPrivateMessage('Hello Error');
+
+    expect(axios.post).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith(
+      '❌ Failed to send private message:',
+      error.response.data
+    );
+
+    errorSpy.mockRestore();
+  });
+
+  test('sendGroupMessage logs error on axios failure', async () => {
+    // Spy on console.error to verify error logging
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Mock axios.post to reject with an error object
+    const error = {
+      response: {
+        data: { message: 'Group message failed' }
+      }
+    };
+    axios.post.mockRejectedValue(error);
+
+    await messageService.sendGroupMessage('Test group message');
+
+    expect(axios.post).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith(
+      '❌ Failed to send private message:',
+      error.response.data
+    );
+
+    errorSpy.mockRestore();
+  });
 });

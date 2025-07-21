@@ -1,7 +1,7 @@
 // src/services/messageService.js
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
-const buildUrl = require('../lib/buildUrl');
+const { buildUrl } = require('../lib/buildUrl');
 const cometchatApi = require('./cometchatApi.js');
 const config = require('../config.js');
 
@@ -102,6 +102,9 @@ const messageService = {
       const msg = res.data.data.lastMessage;
       if ( msg ) {
         console.log( `📥 Private message from ${ msg.sender }: ${ msg.data?.text || '[No Text]' }` );
+        if (msg.data?.text?.startsWith(config.COMMAND_SWITCH)) {
+          return [msg]; // Return an array for consistency
+        }
       } else {
         console.log( '📥 No private messages found.' );
       }
@@ -148,18 +151,19 @@ const messageService = {
     const messages = await this.fetchGroupMessagesRaw(params);
     
     if (messages.length === 0) {
-      console.log('📥 No new group messages.');
-      return;
+      // console.log('📥 No new group messages.');
+      return [];
     }
-    
-    const summary = messages.map(
-      msg => `${msg.id}: ${msg.sentAt}: ${msg.sender}: ${msg.data?.text || '[No Text]'}`
-    );
 
-    console.log('📥 Group messages:', summary);
-    
     // Update latest message ID based on last message in list
     this.setLatestGroupMessageId(messages[messages.length - 1].id);
+    
+    const commandMessages = messages.filter(msg => msg.data?.text?.startsWith(config.COMMAND_SWITCH));
+    if (commandMessages.length > 0) {
+      console.log('📥 Group command messages:', commandMessages.map(m => `${m.id}: ${m.data.text}`));
+    }
+
+    return commandMessages;
   },
 
   returnLatestGroupMessageId: async function() {
