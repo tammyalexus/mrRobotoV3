@@ -10,4 +10,5 @@ module.exports = {
   CHAT_AVATAR_ID:   process.env.CHAT_AVATAR_ID,
   CHAT_NAME: process.env.CHAT_NAME,
   CHAT_COLOUR: process.env.CHAT_COLOUR,
+  COMMAND_SWITCH: process.env.COMMAND_SWITCH,
 };
