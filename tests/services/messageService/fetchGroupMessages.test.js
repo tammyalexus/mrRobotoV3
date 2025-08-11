@@ -1,13 +1,23 @@
-const { messageService } = require('../../../src/services/messageService.js');
-const cometchatApi = require('../../../src/services/cometchatApi');
+// Mock the modules before importing messageService
+jest.mock('../../../src/utils/logging.js', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }
+}));
 
 jest.mock('../../../src/services/cometchatApi');
 
-describe('fetchGroupMessages', () => {
-  let logSpy;
+// Now import the modules that use the mocked dependencies
+const { messageService } = require('../../../src/services/messageService.js');
+const cometchatApi = require('../../../src/services/cometchatApi');
+const { logger } = require('../../../src/utils/logging.js');
 
+describe('fetchGroupMessages', () => {
   beforeEach(() => {
-    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
@@ -61,6 +71,12 @@ describe('fetchGroupMessages', () => {
         }
       }
     ]);
+
+    // The debug function is called with two parameters: a message and an array
+    expect(logger.debug).toHaveBeenCalledWith(
+      '📥 Group command messages:',
+      expect.any(Array)
+    );
   });
 
   test('logs an error when the API call fails', async () => {
@@ -69,16 +85,12 @@ describe('fetchGroupMessages', () => {
       get: jest.fn().mockRejectedValue(error)
     };
 
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
     await messageService.fetchGroupMessages();
 
-    expect(console.error).toHaveBeenCalledWith(
+    expect(logger.error).toHaveBeenCalledWith(
       '❌ Error fetching group messages:',
       'Network failure'
     );
-
-    errorSpy.mockRestore();
   });
 
   test('returns empty array if no group messages are found', async () => {
@@ -107,5 +119,5 @@ describe('fetchGroupMessages', () => {
     const result = await messageService.fetchGroupMessages();
 
     expect(result).toEqual([]);
-  });;
+  });
 });

@@ -2,6 +2,16 @@ const { messageService } = require('../../../src/services/messageService.js');
 const cometchatApi = require('../../../src/services/cometchatApi.js');
 const { buildUrl } = require('../../../src/lib/buildUrl.js');
 const config = require('../../../src/config.js');
+const { logger } = require('../../../src/utils/logging.js');
+
+jest.mock('../../../src/utils/logging.js', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }
+}));
 
 jest.mock('../../../src/services/cometchatApi.js', () => ({
   BASE_URL: 'https://test-api.cometchat.com',
@@ -21,13 +31,7 @@ jest.mock('../../../src/config.js', () => ({
 }));
 
 describe('messageService.listGroupMembers', () => {
-  let logSpy;
-  let errorSpy;
-
   beforeEach(() => {
-    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
     // Mock buildUrl implementation
     buildUrl.mockImplementation((baseUrl, pathSegments, queryParams) => {
       return 'https://test-api.cometchat.com/v3.0/groups/test-group-id/members';
@@ -65,11 +69,12 @@ describe('messageService.listGroupMembers', () => {
     cometchatApi.apiClient.get.mockResolvedValueOnce(mockResponse);
 
     // Execute
-    await messageService.listGroupMembers();
+    const result = await messageService.listGroupMembers();
 
     // Verify
-    expect(logSpy).toHaveBeenCalledWith(`members: ${mockResponse}`);
-    expect(errorSpy).not.toHaveBeenCalled();
+    expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('members: '));
+    expect(logger.error).not.toHaveBeenCalled();
+    expect(result).toEqual(mockResponse.data);
   });
 
   test('should handle API errors correctly', async () => {
@@ -81,7 +86,7 @@ describe('messageService.listGroupMembers', () => {
     const result = await messageService.listGroupMembers();
 
     // Verify
-    expect(errorSpy).toHaveBeenCalledWith('❌ Error fetching group members', 'API error');
+    expect(logger.error).toHaveBeenCalledWith('❌ Error fetching group members: API error');
     expect(result).toBeNull();
   });
 });

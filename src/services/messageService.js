@@ -4,6 +4,7 @@ const axios = require('axios');
 const { buildUrl } = require('../lib/buildUrl');
 const cometchatApi = require('./cometchatApi.js');
 const config = require('../config.js');
+const { logger } = require('../utils/logging.js');
 
 // variables
 const RECEIVER_TYPE = {
@@ -68,9 +69,9 @@ const messageService = {
       const customData = await this.buildCustomData(theMessage);
       const payload = await this.buildPayload(config.COMETCHAT_RECEIVER_UID, RECEIVER_TYPE.USER, customData, theMessage);
       const response = await axios.post(`${cometchatApi.BASE_URL}/v3.0/messages`, payload, { headers: cometchatApi.headers });
-      console.log('✅ Private message sent:', JSON.stringify(response.data, null, 2));
+      logger.debug('✅ Private message sent:', JSON.stringify(response.data, null, 2));
     } catch (err) {
-      console.error('❌ Failed to send private message:', err.response?.data || err.message);
+      logger.error('❌ Failed to send private message:', err.response?.data || err.message);
     }
   },
 
@@ -79,9 +80,9 @@ const messageService = {
       const customData = await this.buildCustomData( theMessage );
       const payload = await this.buildPayload( config.HANGOUT_ID, RECEIVER_TYPE.GROUP, customData, theMessage )
       await axios.post( `${ cometchatApi.BASE_URL }/v3.0/messages`, payload, { headers: cometchatApi.headers } );
-      // console.log( '✅ Group message sent:', JSON.stringify( response.data.data.data.text, null, 2 ) );
+      // logger.debug( '✅ Group message sent:', JSON.stringify( response.data.data.data.text, null, 2 ) );
     } catch (err) {
-      console.error('❌ Failed to send group message:', err.response?.data || err.message);
+      logger.error('❌ Failed to send group message:', err.response?.data || err.message);
     }
   },
 
@@ -101,15 +102,15 @@ const messageService = {
       const res = await cometchatApi.apiClient.get( url );
       const msg = res.data.data.lastMessage;
       if ( msg ) {
-        console.log( `📥 Private message from ${ msg.sender }: ${ msg.data?.text || '[No Text]' }` );
+        logger.debug( `📥 Private message from ${ msg.sender }: ${ msg.data?.text || '[No Text]' }` );
         if (msg.data?.text?.startsWith(config.COMMAND_SWITCH)) {
           return [msg]; // Return an array for consistency
         }
       } else {
-        console.log( '📥 No private messages found.' );
+        logger.debug( '📥 No private messages found.' );
       }
     } catch ( err ) {
-      console.error( '❌ Error fetching private messages:', err.message );
+      logger.error( '❌ Error fetching private messages:', err.message );
     }
   },
 
@@ -130,7 +131,7 @@ const messageService = {
       const res = await cometchatApi.apiClient.get(url);
       return res.data?.data || [];
     } catch (err) {
-      console.error('❌ Error fetching group messages:', err.message);
+      logger.error('❌ Error fetching group messages:', err.message);
       return [];
     }
   },
@@ -151,7 +152,7 @@ const messageService = {
     const messages = await this.fetchGroupMessagesRaw(params);
     
     if (messages.length === 0) {
-      // console.log('📥 No new group messages.');
+      // logger.debug('📥 No new group messages.');
       return [];
     }
 
@@ -160,7 +161,7 @@ const messageService = {
     
     const commandMessages = messages.filter(msg => msg.data?.text?.startsWith(config.COMMAND_SWITCH));
     if (commandMessages.length > 0) {
-      console.log('📥 Group command messages:', commandMessages.map(m => `${m.id}: ${m.data.text}`));
+      logger.debug('📥 Group command messages:', commandMessages.map(m => `${m.id}: ${m.data.text}`));
     }
 
     return commandMessages;
@@ -192,17 +193,17 @@ const messageService = {
 
         if (Array.isArray(messages) && messages.length > 0) {
           const latest = messages[0];
-          console.log(`✅ Found message: ID ${latest.id} at sentAt ${latest.sentAt} (lookback ${i}m)`);
+          logger.debug(`✅ Found message: ID ${latest.id} at sentAt ${latest.sentAt} (lookback ${i}m)`);
           return latest.id;
         }
-        console.log(`🔍 No messages at ${lookbackTimestamp} (${i} min ago)`);
+        logger.debug(`🔍 No messages at ${lookbackTimestamp} (${i} min ago)`);
       } catch (err) {
-        console.error(`❌ Error fetching messages at lookback ${i}m:`, err.message);
+        logger.error(`❌ Error fetching messages at lookback ${i}m:`, err.message);
         return null;
       }
     }
 
-    console.warn('⚠️ No messages found in lookback window');
+    logger.warn('⚠️ No messages found in lookback window');
     return null;
   },
   
@@ -216,9 +217,10 @@ const messageService = {
 
     try {
       const res = await cometchatApi.apiClient.get(url);
-      console.log(`members: ${res}`);
+      logger.debug(`members: ${JSON.stringify(res.data, null, 2)}`);
+      return res.data;
     } catch (err) {
-      console.error(`❌ Error fetching group members`, err.message);
+      logger.error(`❌ Error fetching group members: ${err.message}`);
       return null;
     }
   }

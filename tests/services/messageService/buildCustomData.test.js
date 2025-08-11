@@ -1,14 +1,18 @@
 const { messageService } = require('../../../src/services/messageService.js');
+const { logger } = require('../../../src/utils/logging.js');
+
+jest.mock('../../../src/utils/logging.js', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }
+}));
 
 jest.mock('axios');
 
 describe('messageService', () => {
-  let logSpy;
-
-  beforeEach(() => {
-    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-  });
-
   afterEach(() => {
     jest.clearAllMocks();
   });
