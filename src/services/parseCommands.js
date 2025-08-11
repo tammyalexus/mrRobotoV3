@@ -1,4 +1,5 @@
 const { messageService } = require('../services/messageService.js');
+const { logger } = require('../utils/logging.js');
 
 /**
  * Processes an array of command messages and sends responses
@@ -14,17 +15,17 @@ async function parseCommands( messages ) {
   for ( const message of messages ) {
     try {
       if ( !message?.data?.text ) {
-        console.warn( '⚠️ Skipping invalid message format:', message );
+        logger.warn( '⚠️ Skipping invalid message format:', message );
         continue;
       }
 
       const commandText = message.data.text;
-      console.log( `⚙️ Processing command [${ message.id }]: ${ commandText }` );
+      logger.debug( `⚙️ Processing command [${ message.id }]: ${ commandText }` );
 
       await messageService.sendGroupMessage( `I heard the command ${ commandText }` );
 
     } catch ( error ) {
-      console.error( `❌ Failed to process command [${ message?.id }]:`, error.message );
+      logger.error( `❌ Failed to process command [${ message?.id }]:`, error.message );
       // Continue processing other messages even if one fails
     }
   }

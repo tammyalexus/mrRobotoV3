@@ -1,5 +1,6 @@
 const { messageService } = require('../services/messageService.js');
 const parseCommands = require('../services/parseCommands.js');
+const { logger } = require('../utils/logging.js');
 
 function startGroupMessagePolling(interval = 1000) {
   setInterval(async () => {
@@ -10,7 +11,7 @@ function startGroupMessagePolling(interval = 1000) {
         await parseCommands(sorted);
       }
     } catch (err) {
-      console.error('❌ Group polling error:', err.message);
+      logger.error('❌ Group polling error:', err.message);
     }
   }, interval);
 }
@@ -21,10 +22,10 @@ function startPrivateMessagePolling(interval = 1000) {
       const privateMessages = await messageService.fetchPrivateMessages();
       if (privateMessages.length > 0) {
         const sorted = privateMessages.sort((a, b) => a.id - b.id);
-        console.log(sorted)
+        logger.debug('Private messages received:', sorted);
       }
     } catch (err) {
-      console.error('❌ Private polling error:', err.message);
+      logger.error('❌ Private polling error:', err.message);
     }
   }, interval);
 }

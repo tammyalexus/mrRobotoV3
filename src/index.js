@@ -1,5 +1,6 @@
 const { messageService } = require('./services/messageService.js');
 const pollingService = require('./tasks/pollMessages.js');
+const { logger } = require('./utils/logging.js');
 
 (async () => {
   try {
@@ -14,12 +15,12 @@ const pollingService = require('./tasks/pollMessages.js');
 
     // ping a message that the Bot has started successfully
     await messageService.sendGroupMessage( "Mr. Roboto version 3 is online" );
-    
+
     // start polling the message service for new messages
     pollingService.startGroupMessagePolling( 1000 * 1 ); // 1000ms * number of seconds for interval
-    
+
     pollingService.startPrivateMessagePolling( 1000 * 5 )
   } catch (err) {
-    console.error('❌ Error:', err.response?.data || err.message);
+    logger.error('❌ Error:', err.response?.data || err.message);
   }
 })();
