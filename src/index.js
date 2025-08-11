@@ -4,9 +4,21 @@ const pollingService = require('./tasks/pollMessages.js');
 (async () => {
   try {
     // await messageService.sendPrivateMessage( "PM from Hello Mr. Roboto version 3!" );
-    console.log(`latestID: ${await messageService.returnLatestGroupMessageId()}`);
+
+    await messageService.listGroupMembers()
+
+    // go find the latest Hangout Message ID so the Bot doesn't start
+    // processing old messages on startup
+    const latestID = await messageService.returnLatestGroupMessageId();
+    messageService.setLatestGroupMessageId( latestID );
+
+    // ping a message that the Bot has started successfully
     await messageService.sendGroupMessage( "Mr. Roboto version 3 is online" );
-    pollingService.startGroupMessagePolling(1000 * 1); // 1000ms * number of seconds for interval
+    
+    // start polling the message service for new messages
+    pollingService.startGroupMessagePolling( 1000 * 1 ); // 1000ms * number of seconds for interval
+    
+    pollingService.startPrivateMessagePolling( 1000 * 5 )
   } catch (err) {
     console.error('❌ Error:', err.response?.data || err.message);
   }
