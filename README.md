@@ -4,6 +4,18 @@ Version 3 of Mr. Roboto — rebuilt from scratch rather than being repurposed 
 
 ---
 
+## License
+
+[![No Commercial Use](https://img.shields.io/badge/No%20Commercial%20Use-orange?style=for-the-badge&logo=hand)](LICENSE)
+[![Attribution Required](https://img.shields.io/badge/Attribution%20Required-black?style=for-the-badge&logo=book)](LICENSE)
+
+This repository is licensed under the **NonCommercial–Attribution License (NC-ATTR)**.
+- **NonCommercial use only** – You may not use this project for commercial purposes.
+- **Attribution required** – You must credit the original author in any forks, copies, or redistributions.
+- See the [LICENSE](LICENSE) file for full details.
+
+---
+
 ## 🛠️ Prerequisites
 
 - **Node.js** v16+ (tested on v20)
