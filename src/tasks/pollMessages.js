@@ -15,6 +15,21 @@ function startGroupMessagePolling(interval = 1000) {
   }, interval);
 }
 
+function startPrivateMessagePolling(interval = 1000) {
+  setInterval(async () => {
+    try {
+      const privateMessages = await messageService.fetchPrivateMessages();
+      if (privateMessages.length > 0) {
+        const sorted = privateMessages.sort((a, b) => a.id - b.id);
+        console.log(sorted)
+      }
+    } catch (err) {
+      console.error('❌ Private polling error:', err.message);
+    }
+  }, interval);
+}
+
 module.exports = {
-  startGroupMessagePolling
+  startGroupMessagePolling,
+  startPrivateMessagePolling
 };

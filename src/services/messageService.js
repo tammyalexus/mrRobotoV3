@@ -193,7 +193,6 @@ const messageService = {
         if (Array.isArray(messages) && messages.length > 0) {
           const latest = messages[0];
           console.log(`✅ Found message: ID ${latest.id} at sentAt ${latest.sentAt} (lookback ${i}m)`);
-          this.setLatestGroupMessageId(messages[messages.length - 1].id);
           return latest.id;
         }
         console.log(`🔍 No messages at ${lookbackTimestamp} (${i} min ago)`);
@@ -205,6 +204,23 @@ const messageService = {
 
     console.warn('⚠️ No messages found in lookback window');
     return null;
+  },
+  
+  listGroupMembers: async function() {
+    const url = buildUrl(cometchatApi.BASE_URL, [
+      'v3.0', 'groups', config.HANGOUT_ID, 'members'
+    ], [
+      ['limit', 50],
+      ['uid', config.BOT_UID]
+    ]);
+
+    try {
+      const res = await cometchatApi.apiClient.get(url);
+      console.log(`members: ${res}`);
+    } catch (err) {
+      console.error(`❌ Error fetching group members`, err.message);
+      return null;
+    }
   }
 };
 

@@ -73,3 +73,27 @@ Test results summary and coverage (if you run with `--coverage`) will be shown.
 All welcome! Whether it's fixing an issue, suggesting improvements, or helping with features, feel free to open a PR or issue.
 
 ---
+
+## Developing for Hangout FM
+
+In order to receive actions from the site your Bot will need to connect to the Turntable LIVE Socket Client here: 
+https://www.npmjs.com/package/ttfm-socket
+
+There are then multiple API endpoints you can send REST messages to. These include 
+
+* The User Service: https://gateway.prod.tt.fm/api/user-service/api/
+* The Room Service: https://gateway.prod.tt.fm/api/room-service/api/
+* The Social Service: https://gateway.prod.tt.fm/api/social-service/api/
+* The Playlist Service: https://gateway.prod.tt.fm/api/playlist-service/api/
+
+You'll need to use some of these services to get the basic info to be able to start a Bot
+
+To create a new Bot and get a token for it, head to the BotSignup endpoint here: https://gateway.prod.tt.fm/api/user-service/api/#/Bot%20endpoints/signUpBot
+
+However, in order to use that you need to be authorised so will need to get your own auth token. You can find this using your browser's developer tools to look in the browser storage. Once you're logged into hang.fm look for a key called "token-storage" and copy its value. You MUST remove the double quotes around the token to be able to use it. You can then paste that into the authentication at the top of any Swagger page, or once you have it, use the Bots token instead.
+
+For the bot's avatar, you'll want to use the bot token to update the bot's profile via https://gateway.prod.tt.fm/api/user-service/api/#/User%20profile/updateProfile. 
+
+There are two special bot avatars. Their IDs are bot-01 and bot-2. Set one of those on the Bot profile and also use it as the CHAT_AVATAR_ID
+
+The CHAT_API_KEY for Hangout.fm is 193427bb5702bab7. Hangout uses CometChat and that ID is actually yhe Hangout App ID for them. The REST API for CometChat is available here: https://api-explorer.cometchat.com/reference/chat-apis
