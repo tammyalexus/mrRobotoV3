@@ -85,7 +85,52 @@ const messageService = {
       logger.error('❌ Failed to send group message:', err.response?.data || err.message);
     }
   },
+  
+  fetchAllUserMessages: async function() {
+    try {
+      const url = buildUrl( cometchatApi.BASE_URL, [
+        'v3',
+        'users',
+        config.COMETCHAT_RECEIVER_UID,
+        'messages'
+      ], [
+        [ 'limit', 50 ],
+        [ 'unread', true ],
+        [ 'uid', config.BOT_UID ]
+      ] );
 
+      const res = await cometchatApi.apiClient.get( url );
+
+        // Extract only the fields we need from each message
+        if (res.data && res.data.data && Array.isArray(res.data.data)) {
+          const messages = res.data.data;
+          const simplifiedMessages = messages.map(msg => {
+            // Extract message content safely (with fallbacks if structure is different)
+            const messageContent = msg.data && msg.data.customData && msg.data.customData.message 
+              ? msg.data.customData.message 
+              : (msg.data && msg.data.text) ? msg.data.text : '[No message content]';
+
+            return {
+              id: msg.id,
+              message: messageContent,
+              readAt: msg.readAt ? new Date(msg.readAt * 1000).toISOString() : 'unread'
+            };
+          });
+
+          logger.debug(`User messages (${simplifiedMessages.length}):`);
+          simplifiedMessages.forEach(msg => {
+            logger.debug(`- ID: ${msg.id} | Message: "${msg.message}" | Read: ${msg.readAt}`);
+          });
+        } else {
+          logger.debug('No messages found or unexpected response format');
+        }
+
+
+    } catch ( err ) {
+      logger.error( '❌ Error fetching all messages:', err.message );
+    }
+  },
+  
   fetchPrivateMessages: async function() {
     try {
       const url = buildUrl( cometchatApi.BASE_URL, [
@@ -100,12 +145,13 @@ const messageService = {
       ] );
 
       const res = await cometchatApi.apiClient.get( url );
+      logger.debug(`fetchPrivateMessages res:${JSON.stringify(res.data.data, null, 2)}`)
       const msg = res.data.data.lastMessage;
       if ( msg ) {
-        logger.debug( `📥 Private message from ${ msg.sender }: ${ msg.data?.text || '[No Text]' }` );
-        if (msg.data?.text?.startsWith(config.COMMAND_SWITCH)) {
-          return [msg]; // Return an array for consistency
-        }
+        logger.debug( `📥 Private message from ${ msg.sender }: ${ msg.data?.text || '[No Text]' }, ID: ${ msg.id }, Sender: ${ msg.sender }` );
+        // if (msg.data?.text?.startsWith(config.COMMAND_SWITCH)) {
+        //   return [msg]; // Return an array for consistency
+        // }
       } else {
         logger.debug( '📥 No private messages found.' );
       }
@@ -124,9 +170,15 @@ const messageService = {
     ];
 
     try {
-      const url = buildUrl(cometchatApi.BASE_URL, [
-        'v3.0', 'groups', config.HANGOUT_ID, 'messages'
-      ], [...defaultParams, ...params]);
+      const url = buildUrl( cometchatApi.BASE_URL, [
+        'v3.0', 
+        'groups', 
+        config.HANGOUT_ID, 
+        'messages'
+      ], [
+        ...defaultParams, 
+        ...params
+      ] );
 
       const res = await cometchatApi.apiClient.get(url);
       return res.data?.data || [];
@@ -208,16 +260,34 @@ const messageService = {
   },
   
   listGroupMembers: async function() {
+    logger.debug(`Starting listGroupMembers`)
     const url = buildUrl(cometchatApi.BASE_URL, [
       'v3.0', 'groups', config.HANGOUT_ID, 'members'
     ], [
-      ['limit', 50],
+      ['limit', 500],
       ['uid', config.BOT_UID]
     ]);
 
     try {
       const res = await cometchatApi.apiClient.get(url);
-      logger.debug(`members: ${JSON.stringify(res.data, null, 2)}`);
+
+      // Extract only the fields we need from each member
+      if (res.data && res.data.data && Array.isArray(res.data.data)) {
+        const simplifiedMembers = res.data.data.map(member => ({
+          name: member.name,
+          uid: member.uid,
+          conversationId: member.conversationId
+        }));
+
+        simplifiedMembers.forEach(member => {
+          logger.debug(`- ${member.name} (${member.uid}): ${member.conversationId}`);
+        });
+        logger.debug(`Group members (${simplifiedMembers.length}):`);
+
+      } else {
+        logger.debug('No members found or unexpected response format');
+      }
+
       return res.data;
     } catch (err) {
       logger.error(`❌ Error fetching group members: ${err.message}`);
