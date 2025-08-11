@@ -9,22 +9,40 @@ if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
 
-// Create a Winston logger
+// Define custom levels to ensure debug is below info
+const customLevels = {
+  levels: {
+    error: 0,
+    warn: 1,
+    info: 2,
+    debug: 3
+  },
+  colors: {
+    error: 'red',
+    warn: 'yellow',
+    info: 'green',
+    debug: 'blue'
+  }
+};
+
+// Add colors to Winston
+winston.addColors(customLevels.colors);
+
+// Format for log entries
+const logFormat = winston.format.combine(
+  winston.format.timestamp(),
+  winston.format.printf(({ level, message, timestamp }) => {
+    return `${timestamp} [${level.toUpperCase()}]: ${message}`;
+  })
+);
+
+// Create a Winston logger with custom levels
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.printf(({ level, message, timestamp }) => {
-      return `${timestamp} [${level.toUpperCase()}]: ${message}`;
-    })
-  ),
+  levels: customLevels.levels,
+  level: process.env.LOG_LEVEL || 'debug',
+  format: logFormat,
   transports: [
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      )
-    }),
+    // Daily rotating file
     new winston.transports.DailyRotateFile({
       dirname: logsDir,
       filename: '%DATE%.log',

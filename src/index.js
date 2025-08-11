@@ -2,25 +2,39 @@ const { messageService } = require('./services/messageService.js');
 const pollingService = require('./tasks/pollMessages.js');
 const { logger } = require('./utils/logging.js');
 
+// Log application starting
+logger.info('=== Application Starting ===');
+
 (async () => {
   try {
-    // await messageService.sendPrivateMessage( "PM from Hello Mr. Roboto version 3!" );
-
-    await messageService.listGroupMembers()
-
     // go find the latest Hangout Message ID so the Bot doesn't start
     // processing old messages on startup
-    const latestID = await messageService.returnLatestGroupMessageId();
-    messageService.setLatestGroupMessageId( latestID );
+    // logger.debug('Retrieving latest group message ID');
+    // const latestID = await messageService.returnLatestGroupMessageId();
+    // messageService.setLatestGroupMessageId(latestID);
+    // logger.info(`Latest group message ID set to: ${latestID || 'null'}`);
 
-    // ping a message that the Bot has started successfully
-    await messageService.sendGroupMessage( "Mr. Roboto version 3 is online" );
+    // // ping a message that the Bot has started successfully
+    // logger.debug('Sending startup message to group');
+    // await messageService.sendGroupMessage("Mr. Roboto version 3 is online");
+    // logger.info('Startup message sent successfully');
+    //
+    // // start polling the message service for new messages
+    // logger.debug('Starting group message polling');
+    // pollingService.startGroupMessagePolling(1000 * 1); // 1000ms * number of seconds for interval
+    // logger.info('Group message polling started');
+    //
+    logger.debug('Starting private message polling');
+    //pollingService.startPrivateMessagePolling(1000 * 5);
+    await messageService.fetchAllUserMessages()
+    logger.info('Private message polling started');
 
-    // start polling the message service for new messages
-    pollingService.startGroupMessagePolling( 1000 * 1 ); // 1000ms * number of seconds for interval
+    logger.info('=== Application Started Successfully ===');
 
-    pollingService.startPrivateMessagePolling( 1000 * 5 )
+    // logger.debug('Retrieving group members');
+    // await messageService.listGroupMembers();
+
   } catch (err) {
-    logger.error('❌ Error:', err.response?.data || err.message);
+    logger.error('❌ Error during startup:', err.response?.data || err.message);
   }
 })();
