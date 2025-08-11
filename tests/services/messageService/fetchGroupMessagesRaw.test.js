@@ -1,22 +1,30 @@
-const { messageService } = require('../../../src/services/messageService.js');
-const cometchatApi = require('../../../src/services/cometchatApi');
-const { buildUrl } = require('../../../src/lib/buildUrl');
+// Mock the modules before importing messageService
+jest.mock('../../../src/utils/logging.js', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }
+}));
 
 jest.mock('../../../src/services/cometchatApi');
 jest.mock('../../../src/lib/buildUrl', () => ({
   buildUrl: jest.fn()
 }));
 
-describe('fetchGroupMessagesRaw', () => {
-  let errorSpy;
+// Now import the modules that use the mocked dependencies
+const { messageService } = require('../../../src/services/messageService.js');
+const cometchatApi = require('../../../src/services/cometchatApi');
+const { buildUrl } = require('../../../src/lib/buildUrl');
+const { logger } = require('../../../src/utils/logging.js');
 
+describe('fetchGroupMessagesRaw', () => {
   beforeEach(() => {
-    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     buildUrl.mockImplementation(() => 'https://fakeurl.com/api/messages');
   });
 
   afterEach(() => {
-    errorSpy.mockRestore();
     jest.clearAllMocks();
   });
 
@@ -28,7 +36,7 @@ describe('fetchGroupMessagesRaw', () => {
 
     expect(result).toEqual(fakeMessages);
     expect(cometchatApi.apiClient.get).toHaveBeenCalled();
-    expect(errorSpy).not.toHaveBeenCalled(); // no error expected here
+    expect(logger.error).not.toHaveBeenCalled(); // no error expected here
   });
 
   test('returns empty array and logs error when API throws an error (async rejection)', async () => {
@@ -38,7 +46,7 @@ describe('fetchGroupMessagesRaw', () => {
     const result = await messageService.fetchGroupMessagesRaw([['per_page', 1]]);
 
     expect(result).toEqual([]);
-    expect(console.error).toHaveBeenCalledWith('❌ Error fetching group messages:', error.message);
+    expect(logger.error).toHaveBeenCalledWith('❌ Error fetching group messages:', error.message);
   });
 
   test('returns empty array and logs error when API throws an error (sync throw)', async () => {
@@ -48,7 +56,7 @@ describe('fetchGroupMessagesRaw', () => {
     const result = await messageService.fetchGroupMessagesRaw([['per_page', 1]]);
 
     expect(result).toEqual([]);
-    expect(console.error).toHaveBeenCalledWith('❌ Error fetching group messages:', error.message);
+    expect(logger.error).toHaveBeenCalledWith('❌ Error fetching group messages:', error.message);
   });
 
   test('returns empty array and logs error when buildUrl throws', async () => {
@@ -59,7 +67,7 @@ describe('fetchGroupMessagesRaw', () => {
     const result = await messageService.fetchGroupMessagesRaw([['per_page', 1]]);
 
     expect(result).toEqual([]);
-    expect(console.error).toHaveBeenCalledWith('❌ Error fetching group messages:', 'buildUrl failed');
+    expect(logger.error).toHaveBeenCalledWith('❌ Error fetching group messages:', 'buildUrl failed');
   });
 
   test('returns empty array if response data.data is missing', async () => {
@@ -68,7 +76,6 @@ describe('fetchGroupMessagesRaw', () => {
     const result = await messageService.fetchGroupMessagesRaw();
 
     expect(result).toEqual([]);
-    expect(console.error).not.toHaveBeenCalled();
+    expect(logger.error).not.toHaveBeenCalled();
   });
-
 });

@@ -1,22 +1,27 @@
-const axios = require('axios');
-const { messageService } = require('../../../src/services/messageService.js');
+// Mock the modules before importing messageService
+jest.mock('../../../src/utils/logging.js', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }
+}));
 
 jest.mock('axios');
 
-describe('messageService', () => {
-  let logSpy;
-  let errorSpy;
+// Now import the modules that use the mocked dependencies
+const axios = require('axios');
+const { messageService } = require('../../../src/services/messageService.js');
+const { logger } = require('../../../src/utils/logging.js');
 
+describe('messageService', () => {
   beforeEach(() => {
-    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    if (errorSpy && errorSpy.mockRestore) {
-      errorSpy.mockRestore();
-    }
   });
 
   test('sendPrivateMessage sends correct payload with resolved customData', async () => {
@@ -32,11 +37,10 @@ describe('messageService', () => {
     // Assert that customData was resolved properly (not a Promise)
     expect(calledPayload).toHaveProperty('data.metadata.chatMessage.message', 'Hello Test');
     expect(typeof calledPayload.data.metadata.chatMessage).toBe('object');
+    expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('✅ Private message sent:'), expect.any(String));
   });
 
   test('sendPrivateMessage logs error on axios failure', async () => {
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
     const error = {
       response: {
         data: 'Unauthorized'
@@ -49,36 +53,29 @@ describe('messageService', () => {
     await messageService.sendPrivateMessage('Hello Error');
 
     expect(axios.post).toHaveBeenCalledTimes(1);
-    expect(errorSpy).toHaveBeenCalledWith(
+    expect(logger.error).toHaveBeenCalledWith(
       '❌ Failed to send private message:',
       error.response.data
     );
-
-    errorSpy.mockRestore();
   });
 
   test('sendPrivateMessage logs error message when err.response is undefined', async () => {
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const error = new Error('Network failure');
     axios.post.mockRejectedValue(error);
+
     await messageService.sendPrivateMessage('Hello Error');
 
-    expect(errorSpy).toHaveBeenCalledWith(
+    expect(logger.error).toHaveBeenCalledWith(
       '❌ Failed to send private message:',
       error.message
     );
-
-    errorSpy.mockRestore();
   });
 
-  test('sendGroupMessage logs error on axios failure', async () => {
-    // Spy on console.error to verify error logging
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
+  test('sendPrivateMessage logs error on axios failure with response data', async () => {
     // Mock axios.post to reject with an error object
     const error = {
       response: {
-        data: { message: 'Group message failed' }
+        data: { message: 'Private message failed' }
       }
     };
     axios.post.mockRejectedValue(error);
@@ -86,11 +83,9 @@ describe('messageService', () => {
     await messageService.sendPrivateMessage('Test private message');
 
     expect(axios.post).toHaveBeenCalledTimes(1);
-    expect(errorSpy).toHaveBeenCalledWith(
+    expect(logger.error).toHaveBeenCalledWith(
       '❌ Failed to send private message:',
       error.response.data
     );
-
-    errorSpy.mockRestore();
   });
 });

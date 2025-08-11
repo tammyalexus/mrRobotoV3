@@ -1,13 +1,22 @@
-const { messageService } = require('../../../src/services/messageService.js');
-const cometchatApi = require('../../../src/services/cometchatApi');
+// Mock the modules before importing messageService
+jest.mock('../../../src/utils/logging.js', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }
+}));
 
 jest.mock('../../../src/services/cometchatApi');
 
-describe('fetchPrivateMessages', () => {
-  let logSpy;
+// Now import the modules that use the mocked dependencies
+const { messageService } = require('../../../src/services/messageService.js');
+const cometchatApi = require('../../../src/services/cometchatApi');
+const { logger } = require('../../../src/utils/logging.js');
 
+describe('fetchPrivateMessages', () => {
   beforeEach(() => {
-    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     jest.resetModules();
     jest.clearAllMocks();
   });
@@ -39,7 +48,7 @@ describe('fetchPrivateMessages', () => {
 
     await messageService.fetchPrivateMessages();
 
-    expect(logSpy).toHaveBeenCalledWith(
+    expect(logger.debug).toHaveBeenCalledWith(
       '📥 Private message from abcdef-ccd3-4c1b-9846-5336fbd3b415: Hello Mr. Roboto version 3!'
     );
   });
@@ -62,7 +71,7 @@ describe('fetchPrivateMessages', () => {
 
     await messageService.fetchPrivateMessages();
 
-    expect(logSpy).toHaveBeenCalledWith(
+    expect(logger.debug).toHaveBeenCalledWith(
       '📥 Private message from user-123: [No Text]'
     );
   });
@@ -80,7 +89,7 @@ describe('fetchPrivateMessages', () => {
 
     await messageService.fetchPrivateMessages();
 
-    expect(logSpy).toHaveBeenCalledWith('📥 No private messages found.');
+    expect(logger.debug).toHaveBeenCalledWith('📥 No private messages found.');
   });
 
   test('logs an error when the API call fails', async () => {
@@ -88,16 +97,12 @@ describe('fetchPrivateMessages', () => {
       get: jest.fn().mockRejectedValue(new Error('Request failed'))
     };
 
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
     await messageService.fetchPrivateMessages();
 
-    expect(errorSpy).toHaveBeenCalledWith(
+    expect(logger.error).toHaveBeenCalledWith(
       '❌ Error fetching private messages:',
       'Request failed'
     );
-
-    errorSpy.mockRestore();
   });
 
   test('returns array with message if it starts with command switch', async () => {

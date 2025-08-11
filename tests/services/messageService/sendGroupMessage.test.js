@@ -1,16 +1,26 @@
-const axios = require('axios');
-const { messageService } = require('../../../src/services/messageService.js');
+// Mock the modules before importing messageService
+jest.mock('../../../src/utils/logging.js', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }
+}));
 
 jest.mock('axios');
 
+// Now import the modules that use the mocked dependencies
+const axios = require('axios');
+const { messageService } = require('../../../src/services/messageService.js');
+const { logger } = require('../../../src/utils/logging.js');
+
 describe('messageService', () => {
-  let logSpy;
   let buildCustomDataSpy;
   let buildPayloadSpy;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
     // Spy and mock before each test runs
     buildCustomDataSpy = jest.spyOn(messageService, 'buildCustomData').mockResolvedValue({
@@ -39,7 +49,6 @@ describe('messageService', () => {
   });
 
   afterEach(() => {
-    logSpy.mockRestore();
     buildCustomDataSpy.mockRestore();
     buildPayloadSpy.mockRestore();
   });
@@ -67,60 +76,47 @@ describe('messageService', () => {
 
     // Verify axios post was called
     expect(axios.post).toHaveBeenCalledTimes(1);
-
-    // Verify console log contains confirmation message
-    // expect(logSpy.mock.calls[0][0]).toEqual(expect.stringContaining('✅ Group message sent:'));
   });
 
   test('sendGroupMessage calls API and completes successfully', async () => {
     axios.post.mockResolvedValue({ data: { success: true } });
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
     await messageService.sendGroupMessage('Group hello');
+
     expect(axios.post).toHaveBeenCalledTimes(1);
-    expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining('❌'));
-    logSpy.mockRestore();
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
-  test('sendGroupMessage handles API errors and logs console.error', async () => {
+  test('sendGroupMessage handles API errors and logs error', async () => {
     const error = new Error('Group failed');
     axios.post.mockRejectedValue(error);
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     await messageService.sendGroupMessage('Offline');
-    expect(errorSpy).toHaveBeenCalledWith(
+
+    expect(logger.error).toHaveBeenCalledWith(
       '❌ Failed to send group message:',
       error.message
     );
-    errorSpy.mockRestore();
   });
 
-  test('logs success and does not use console.error on successful API call', async () => {
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
+  test('does not use logger.error on successful API call', async () => {
     axios.post.mockResolvedValue({ data: { success: true } });
+
     await messageService.sendGroupMessage('Group Hello');
 
     expect(axios.post).toHaveBeenCalled();
-    expect(errorSpy).not.toHaveBeenCalled();
-
-    logSpy.mockRestore();
-    errorSpy.mockRestore();
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
-  test('calls console.error on API failure', async () => {
+  test('calls logger.error on API failure', async () => {
     const error = new Error('API failure');
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     axios.post.mockRejectedValue(error);
     await messageService.sendGroupMessage('Oops');
 
-    expect(errorSpy).toHaveBeenCalledWith(
+    expect(logger.error).toHaveBeenCalledWith(
       '❌ Failed to send group message:',
       error.message
     );
-
-    errorSpy.mockRestore();
   });
 });
