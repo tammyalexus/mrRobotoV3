@@ -1,5 +1,5 @@
 // Mock the modules before importing messageService
-jest.mock('../../../src/utils/logging.js', () => ({
+jest.mock('../../../src/lib/logging.js', () => ({
   logger: {
     debug: jest.fn(),
     info: jest.fn(),
@@ -17,7 +17,7 @@ jest.mock('../../../src/lib/buildUrl', () => ({
 const { messageService } = require('../../../src/services/messageService.js');
 const cometchatApi = require('../../../src/services/cometchatApi');
 const { buildUrl } = require('../../../src/lib/buildUrl');
-const { logger } = require('../../../src/utils/logging.js');
+const { logger } = require('../../../src/lib/logging.js');
 
 describe('fetchGroupMessagesRaw', () => {
   beforeEach(() => {

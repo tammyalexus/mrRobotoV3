@@ -4,7 +4,7 @@ const axios = require('axios');
 const { buildUrl } = require('../lib/buildUrl');
 const cometchatApi = require('./cometchatApi.js');
 const config = require('../config.js');
-const { logger } = require('../utils/logging.js');
+const { logger } = require('../lib/logging.js');
 
 // variables
 const RECEIVER_TYPE = {
@@ -86,8 +86,39 @@ const messageService = {
     }
   },
   
-  fetchAllUserMessages: async function() {
+    markMessageAsInterracted: async function(  ) {
+    // PATCH /v3/messages/:id/interacted
     try {
+
+      const url = buildUrl( cometchatApi.BASE_URL, [
+        'v3',
+        'users',
+        config.COMETCHAT_RECEIVER_UID,
+        'conversation',
+        'read'
+      ], [
+        [ 'messageId', 27516210 ],
+        [ 'uid', config.BOT_UID ]
+      ] );
+
+      logger.debug( `url: ${url}`)
+      const res = await cometchatApi.apiClient.post( url );
+      logger.debug( JSON.stringify( res, null, 2 ) );
+
+      logger.debug('✅ Marked message as interacted:', JSON.stringify(response.data, null, 2));
+    } catch (err) {
+      logger.error('❌ Error marking message as interacted:', err.response?.data || err.message);
+      logger.error('Full error object:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
+      if (err.response) {
+        logger.error('Full error response:', JSON.stringify(err.response, null, 2));
+      }
+    }
+  },
+
+  fetchAllUserMessages: async function() {
+    // https://api-explorer.cometchat.com/reference/user-list-user-messages
+    try {
+      
       const url = buildUrl( cometchatApi.BASE_URL, [
         'v3',
         'users',

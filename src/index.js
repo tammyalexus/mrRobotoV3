@@ -1,6 +1,6 @@
 const { messageService } = require('./services/messageService.js');
 const pollingService = require('./tasks/pollMessages.js');
-const { logger } = require('./utils/logging.js');
+const { logger } = require('./lib/logging.js');
 
 // Log application starting
 logger.info('=== Application Starting ===');
@@ -25,9 +25,11 @@ logger.info('=== Application Starting ===');
     // logger.info('Group message polling started');
     //
     logger.debug('Starting private message polling');
-    //pollingService.startPrivateMessagePolling(1000 * 5);
-    await messageService.fetchAllUserMessages()
-    logger.info('Private message polling started');
+    //pollingService.startPrivateMessagePolling(1000 * 5)
+    await messageService.fetchAllUserMessages();
+
+    // logger.debug('Updating message interraction status');
+    // await messageService.markMessageAsInterracted( );
 
     logger.info('=== Application Started Successfully ===');
 

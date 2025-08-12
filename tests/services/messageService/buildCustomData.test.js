@@ -1,7 +1,7 @@
 const { messageService } = require('../../../src/services/messageService.js');
-const { logger } = require('../../../src/utils/logging.js');
+const { logger } = require('../../../src/lib/logging.js');
 
-jest.mock('../../../src/utils/logging.js', () => ({
+jest.mock('../../../src/lib/logging.js', () => ({
   logger: {
     debug: jest.fn(),
     info: jest.fn(),

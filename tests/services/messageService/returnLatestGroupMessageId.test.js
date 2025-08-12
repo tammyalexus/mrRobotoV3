@@ -1,5 +1,5 @@
 // Mock the modules before importing messageService
-jest.mock('../../../src/utils/logging.js', () => ({
+jest.mock('../../../src/lib/logging.js', () => ({
   logger: {
     debug: jest.fn(),
     info: jest.fn(),
@@ -13,7 +13,7 @@ jest.mock('../../../src/services/cometchatApi');
 // Now import the modules that use the mocked dependencies
 const { messageService } = require('../../../src/services/messageService.js');
 const cometchatApi = require('../../../src/services/cometchatApi.js');
-const { logger } = require('../../../src/utils/logging.js');
+const { logger } = require('../../../src/lib/logging.js');
 
 describe('returnLatestGroupMessageId', () => {
   const FIXED_NOW = 1753096800; // Mocked current time

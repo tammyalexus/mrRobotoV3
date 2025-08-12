@@ -1,5 +1,5 @@
 const { messageService } = require('../services/messageService.js');
-const { logger } = require('../utils/logging.js');
+const { logger } = require('../lib/logging.js');
 
 /**
  * Processes an array of command messages and sends responses
