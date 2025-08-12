@@ -1,5 +1,5 @@
 // Mock dependencies before requiring the module under test
-jest.mock('../../src/utils/logging.js', () => ({
+jest.mock('../../src/lib/logging.js', () => ({
   logger: {
     debug: jest.fn(),
     info: jest.fn(),
@@ -24,7 +24,7 @@ jest.useFakeTimers();
 const { startGroupMessagePolling, startPrivateMessagePolling } = require('../../src/tasks/pollMessages.js');
 const { messageService } = require('../../src/services/messageService.js');
 const parseCommands = require('../../src/services/parseCommands.js');
-const { logger } = require('../../src/utils/logging.js');
+const { logger } = require('../../src/lib/logging.js');
 
 describe('pollMessages', () => {
   beforeEach(() => {

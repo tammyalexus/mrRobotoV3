@@ -1,6 +1,6 @@
 const { messageService } = require('../services/messageService.js');
 const parseCommands = require('../services/parseCommands.js');
-const { logger } = require('../utils/logging.js');
+const { logger } = require('../lib/logging.js');
 
 function startGroupMessagePolling(interval = 1000) {
   setInterval(async () => {

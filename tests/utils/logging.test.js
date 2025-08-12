@@ -1,5 +1,5 @@
 // Much simpler approach - mock the entire module
-jest.mock('../../src/utils/logging', () => ({
+jest.mock('../../src/lib/logging', () => ({
   logger: {
     debug: jest.fn(),
     info: jest.fn(),
@@ -19,7 +19,7 @@ describe('Logging utility', () => {
     jest.clearAllMocks();
 
     // Import the mocked logger
-    logger = require('../../src/utils/logging').logger;
+    logger = require('../../src/lib/logging').logger;
   });
 
   test('logger exposes expected logging methods', () => {
