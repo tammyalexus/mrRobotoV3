@@ -15,7 +15,7 @@ function startGroupMessagePolling(interval = 1000) {
 
         for (const message of sorted) {
           if (message?.data?.text) {
-            const result = await parseCommand(message.data.text, message.id);
+            const result = await parseCommand(message.data.text);
             if (result) {
               successCount++;
             }
