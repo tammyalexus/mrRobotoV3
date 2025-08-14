@@ -1,34 +1,15 @@
-const { messageService } = require('../services/messageService.js');
-const { logger } = require('../lib/logging.js');
+const config = require('../config.js');
 
 /**
- * Processes an array of command messages and sends responses
- * @param {Array<{data: {text: string}, id: string}>} messages - Array of message objects
- * @returns {Promise<void>}
- * @throws {Error} If messages parameter is invalid or processing fails
+ * Checks if a command string starts with the COMMAND_SWITCH character
+ * @param {string} commandText - The command string to process
+ * @returns {boolean} True if first character matches COMMAND_SWITCH, false otherwise
  */
-async function parseCommands( messages ) {
-  if ( !Array.isArray( messages ) ) {
-    throw new Error( 'Invalid messages parameter: expected an array' );
+function parseCommands(commandText) {
+  if (typeof commandText !== 'string' || !commandText.trim().length) {
+    return false;
   }
-
-  for ( const message of messages ) {
-    try {
-      if ( !message?.data?.text ) {
-        logger.warn( '⚠️ Skipping invalid message format:', message );
-        continue;
-      }
-
-      const commandText = message.data.text;
-      logger.debug( `⚙️ Processing command [${ message.id }]: ${ commandText }` );
-
-      await messageService.sendGroupMessage( `I heard the command ${ commandText }` );
-
-    } catch ( error ) {
-      logger.error( `❌ Failed to process command [${ message?.id }]:`, error.message );
-      // Continue processing other messages even if one fails
-    }
-  }
+  return commandText.trim().charAt(0) === config.COMMAND_SWITCH;
 }
 
 module.exports = parseCommands;

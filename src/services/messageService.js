@@ -64,10 +64,10 @@ const messageService = {
   getLatestGroupMessageId,
   setLatestGroupMessageId,
 
-  sendPrivateMessage: async function(theMessage) {
+  sendPrivateMessage: async function(theMessage, receiver) {
     try {
       const customData = await this.buildCustomData(theMessage);
-      const payload = await this.buildPayload(config.COMETCHAT_RECEIVER_UID, RECEIVER_TYPE.USER, customData, theMessage);
+      const payload = await this.buildPayload(receiver, RECEIVER_TYPE.USER, customData, theMessage);
       const response = await axios.post(`${cometchatApi.BASE_URL}/v3.0/messages`, payload, { headers: cometchatApi.headers });
       logger.debug('✅ Private message sent:', JSON.stringify(response.data, null, 2));
     } catch (err) {
@@ -86,43 +86,82 @@ const messageService = {
     }
   },
   
-    markMessageAsInterracted: async function(  ) {
+    markMessageAsInterracted: async function( lastMessageID ) {
     // PATCH /v3/messages/:id/interacted
+
     try {
+      const url = `${cometchatApi.BASE_URL}/v3/messages/${lastMessageID}/interacted`;
+      const headers = {
+        ...cometchatApi.headers,
+        'accept': 'application/json',
+        'content-type': 'application/json'
+      };
+      const data = {
+        interactions: [lastMessageID]
+      };
 
-      const url = buildUrl( cometchatApi.BASE_URL, [
-        'v3',
-        'users',
-        config.COMETCHAT_RECEIVER_UID,
-        'conversation',
-        'read'
-      ], [
-        [ 'messageId', 27516210 ],
-        [ 'uid', config.BOT_UID ]
-      ] );
-
-      logger.debug( `url: ${url}`)
-      const res = await cometchatApi.apiClient.post( url );
-      logger.debug( JSON.stringify( res, null, 2 ) );
-
+      logger.debug(`Attempting to mark message as interacted. ID: ${lastMessageID}, URL: ${url}, Payload: ${JSON.stringify(data)}, Request Headers: ${JSON.stringify(headers)}`);
+      const response = await axios.patch(url, data, { headers });
       logger.debug('✅ Marked message as interacted:', JSON.stringify(response.data, null, 2));
+      logger.debug('Response status:', response.status);
+      logger.debug('Response headers:', JSON.stringify(response.headers));
     } catch (err) {
-      logger.error('❌ Error marking message as interacted:', err.response?.data || err.message);
+      logger.error(`❌ Error marking message as interacted for ID ${lastMessageID}:`, err.response?.data || err.message);
       logger.error('Full error object:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
       if (err.response) {
         logger.error('Full error response:', JSON.stringify(err.response, null, 2));
+        logger.error('Response status:', err.response.status);
+        logger.error('Response headers:', JSON.stringify(err.response.headers));
       }
     }
   },
 
-  fetchAllUserMessages: async function() {
+
+  // Returns the last message ID for a user (from fetchAllPrivateUserMessages)
+  returnLastUserMessage: async function(userID) {
+    try {
+      const url = buildUrl( cometchatApi.BASE_URL, [
+        'v3', 'users', userID, 'messages'
+      ], [
+        ['limit', 1],
+        ['unread', true],
+        ['uid', config.BOT_UID]
+      ]);
+      const res = await cometchatApi.apiClient.get(url);
+      if (res.data && res.data.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
+        return res.data.data[0].id;
+      }
+      return null;
+    } catch (err) {
+      logger.error('❌ Error fetching last user message:', err.message);
+      return null;
+    }
+  },
+
+  // Marks the last private user message as read
+  markAllPrivateUserMessagesAsRead: async function (userID) {
+    try {
+      // logger.debug(`markAllPrivateUserMessagesAsRead called for userID: ${userID}`);
+      const lastMsgId = await this.returnLastUserMessage(userID);
+      // logger.debug(`Last unread message ID for user ${userID}: ${lastMsgId}`);
+      if (lastMsgId) {
+        await this.markMessageAsInterracted(lastMsgId);
+        // logger.debug(`✅ Marked last private message (${lastMsgId}) as read for user ${userID}`);
+      } else {
+        logger.debug(`No unread messages found for user ${userID}`);
+      }
+    } catch (err) {
+      logger.error(`❌ Error marking all private user messages as read for user ${userID}:`, err.message);
+    }
+  },
+
+  fetchAllPrivateUserMessages: async function( userID ) {
     // https://api-explorer.cometchat.com/reference/user-list-user-messages
     try {
-      
       const url = buildUrl( cometchatApi.BASE_URL, [
         'v3',
         'users',
-        config.COMETCHAT_RECEIVER_UID,
+        userID,
         'messages'
       ], [
         [ 'limit', 50 ],
@@ -132,33 +171,30 @@ const messageService = {
 
       const res = await cometchatApi.apiClient.get( url );
 
-        // Extract only the fields we need from each message
-        if (res.data && res.data.data && Array.isArray(res.data.data)) {
-          const messages = res.data.data;
-          const simplifiedMessages = messages.map(msg => {
-            // Extract message content safely (with fallbacks if structure is different)
-            const messageContent = msg.data && msg.data.customData && msg.data.customData.message 
-              ? msg.data.customData.message 
-              : (msg.data && msg.data.text) ? msg.data.text : '[No message content]';
+      // Extract only the fields we need from each message
+      if (res.data && res.data.data && Array.isArray(res.data.data)) {
+        const messages = res.data.data;
+        const simplifiedMessages = messages.map(msg => {
+          // Extract message content safely (with fallbacks if structure is different)
+          const messageContent = msg.data && msg.data.customData && msg.data.customData.message 
+            ? msg.data.customData.message 
+            : (msg.data && msg.data.text) ? msg.data.text : '[No message content]';
 
-            return {
-              id: msg.id,
-              message: messageContent,
-              readAt: msg.readAt ? new Date(msg.readAt * 1000).toISOString() : 'unread'
-            };
-          });
-
-          logger.debug(`User messages (${simplifiedMessages.length}):`);
-          simplifiedMessages.forEach(msg => {
-            logger.debug(`- ID: ${msg.id} | Message: "${msg.message}" | Read: ${msg.readAt}`);
-          });
-        } else {
-          logger.debug('No messages found or unexpected response format');
-        }
-
-
+          return {
+            id: msg.id,
+            message: messageContent,
+            readAt: msg.readAt ? new Date(msg.readAt * 1000).toISOString() : 'unread',
+            sender: msg.sender // add sender for reply
+          };
+        });
+        return simplifiedMessages;
+      } else {
+        // logger.debug('No messages found or unexpected response format');
+        return [];
+      }
     } catch ( err ) {
       logger.error( '❌ Error fetching all messages:', err.message );
+      return [];
     }
   },
   
@@ -218,36 +254,30 @@ const messageService = {
       return [];
     }
   },
-  
-  fetchGroupMessages: async function() {
-    const params = [
-      ['per_page', 50],
-      ['undelivered', 1]
-    ];
 
-    if (this.getLatestGroupMessageId() !== null) {
-      params.push(['id', latestGroupMessageId]);
-    } else {
-      // Fallback to current timestamp for initial fetch
-      params.push(['updatedAt', Math.floor(Date.now() / 1000)]);
+  // Mark User Conversation As Read endpoint
+  markMessageAsInterracted: async function() {
+    try {
+      const url = `${cometchatApi.BASE_URL}/v3/users/${config.COMETCHAT_RECEIVER_UID}/conversation/read`;
+      const headers = {
+        ...cometchatApi.headers,
+        'accept': 'application/json',
+        'content-type': 'application/json'
+      };
+      // logger.debug(`Attempting to mark conversation as read. UserID: ${config.COMETCHAT_RECEIVER_UID}, URL: ${url}, Request Headers: ${JSON.stringify(headers)}`);
+      const response = await axios.post(url, {}, { headers });
+      // logger.debug('✅ Marked conversation as read:', JSON.stringify(response.data, null, 2));
+      // logger.debug('Response status:', response.status);
+      // logger.debug('Response headers:', JSON.stringify(response.headers));
+    } catch (err) {
+      logger.error(`❌ Error marking conversation as read for user ${config.COMETCHAT_RECEIVER_UID}:`, err.response?.data || err.message);
+      logger.error('Full error object:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
+      if (err.response) {
+        logger.error('Full error response:', JSON.stringify(err.response, null, 2));
+        logger.error('Response status:', err.response.status);
+        logger.error('Response headers:', JSON.stringify(err.response.headers));
+      }
     }
-
-    const messages = await this.fetchGroupMessagesRaw(params);
-    
-    if (messages.length === 0) {
-      // logger.debug('📥 No new group messages.');
-      return [];
-    }
-
-    // Update latest message ID based on last message in list
-    this.setLatestGroupMessageId(messages[messages.length - 1].id);
-    
-    const commandMessages = messages.filter(msg => msg.data?.text?.startsWith(config.COMMAND_SWITCH));
-    if (commandMessages.length > 0) {
-      logger.debug('📥 Group command messages:', commandMessages.map(m => `${m.id}: ${m.data.text}`));
-    }
-
-    return commandMessages;
   },
 
   returnLatestGroupMessageId: async function() {
