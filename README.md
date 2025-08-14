@@ -104,6 +104,15 @@ To create a new Bot and get a token for it, head to the BotSignup endpoint here:
 
 However, in order to use that you need to be authorised so will need to get your own auth token. You can find this using your browser's developer tools to look in the browser storage. Once you're logged into hang.fm look for a key called "token-storage" and copy its value. You MUST remove the double quotes around the token to be able to use it. You can then paste that into the authentication at the top of any Swagger page, or once you have it, use the Bots token instead.
 
+Now you have the Bot token from the signUpBot endpoint, deauthorise yourself on that swagger page, and head to:
+https://gateway.prod.tt.fm/api/user-service/api/#/CometChat/getUserCometChatAuthToken
+
+Authorise yourself (click the padlock on the right side) using the Bot token and execute to get the "cometAuthToken". Add that to your .env file as "COMETCHAT_APP_ID"
+
+Next head to: https://gateway.prod.tt.fm/api/user-service/api/#/Bot%20endpoints/getBotToken and execute, using the Bot token again, to get the Hang token and add it to the .env file as BOT_USER_TOKEN
+
+**DO NOT SHARE ANY OF THESE IDs OR CHECK THEM INTO GIT. If you do other people will be able to login as your Bot**
+
 For the bot's avatar, you'll want to use the bot token to update the bot's profile via https://gateway.prod.tt.fm/api/user-service/api/#/User%20profile/updateProfile. 
 
 There are two special bot avatars. Their IDs are bot-01 and bot-2. Set one of those on the Bot profile and also use it as the CHAT_AVATAR_ID
