@@ -32,7 +32,7 @@ describe('fetchGroupMessagesRaw', () => {
     const fakeMessages = [{ id: 1, data: { text: 'Hello' } }];
     cometchatApi.apiClient.get.mockResolvedValue({ data: { data: fakeMessages } });
 
-    const result = await messageService.fetchGroupMessagesRaw([['per_page', 1]]);
+    const result = await messageService.fetchGroupMessagesRaw('test-room-id', [['per_page', 1]]);
 
     expect(result).toEqual(fakeMessages);
     expect(cometchatApi.apiClient.get).toHaveBeenCalled();
@@ -43,7 +43,7 @@ describe('fetchGroupMessagesRaw', () => {
     const error = new Error('Network error');
     cometchatApi.apiClient.get.mockRejectedValue(error);
 
-    const result = await messageService.fetchGroupMessagesRaw([['per_page', 1]]);
+    const result = await messageService.fetchGroupMessagesRaw('test-room-id', [['per_page', 1]]);
 
     expect(result).toEqual([]);
     expect(logger.error).toHaveBeenCalledWith('❌ Error fetching group messages:', error.message);
@@ -53,7 +53,7 @@ describe('fetchGroupMessagesRaw', () => {
     const error = new Error('Sync error');
     cometchatApi.apiClient.get.mockImplementation(() => { throw error; });
 
-    const result = await messageService.fetchGroupMessagesRaw([['per_page', 1]]);
+    const result = await messageService.fetchGroupMessagesRaw('test-room-id', [['per_page', 1]]);
 
     expect(result).toEqual([]);
     expect(logger.error).toHaveBeenCalledWith('❌ Error fetching group messages:', error.message);
@@ -64,7 +64,7 @@ describe('fetchGroupMessagesRaw', () => {
       throw new Error('buildUrl failed');
     });
 
-    const result = await messageService.fetchGroupMessagesRaw([['per_page', 1]]);
+    const result = await messageService.fetchGroupMessagesRaw('test-room-id', [['per_page', 1]]);
 
     expect(result).toEqual([]);
     expect(logger.error).toHaveBeenCalledWith('❌ Error fetching group messages:', 'buildUrl failed');
@@ -73,7 +73,7 @@ describe('fetchGroupMessagesRaw', () => {
   test('returns empty array if response data.data is missing', async () => {
     cometchatApi.apiClient.get.mockResolvedValue({ data: {} });
 
-    const result = await messageService.fetchGroupMessagesRaw();
+    const result = await messageService.fetchGroupMessagesRaw('test-room-id');
 
     expect(result).toEqual([]);
     expect(logger.error).not.toHaveBeenCalled();

@@ -1,7 +1,7 @@
 // src/services/messageService.js
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
-const { buildUrl } = require('../lib/buildUrl');
+const { buildUrl, makeRequest } = require('../lib/buildUrl');
 const cometchatApi = require('./cometchatApi.js');
 const config = require('../config.js');
 const { logger } = require('../lib/logging.js');
@@ -32,8 +32,8 @@ async function buildCustomData( theMessage ) {
     avatarId: config.CHAT_AVATAR_ID,
     userName: config.CHAT_NAME,
     color: `#${ config.CHAT_COLOUR }`,
-    mentions: [],
-    userUuid: config.BOT_UID,
+    mentions: [], // Will be populated by sendGroupMessage if provided
+    userUuid: config.BOT_UID, // Standardized to BOT_UID
     badges: [ 'VERIFIED', 'STAFF' ],
     id: uuidv4()
   };
@@ -64,6 +64,35 @@ const messageService = {
   getLatestGroupMessageId,
   setLatestGroupMessageId,
 
+  joinChat: async function(roomId) {
+    try {
+      const headers = {
+        ...cometchatApi.headers,
+        appid: config.COMETCHAT_API_KEY,
+        authtoken: config.CHAT_TOKEN,
+        dnt: 1,
+        origin: 'https://tt.live',
+        referer: 'https://tt.live/',
+        sdk: 'javascript@3.0.10'
+      };
+
+      const paths = [
+        'v3.0',
+        'groups',
+        roomId,
+        'members'
+      ];
+
+      const url = buildUrl(`https://${config.COMETCHAT_API_KEY}.apiclient-us.cometchat.io`, paths);
+      const response = await makeRequest(url, { headers, method: 'POST' });
+      logger.debug('✅ Successfully joined chat:', JSON.stringify(response, null, 2));
+      return response;
+    } catch (error) {
+      logger.error('❌ Error joining chat:', error.message);
+      throw error;
+    }
+  },
+
   sendPrivateMessage: async function(theMessage, receiver) {
     try {
       const customData = await this.buildCustomData(theMessage);
@@ -75,14 +104,79 @@ const messageService = {
     }
   },
 
-  sendGroupMessage: async function( theMessage ) {
+  sendGroupMessage: async function(theMessage, options = {}) {
     try {
-      const customData = await this.buildCustomData( theMessage );
-      const payload = await this.buildPayload( config.HANGOUT_ID, RECEIVER_TYPE.GROUP, customData, theMessage )
-      await axios.post( `${ cometchatApi.BASE_URL }/v3.0/messages`, payload, { headers: cometchatApi.headers } );
-      // logger.debug( '✅ Group message sent:', JSON.stringify( response.data.data.data.text, null, 2 ) );
+      // Handle both string messages and options object (for postMessage compatibility)
+      let message, room, images, mentions, receiverType;
+      
+      if (typeof theMessage === 'object' && theMessage.message) {
+        // Called with options object (postMessage style): sendGroupMessage({message: "text", room: "id", ...})
+        message = theMessage.message;
+        room = theMessage.room || config.HANGOUT_ID;
+        images = theMessage.images || null;
+        mentions = theMessage.mentions || null;
+        receiverType = theMessage.receiverType || RECEIVER_TYPE.GROUP;
+      } else {
+        // Called with string message (traditional style): sendGroupMessage("text", {room: "id", ...})
+        message = theMessage;
+        room = options.room || config.HANGOUT_ID;
+        images = options.images || null;
+        mentions = options.mentions || null;
+        receiverType = options.receiverType || RECEIVER_TYPE.GROUP;
+      }
+
+      // Validation
+      if (!message) {
+        throw new Error('Message content is required');
+      }
+
+      const customData = await this.buildCustomData(message);
+      
+      // Add images if provided
+      if (images) {
+        customData.imageUrls = images;
+      }
+
+      // Add mentions if provided
+      if (mentions) {
+        customData.mentions = mentions.map(mention => ({
+          start: mention.position,
+          userNickname: mention.nickname,
+          userUuid: mention.userId
+        }));
+      }
+
+      const payload = await this.buildPayload(room, receiverType, customData, message);
+      
+      const response = await axios.post(`${cometchatApi.BASE_URL}/v3.0/messages`, payload, { 
+        headers: cometchatApi.headers 
+      });
+      
+      logger.debug('✅ Group message sent successfully:', {
+        message: message,
+        room: room,
+        receiverType: receiverType,
+        hasImages: !!images,
+        hasMentions: !!mentions,
+        responseId: response.data?.data?.id
+      });
+
+      return {
+        message: message,
+        messageResponse: response.data
+      };
+
     } catch (err) {
-      logger.error('❌ Failed to send group message:', err.response?.data || err.message);
+      logger.error('❌ Failed to send group message:', {
+        message: typeof theMessage === 'object' ? theMessage.message : theMessage,
+        error: err.response?.data || err.message,
+        status: err.response?.status
+      });
+      
+      return {
+        message: typeof theMessage === 'object' ? theMessage.message : theMessage,
+        error: err.response?.data || err.message || "Unknown error"
+      };
     }
   },
   
@@ -227,20 +321,74 @@ const messageService = {
     }
   },
 
-  fetchGroupMessagesRaw: async function(params = []) {
+  fetchGroupMessages: async function(roomId = null, options = {}) {
+    const config = require('../config.js');
+    try {
+      const {
+        fromTimestamp = null,
+        lastID = null,
+        filterCommands = true,
+        limit = 50
+      } = options;
+
+      const targetRoomId = roomId || config.HANGOUT_ID;
+      const latestMessageId = getLatestGroupMessageId();
+      
+      // Build parameters array
+      const params = [];
+      if (lastID || latestMessageId) {
+        params.push(['id', lastID || latestMessageId]);
+      }
+      if (fromTimestamp) {
+        params.push(['sentAt', fromTimestamp]);
+      }
+      if (limit !== 50) {
+        params.push(['per_page', limit]);
+      }
+      
+      const messages = await this.fetchGroupMessagesRaw(targetRoomId, params);
+      
+      if (!Array.isArray(messages)) {
+        return [];
+      }
+
+      // Filter for command messages only if requested
+      let filteredMessages = messages;
+      if (filterCommands) {
+        filteredMessages = messages.filter(msg => {
+          const text = msg?.data?.text;
+          return text && text.startsWith(process.env.COMMAND_SWITCH);
+        });
+      }
+
+      if (filteredMessages.length > 0) {
+        logger.debug(`📥 Group ${filterCommands ? 'command ' : ''}messages:`, filteredMessages);
+      }
+
+      return filteredMessages;
+    } catch (err) {
+      logger.error('❌ Error fetching group messages:', err.message);
+      return [];
+    }
+  },
+
+  fetchGroupMessagesRaw: async function(roomId, params = []) {
+    const messageLimit = 50; // Default message limit
     const defaultParams = [
+      [ 'per_page', messageLimit ],
       ['hideMessagesFromBlockedUsers', 0],
       ['unread', 0],
       ['withTags', 0],
+      [ 'undelivered', 1 ],
       ['hideDeleted', 0],
-      ['affix', 'append']
+      ['affix', 'append'],
     ];
 
     try {
       const url = buildUrl( cometchatApi.BASE_URL, [
         'v3.0', 
         'groups', 
-        config.HANGOUT_ID, 
+        roomId, 
         'messages'
       ], [
         ...defaultParams, 
