@@ -1,16 +1,24 @@
-const { messageService } = require('./services/messageService.js');
-const pollingService = require('./tasks/pollMessages.js');
 const { logger } = require('./lib/logging.js');
 const config = require('./config.js');
+const { Bot } = require('./lib/hangfm.js');
+
+const { messageService } = require('./services/messageService.js');
+const pollingService = require('./tasks/pollMessages.js');
 const parseCommands = require('./services/parseCommands');
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
 
 // Log application starting
 logger.info('=== Application Starting ===');
 
+const roomBot = new Bot( config.HANGOUT_ID );
+
 (async () => {
   try {
+    await roomBot.connect( )
 
-    
     // // start polling the message service for new messages
     // logger.debug('Starting group message polling');
     // pollingService.startGroupMessagePolling(1000 * 1); // 1000ms * number of seconds for interval
@@ -68,5 +76,6 @@ logger.info('=== Application Starting ===');
 
   } catch (err) {
     logger.error('❌ Error during startup:', err.response?.data || err.message);
+    logger.error( err )
   }
 })();

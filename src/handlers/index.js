@@ -1,12 +1,12 @@
-import message from './message.js'
-import playedSong from './playedSong.js'
-import userJoined from './userJoined.js'
-import userLeft from './userLeft.js'
-import playedOneTimeAnimation from "./playedOneTimeAnimation.js";
-import votedOnSong from "./votedOnSong.js";
-import addedDj from "./addedDj.js";
-import removedDj from "./removedDj.js";
-import nothingPlaying from "./nothingPlaying.js";
+const message = require('./message.js');
+const playedSong = require('./playedSong.js');
+const userJoined = require('./userJoined.js');
+const userLeft = require('./userLeft.js');
+const playedOneTimeAnimation = require("./playedOneTimeAnimation.js");
+const votedOnSong = require("./votedOnSong.js");
+const addedDj = require("./addedDj.js");
+const removedDj = require("./removedDj.js");
+const nothingPlaying = require("./nothingPlaying.js");
 
 const handlers = {
   message,
@@ -20,4 +20,4 @@ const handlers = {
   nothingPlaying
 }
 
-export default handlers;
+module.exports = handlers;

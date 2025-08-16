@@ -16,6 +16,29 @@ function assignSearchParams(url, searchParams) {
   // Other types are ignored (e.g., string, null, number, etc.)
 }
 
+const fetch = require('node-fetch');
+
+const makeRequest = async ( url, options, extraHeaders ) => {
+  // Convert string URL to URL object if needed
+  const urlObj = typeof url === 'string' ? new URL(url) : url;
+  
+  const requestOptions = {
+    headers: {
+      accept: 'application/json',
+      'accept-language': 'en-ZA,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,af;q=0.6',
+      'cache-control': 'max-age=0',
+      'content-type': 'application/json',
+      ...extraHeaders
+    },
+    ...options
+  }
+  
+  try {
+    const response = await fetch( urlObj.href, requestOptions )
+    return await response.json()
+  } catch ( error ) {}
+}
+
 function buildUrl(host, paths = [], searchParams = []) {
   if (!host || typeof host !== 'string') {
     throw new Error('Invalid host URL');
@@ -45,4 +68,5 @@ function buildUrl(host, paths = [], searchParams = []) {
 module.exports = {
   buildUrl,
   assignSearchParams,
+  makeRequest
 };
