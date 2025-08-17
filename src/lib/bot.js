@@ -1,9 +1,28 @@
 const { ServerMessageName, SocketClient, StatefulServerMessageName, StatelessServerMessageName } = require('ttfm-socket');
+const fs = require('fs').promises;
+const path = require('path');
 
 class Bot {
   constructor(slug, services) {
     this.services = services;
     this.lastMessageIDs = {}
+  }
+
+  // ========================================================
+  // File Logging Helper
+  // ========================================================
+
+  async _writeToLogFile(filename, data) {
+    try {
+      const logsDir = path.join(process.cwd(), 'logs');
+      const filePath = path.join(logsDir, filename);
+      const timestamp = new Date().toISOString();
+      const logEntry = `${timestamp}: ${JSON.stringify(data, null, 2)}\n`;
+      
+      await fs.appendFile(filePath, logEntry);
+    } catch (error) {
+      this.services.logger.error(`Failed to write to log file ${filename}: ${error.message}`);
+    }
   }
 
   // ========================================================
@@ -91,20 +110,32 @@ class Bot {
   _setupStatefulMessageListener() {
     this.socket.on('statefulMessage', async (payload) => {
       this.services.logger.debug(`statefulMessage - ${payload.name}`);
+      
+      // Log payload to file
+      await this._writeToLogFile('statefulMessage.log', payload);
+      
       // TODO: Add specific handler logic based on payload.name
     });
   }
 
   _setupStatelessMessageListener() {
-    this.socket.on("statelessMessage", (payload) => {
+    this.socket.on("statelessMessage", async (payload) => {
       this.services.logger.debug(`statelessMessage - ${payload.name}`);
+      
+      // Log payload to file
+      await this._writeToLogFile('statelessMessage.log', payload);
+      
       // TODO: Add specific handler logic based on payload.name
     });
   }
 
   _setupServerMessageListener() {
-    this.socket.on("serverMessage", (payload) => {
+    this.socket.on("serverMessage", async (payload) => {
       this.services.logger.debug(`serverMessage - ${payload.message.name}`);
+      
+      // Log payload to file
+      await this._writeToLogFile('serverMessage.log', payload);
+      
       // TODO: Add specific handler logic based on payload.message.name
     });
   }
@@ -112,6 +143,10 @@ class Bot {
   _setupErrorListener() {
     this.socket.on("error", async (message) => {
       this.services.logger.debug(`Socket error: ${message}`);
+      
+      // Log message to file
+      await this._writeToLogFile('socketError.log', { error: message, timestamp: new Date().toISOString() });
+      
       // TODO: Add specific error handling logic
     });
   }
@@ -192,21 +227,41 @@ class Bot {
 
   async _handleMessage(chatMessage, sender, fullMessage) {
     try {
-      // Debug the services object
-      this.services.logger.debug(`Services available: ${Object.keys(this.services)}`);
-      this.services.logger.debug(`parseCommands type: ${typeof this.services.parseCommands}`);
-      
       // Check if parseCommands exists and is a function
       if (typeof this.services.parseCommands === 'function') {
-        const result = await this.services.parseCommands(chatMessage, this.services);
-        this.services.logger.debug(`parseCommands result: ${result}`);
+        const parseResult = await this.services.parseCommands(chatMessage, this.services);
+        this.services.logger.debug(`parseCommands result: ${JSON.stringify(parseResult)}`);
+        
+        // If it's a command, process it with commandService
+        if (parseResult && parseResult.isCommand) {
+          this.services.logger.debug(`Command detected: "${parseResult.command}" with remainder: "${parseResult.remainder}"`);
+          
+          // Check if commandService exists and is a function
+          if (typeof this.services.commandService === 'function') {
+            const context = {
+              sender,
+              fullMessage,
+              chatMessage
+            };
+            
+            const commandResult = await this.services.commandService(
+              parseResult.command,
+              parseResult.remainder,
+              this.services,
+              context
+            );
+            
+            this.services.logger.debug(`Command processed: ${JSON.stringify(commandResult)}`);
+          } else {
+            this.services.logger.warn(`commandService is not available: ${typeof this.services.commandService}`);
+          }
+        }
       } else {
         this.services.logger.warn(`parseCommands is not a function: ${typeof this.services.parseCommands}`);
       }
       
       // TODO: Add additional message handling logic here
-      // - Command routing
-      // - Response generation
+      // - Non-command message processing
       // - Context management
     } catch (error) {
       // More defensive error handling

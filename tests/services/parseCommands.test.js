@@ -8,16 +8,13 @@ jest.mock('../../src/lib/logging.js', () => ({
   }
 }));
 
-// Mock the messageService
-jest.mock('../../src/services/messageService.js', () => ({
-  messageService: {
-    sendGroupMessage: jest.fn()
-  }
+// Mock the config
+jest.mock('../../src/config.js', () => ({
+  COMMAND_SWITCH: '!'
 }));
 
 // Now import the modules
 const parseCommands = require('../../src/services/parseCommands.js');
-const { messageService } = require('../../src/services/messageService.js');
 const { logger } = require('../../src/lib/logging.js');
 
 describe('parseCommands', () => {
@@ -25,54 +22,89 @@ describe('parseCommands', () => {
     jest.clearAllMocks();
   });
 
-  test('throws error if messages parameter is not an array', async () => {
-    await expect(parseCommands('not an array')).rejects.toThrow('Invalid messages parameter: expected an array');
+  test('returns false for non-string input', async () => {
+    const result = await parseCommands(123);
+    expect(result).toBe(false);
+    expect(logger.warn).toHaveBeenCalledWith('Invalid command format (not a string or empty): 123');
   });
 
-  test('logs warning for invalid message format and continues', async () => {
-    const messages = [
-      { id: '1' }, // missing data.text
-      { id: '2', data: { text: 'valid command' } }
-    ];
-
-    await parseCommands(messages);
-
-    expect(logger.warn).toHaveBeenCalledWith('⚠️ Skipping invalid message format:', messages[0]);
-    expect(logger.debug).toHaveBeenCalledWith('⚙️ Processing command [2]: valid command');
-    expect(messageService.sendGroupMessage).toHaveBeenCalledTimes(1);
-    expect(messageService.sendGroupMessage).toHaveBeenCalledWith('I heard the command valid command');
+  test('returns false for empty string', async () => {
+    const result = await parseCommands('');
+    expect(result).toBe(false);
   });
 
-  test('processes valid commands and sends responses', async () => {
-    const messages = [
-      { id: '1', data: { text: '!help' } },
-      { id: '2', data: { text: '!status' } }
-    ];
-
-    await parseCommands(messages);
-
-    expect(logger.debug).toHaveBeenCalledWith('⚙️ Processing command [1]: !help');
-    expect(logger.debug).toHaveBeenCalledWith('⚙️ Processing command [2]: !status');
-    expect(messageService.sendGroupMessage).toHaveBeenCalledTimes(2);
-    expect(messageService.sendGroupMessage).toHaveBeenCalledWith('I heard the command !help');
-    expect(messageService.sendGroupMessage).toHaveBeenCalledWith('I heard the command !status');
+  test('returns false for non-command messages', async () => {
+    const result = await parseCommands('Hello world');
+    expect(result).toBe(false);
   });
 
-  test('logs error if processing a command fails but continues with others', async () => {
-    const messages = [
-      { id: '1', data: { text: '!help' } },
-      { id: '2', data: { text: '!error' } }
-    ];
+  test('returns command object for valid commands without arguments', async () => {
+    const result = await parseCommands('!help');
+    
+    expect(result).toEqual({
+      isCommand: true,
+      command: 'help',
+      remainder: '',
+      originalText: '!help'
+    });
+  });
 
-    const error = new Error('Command processing failed');
-    messageService.sendGroupMessage.mockImplementationOnce(() => Promise.resolve());
-    messageService.sendGroupMessage.mockImplementationOnce(() => Promise.reject(error));
+  test('returns command object for valid commands with arguments', async () => {
+    const result = await parseCommands('!echo Hello World');
+    
+    expect(result).toEqual({
+      isCommand: true,
+      command: 'echo',
+      remainder: 'Hello World',
+      originalText: '!echo Hello World'
+    });
+  });
 
-    await parseCommands(messages);
+  test('handles commands with extra whitespace', async () => {
+    const result = await parseCommands('  !status   arg1   arg2  ');
+    
+    expect(result).toEqual({
+      isCommand: true,
+      command: 'status',
+      remainder: 'arg1   arg2',
+      originalText: '!status   arg1   arg2'
+    });
+  });
 
-    expect(logger.debug).toHaveBeenCalledWith('⚙️ Processing command [1]: !help');
-    expect(logger.debug).toHaveBeenCalledWith('⚙️ Processing command [2]: !error');
-    expect(logger.error).toHaveBeenCalledWith('❌ Failed to process command [2]:', 'Command processing failed');
-    expect(messageService.sendGroupMessage).toHaveBeenCalledTimes(2);
+  test('handles command with services parameter', async () => {
+    const mockServices = {
+      logger: {
+        debug: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn()
+      },
+      config: {
+        COMMAND_SWITCH: '!'
+      }
+    };
+
+    const result = await parseCommands('!test', mockServices);
+    
+    expect(result).toEqual({
+      isCommand: true,
+      command: 'test',
+      remainder: '',
+      originalText: '!test'
+    });
+    
+    expect(mockServices.logger.debug).toHaveBeenCalledWith('Processing message: !test');
+  });
+
+  test('handles errors gracefully', async () => {
+    // Mock logger to throw an error
+    const originalLogger = require('../../src/lib/logging.js').logger;
+    originalLogger.debug.mockImplementationOnce(() => {
+      throw new Error('Logger error');
+    });
+
+    const result = await parseCommands('!help');
+    
+    expect(result).toBe(false);
+    expect(logger.error).toHaveBeenCalledWith('Failed to process command: Logger error');
   });
 });
