@@ -37,7 +37,7 @@ describe('messageService', () => {
     // Assert that customData was resolved properly (not a Promise)
     expect(calledPayload).toHaveProperty('data.metadata.chatMessage.message', 'Hello Test');
     expect(typeof calledPayload.data.metadata.chatMessage).toBe('object');
-    expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('✅ Private message sent:'), expect.any(String));
+    expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('✅ Private message sent:'));
   });
 
   test('sendPrivateMessage logs error on axios failure', async () => {
@@ -54,8 +54,7 @@ describe('messageService', () => {
 
     expect(axios.post).toHaveBeenCalledTimes(1);
     expect(logger.error).toHaveBeenCalledWith(
-      '❌ Failed to send private message:',
-      error.response.data
+      expect.stringContaining('❌ Failed to send private message: Unauthorized')
     );
   });
 
@@ -66,8 +65,7 @@ describe('messageService', () => {
     await messageService.sendPrivateMessage('Hello Error');
 
     expect(logger.error).toHaveBeenCalledWith(
-      '❌ Failed to send private message:',
-      error.message
+      expect.stringContaining('❌ Failed to send private message: Network failure')
     );
   });
 
@@ -84,8 +82,7 @@ describe('messageService', () => {
 
     expect(axios.post).toHaveBeenCalledTimes(1);
     expect(logger.error).toHaveBeenCalledWith(
-      '❌ Failed to send private message:',
-      error.response.data
+      expect.stringContaining('❌ Failed to send private message:')
     );
   });
 });

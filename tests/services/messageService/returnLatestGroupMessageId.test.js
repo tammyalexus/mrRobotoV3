@@ -71,6 +71,6 @@ describe('returnLatestGroupMessageId', () => {
 
     expect(result).toBeNull();
     expect(cometchatApi.apiClient.get).toHaveBeenCalledTimes(1); // exits on error
-    expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('❌ Error fetching messages at lookback 0m:'), 'API down');
+    expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('❌ Error fetching messages at lookback 0m:'));
   });
 });

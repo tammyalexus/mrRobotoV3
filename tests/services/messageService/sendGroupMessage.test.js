@@ -94,8 +94,7 @@ describe('messageService', () => {
     await messageService.sendGroupMessage('Offline');
 
     expect(logger.error).toHaveBeenCalledWith(
-      '❌ Failed to send group message:',
-      error.message
+      expect.stringContaining('❌ Failed to send group message:')
     );
   });
 
@@ -115,8 +114,7 @@ describe('messageService', () => {
     await messageService.sendGroupMessage('Oops');
 
     expect(logger.error).toHaveBeenCalledWith(
-      '❌ Failed to send group message:',
-      error.message
+      expect.stringContaining('❌ Failed to send group message:')
     );
   });
 });

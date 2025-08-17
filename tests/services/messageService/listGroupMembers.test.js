@@ -54,8 +54,10 @@ describe('messageService.listGroupMembers', () => {
       cometchatApi.BASE_URL, 
       ['v3.0', 'groups', config.HANGOUT_ID, 'members'],
       [
-        ['limit', 50],
-        ['uid', config.BOT_UID]
+        ['perPage', 100],
+        ['uid', config.BOT_UID],
+        ['page', 1],
+        ['status', 'available']
       ]
     );
     expect(cometchatApi.apiClient.get).toHaveBeenCalledWith(
@@ -72,9 +74,9 @@ describe('messageService.listGroupMembers', () => {
     const result = await messageService.listGroupMembers();
 
     // Verify
-    expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('members: '));
+    expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('Group members'));
     expect(logger.error).not.toHaveBeenCalled();
-    expect(result).toEqual(mockResponse.data);
+    expect(result).toEqual({ data: mockResponse.data.data, totalCount: 2 });
   });
 
   test('should handle API errors correctly', async () => {
