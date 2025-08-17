@@ -123,6 +123,14 @@ services.logger.info('======================================= Application Starti
 
     services.logger.info('======================================= Application Started Successfully =======================================');
     
+    // Send startup message to group
+    try {
+      await services.messageService.sendGroupMessage(`Mr. Roboto V3 is online...user ${services.config.COMMAND_SWITCH}help to see some of what I can do`);
+      services.logger.info("✅ Startup message sent to group");
+    } catch (error) {
+      services.logger.error(`❌ Failed to send startup message: ${error?.message || error?.toString() || 'Unknown error'}`);
+    }
+    
   } catch (err) {
     services.logger.error(`❌ Error during startup: ${err.response?.data || err.message}`);
     services.logger.error(err);

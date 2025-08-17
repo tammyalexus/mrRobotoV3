@@ -1,6 +1,7 @@
 // Services Container - Singleton pattern via Node.js module caching
 const { messageService } = require('./messageService.js');
 const parseCommands = require('./parseCommands.js');
+const commandService = require('./commandService.js');
 const pollingService = require('../tasks/pollMessages.js');
 const playlistService = require('./playlistService.js');
 const { logger } = require('../lib/logging.js');
@@ -22,6 +23,7 @@ const services = {
   // External services
   messageService,
   parseCommands,
+  commandService,
   pollingService,
   playlistService,
   logger,

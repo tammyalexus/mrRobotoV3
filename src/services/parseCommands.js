@@ -5,7 +5,7 @@ const config = require('../config.js');
  * Asynchronously processes a single command
  * @param {string} commandText - The command string to process
  * @param {Object} services - Services container with logger and config
- * @returns {Promise<boolean>} True if command was processed successfully
+ * @returns {Promise<Object|boolean>} Object with command details if command found, false otherwise
  */
 async function parseCommand(commandText, services = null) {
   // Fallback to direct imports if services not provided (maintains backward compatibility)
@@ -25,16 +25,31 @@ async function parseCommand(commandText, services = null) {
     // Check if the command starts with the command switch
     if (!trimmedCommand.startsWith(config.COMMAND_SWITCH)) {
       return Promise.resolve(false);
-    } else {
-      return Promise.resolve(true);
     }
 
-    // Extract the command name and arguments
-    // const parts = trimmedCommand.slice(config.COMMAND_SWITCH.length).trim().split(/\s+/);
-    // const command = parts[0].toLowerCase();
-    // const args = parts.slice(1);
+    // Extract the command name and remainder
+    const commandPart = trimmedCommand.slice(config.COMMAND_SWITCH.length).trim();
+    const spaceIndex = commandPart.indexOf(' ');
+    
+    let command, remainder;
+    if (spaceIndex === -1) {
+      // No space found, entire string is the command
+      command = commandPart;
+      remainder = '';
+    } else {
+      // Split at first space
+      command = commandPart.substring(0, spaceIndex);
+      remainder = commandPart.substring(spaceIndex + 1);
+    }
 
-    // logger.debug(`Command: ${command}, Args: ${args.join(', ')}`);
+    logger.debug(`Command detected: "${command}", remainder: "${remainder}"`);
+
+    return Promise.resolve({
+      isCommand: true,
+      command: command.toLowerCase(),
+      remainder: remainder.trim(),
+      originalText: trimmedCommand
+    });
 
   } catch (error) {
     const errorMessage = error && typeof error === 'object' 
