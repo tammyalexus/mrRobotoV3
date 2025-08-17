@@ -1,5 +1,4 @@
-const config = require('../config.js');
-const { logger } = require('../lib/logging.js');
+const services = require('./serviceContainer.js');
 
 /**
  * Asynchronously processes a single command
@@ -10,30 +9,30 @@ const { logger } = require('../lib/logging.js');
 async function parseCommand(commandText) {
   // Validate input
   if (typeof commandText !== 'string' || !commandText.trim().length) {
-    logger.warn(`Invalid command format (not a string or empty): ${commandId}`);
+    services.logger.warn(`Invalid command format (not a string or empty): ${commandText}`);
     return Promise.resolve(false);
   }
 
   try {
     const trimmedCommand = commandText.trim();
-    logger.debug(`Processing message: ${trimmedCommand}`);
+    services.logger.debug(`Processing message: ${trimmedCommand}`);
 
     // Check if the command starts with the command switch
-    if (!trimmedCommand.startsWith(config.COMMAND_SWITCH)) {
+    if (!trimmedCommand.startsWith(services.config.COMMAND_SWITCH)) {
       return Promise.resolve(false);
     } else {
       return Promise.resolve(true);
     }
 
     // Extract the command name and arguments
-    // const parts = trimmedCommand.slice(config.COMMAND_SWITCH.length).trim().split(/\s+/);
+    // const parts = trimmedCommand.slice(services.config.COMMAND_SWITCH.length).trim().split(/\s+/);
     // const command = parts[0].toLowerCase();
     // const args = parts.slice(1);
 
-    // logger.debug(`Command: ${command}, Args: ${args.join(', ')}`);
+    // services.logger.debug(`Command: ${command}, Args: ${args.join(', ')}`);
 
   } catch (error) {
-    logger.error(`Failed to process command [${commandId}]:`, error.message);
+    services.logger.error(`Failed to process command:`, error.message);
     return Promise.resolve(false);
   }
 }

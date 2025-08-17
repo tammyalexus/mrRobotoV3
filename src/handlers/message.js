@@ -1,7 +1,7 @@
-const { logger } = require('../lib/logging.js');
+const services = require('../services/serviceContainer.js');
 
 function message(...args) {
-  logger.debug('message.js handler called');
+  services.logger.debug('message.js handler called');
 }
 
 module.exports = message;
