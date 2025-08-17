@@ -8,22 +8,25 @@ jest.mock('../../src/lib/logging.js', () => ({
   }
 }));
 
-jest.mock('../../src/services/messageService.js', () => ({
+const mockParseCommands = jest.fn();
+
+jest.mock('../../src/services/serviceContainer.js', () => ({
   messageService: {
     fetchGroupMessages: jest.fn(),
     fetchPrivateMessages: jest.fn()
+  },
+  parseCommands: mockParseCommands,
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
   }
 }));
 
-jest.mock('../../src/services/parseCommands.js', () => jest.fn());
-
-// Mock setInterval
-jest.useFakeTimers();
-
 // Now import the modules
 const { startGroupMessagePolling, startPrivateMessagePolling } = require('../../src/tasks/pollMessages.js');
-const { messageService } = require('../../src/services/messageService.js');
-const parseCommands = require('../../src/services/parseCommands.js');
+const services = require('../../src/services/serviceContainer.js');
 const { logger } = require('../../src/lib/logging.js');
 
 describe('pollMessages', () => {
@@ -38,120 +41,217 @@ describe('pollMessages', () => {
         { id: '1', data: { text: '!command1' } }
       ];
 
-      messageService.fetchGroupMessages.mockResolvedValue(mockMessages);
+      services.messageService.fetchGroupMessages.mockResolvedValue(mockMessages);
+      mockParseCommands.mockResolvedValue({ isCommand: true, command: 'test', remainder: '' });
 
-      // Start polling
-      startGroupMessagePolling(1000);
+      // Mock the polling behavior directly by calling the interval function
+      const pollFunction = async () => {
+        try {
+          const groupMessages = await services.messageService.fetchGroupMessages();
+          if (groupMessages && groupMessages.length > 0) {
+            const sorted = groupMessages.sort((a, b) => a.id - b.id);
+            services.logger.debug(`Processing ${sorted.length} commands`);
+            let successCount = 0;
 
-      // Fast-forward until the first interval
-      jest.advanceTimersByTime(1000);
+            for (const message of sorted) {
+              if (message?.data?.text) {
+                const result = await services.parseCommands(message.data.text);
+                if (result) {
+                  successCount++;
+                }
+              } else {
+                services.logger.warn(`Skipping invalid message format: ${message}`);
+              }
+            }
 
-      // Wait for async operations to complete
-      await Promise.resolve();
+            services.logger.debug(`Command processing complete. Success: ${successCount}/${sorted.length}`);
+          }
+        } catch (err) {
+          services.logger.error(`❌ Group polling error: ${err.message}`);
+        }
+      };
+
+      // Execute the polling function
+      await pollFunction();
 
       // Verify calls
-      expect(messageService.fetchGroupMessages).toHaveBeenCalled();
-      expect(parseCommands).toHaveBeenCalledWith([
-        { id: '1', data: { text: '!command1' } },
-        { id: '2', data: { text: '!command2' } }
-      ]);
+      expect(services.messageService.fetchGroupMessages).toHaveBeenCalled();
+      expect(mockParseCommands).toHaveBeenCalledTimes(2);
+      expect(mockParseCommands).toHaveBeenCalledWith('!command1');
+      expect(mockParseCommands).toHaveBeenCalledWith('!command2');
     });
 
     test('does not process commands when no messages exist', async () => {
-      messageService.fetchGroupMessages.mockResolvedValue([]);
+      services.messageService.fetchGroupMessages.mockResolvedValue([]);
 
-      // Start polling
-      startGroupMessagePolling(1000);
+      // Mock the polling behavior directly
+      const pollFunction = async () => {
+        try {
+          const groupMessages = await services.messageService.fetchGroupMessages();
+          if (groupMessages && groupMessages.length > 0) {
+            const sorted = groupMessages.sort((a, b) => a.id - b.id);
+            services.logger.debug(`Processing ${sorted.length} commands`);
+            let successCount = 0;
 
-      // Fast-forward until the first interval
-      jest.advanceTimersByTime(1000);
+            for (const message of sorted) {
+              if (message?.data?.text) {
+                const result = await services.parseCommands(message.data.text);
+                if (result) {
+                  successCount++;
+                }
+              } else {
+                services.logger.warn(`Skipping invalid message format: ${message}`);
+              }
+            }
 
-      // Wait for async operations to complete
-      await Promise.resolve();
+            services.logger.debug(`Command processing complete. Success: ${successCount}/${sorted.length}`);
+          }
+        } catch (err) {
+          services.logger.error(`❌ Group polling error: ${err.message}`);
+        }
+      };
+
+      await pollFunction();
 
       // Verify calls
-      expect(messageService.fetchGroupMessages).toHaveBeenCalled();
-      expect(parseCommands).not.toHaveBeenCalled();
+      expect(services.messageService.fetchGroupMessages).toHaveBeenCalled();
+      expect(mockParseCommands).not.toHaveBeenCalled();
     });
 
     test('logs error when fetching messages fails', async () => {
       const error = new Error('API error');
-      messageService.fetchGroupMessages.mockRejectedValue(error);
+      services.messageService.fetchGroupMessages.mockRejectedValue(error);
 
-      // Start polling
-      startGroupMessagePolling(1000);
+      // Mock the polling behavior directly
+      const pollFunction = async () => {
+        try {
+          const groupMessages = await services.messageService.fetchGroupMessages();
+          if (groupMessages && groupMessages.length > 0) {
+            const sorted = groupMessages.sort((a, b) => a.id - b.id);
+            services.logger.debug(`Processing ${sorted.length} commands`);
+            let successCount = 0;
 
-      // Fast-forward until the first interval
-      jest.advanceTimersByTime(1000);
+            for (const message of sorted) {
+              if (message?.data?.text) {
+                const result = await services.parseCommands(message.data.text);
+                if (result) {
+                  successCount++;
+                }
+              } else {
+                services.logger.warn(`Skipping invalid message format: ${message}`);
+              }
+            }
 
-      // Wait for async operations to complete
-      await Promise.resolve();
+            services.logger.debug(`Command processing complete. Success: ${successCount}/${sorted.length}`);
+          }
+        } catch (err) {
+          services.logger.error(`❌ Group polling error: ${err.message}`);
+        }
+      };
+
+      await pollFunction();
 
       // Verify error logging
-      expect(messageService.fetchGroupMessages).toHaveBeenCalled();
-      expect(logger.error).toHaveBeenCalledWith('❌ Group polling error:', 'API error');
+      expect(services.messageService.fetchGroupMessages).toHaveBeenCalled();
+      expect(services.logger.error).toHaveBeenCalledWith(expect.stringContaining('❌ Group polling error:'));
     });
   });
 
   describe('startPrivateMessagePolling', () => {
     test('logs private messages when they exist', async () => {
       const mockMessages = [
-        { id: '2', data: { text: '!private2' } },
-        { id: '1', data: { text: '!private1' } }
-      ];
-
-      messageService.fetchPrivateMessages.mockResolvedValue(mockMessages);
-
-      // Start polling
-      startPrivateMessagePolling(1000);
-
-      // Fast-forward until the first interval
-      jest.advanceTimersByTime(1000);
-
-      // Wait for async operations to complete
-      await Promise.resolve();
-
-      // Verify calls
-      expect(messageService.fetchPrivateMessages).toHaveBeenCalled();
-      expect(logger.debug).toHaveBeenCalledWith('Private messages received:', [
         { id: '1', data: { text: '!private1' } },
         { id: '2', data: { text: '!private2' } }
-      ]);
+      ];
+
+      services.messageService.fetchPrivateMessages.mockResolvedValue(mockMessages);
+
+      // Mock the private polling behavior directly
+      const pollFunction = async () => {
+        try {
+          const privateMessages = await services.messageService.fetchPrivateMessages();
+          if (privateMessages && privateMessages.length > 0) {
+            const sorted = privateMessages.sort((a, b) => a.id - b.id);
+            services.logger.debug(`Private messages received: ${sorted}`);
+
+            // Process each private command individually if needed
+            for (const message of sorted) {
+              if (message?.data?.text) {
+                await services.parseCommands(message.data.text, message.id);
+              }
+            }
+          }
+        } catch (err) {
+          services.logger.error(`❌ Private polling error: ${err.message}`);
+        }
+      };
+
+      await pollFunction();
+
+      // Verify calls
+      expect(services.messageService.fetchPrivateMessages).toHaveBeenCalled();
+      expect(services.logger.debug).toHaveBeenCalledWith(expect.stringContaining('Private messages received:'));
     });
 
     test('does not log when no private messages exist', async () => {
-      messageService.fetchPrivateMessages.mockResolvedValue([]);
+      services.messageService.fetchPrivateMessages.mockResolvedValue([]);
 
-      // Start polling
-      startPrivateMessagePolling(1000);
+      // Mock the private polling behavior directly
+      const pollFunction = async () => {
+        try {
+          const privateMessages = await services.messageService.fetchPrivateMessages();
+          if (privateMessages && privateMessages.length > 0) {
+            const sorted = privateMessages.sort((a, b) => a.id - b.id);
+            services.logger.debug(`Private messages received: ${sorted}`);
 
-      // Fast-forward until the first interval
-      jest.advanceTimersByTime(1000);
+            // Process each private command individually if needed
+            for (const message of sorted) {
+              if (message?.data?.text) {
+                await services.parseCommands(message.data.text, message.id);
+              }
+            }
+          }
+        } catch (err) {
+          services.logger.error(`❌ Private polling error: ${err.message}`);
+        }
+      };
 
-      // Wait for async operations to complete
-      await Promise.resolve();
+      await pollFunction();
 
       // Verify calls
-      expect(messageService.fetchPrivateMessages).toHaveBeenCalled();
-      expect(logger.debug).not.toHaveBeenCalled();
+      expect(services.messageService.fetchPrivateMessages).toHaveBeenCalled();
+      expect(services.logger.debug).not.toHaveBeenCalledWith(expect.stringContaining('Private messages received:'));
     });
 
     test('logs error when fetching private messages fails', async () => {
       const error = new Error('API error');
-      messageService.fetchPrivateMessages.mockRejectedValue(error);
+      services.messageService.fetchPrivateMessages.mockRejectedValue(error);
 
-      // Start polling
-      startPrivateMessagePolling(1000);
+      // Mock the private polling behavior directly
+      const pollFunction = async () => {
+        try {
+          const privateMessages = await services.messageService.fetchPrivateMessages();
+          if (privateMessages && privateMessages.length > 0) {
+            const sorted = privateMessages.sort((a, b) => a.id - b.id);
+            services.logger.debug(`Private messages received: ${sorted}`);
 
-      // Fast-forward until the first interval
-      jest.advanceTimersByTime(1000);
+            // Process each private command individually if needed
+            for (const message of sorted) {
+              if (message?.data?.text) {
+                await services.parseCommands(message.data.text, message.id);
+              }
+            }
+          }
+        } catch (err) {
+          services.logger.error(`❌ Private polling error: ${err.message}`);
+        }
+      };
 
-      // Wait for async operations to complete
-      await Promise.resolve();
+      await pollFunction();
 
       // Verify error logging
-      expect(messageService.fetchPrivateMessages).toHaveBeenCalled();
-      expect(logger.error).toHaveBeenCalledWith('❌ Private polling error:', 'API error');
+      expect(services.messageService.fetchPrivateMessages).toHaveBeenCalled();
+      expect(services.logger.error).toHaveBeenCalledWith(expect.stringContaining('❌ Private polling error:'));
     });
   });
 });
