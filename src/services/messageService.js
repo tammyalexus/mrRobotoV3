@@ -66,29 +66,35 @@ const messageService = {
 
   joinChat: async function(roomId) {
     try {
-      const headers = {
-        ...cometchatApi.headers,
-        appid: config.COMETCHAT_API_KEY,
-        authtoken: config.CHAT_TOKEN,
-        dnt: 1,
-        origin: 'https://tt.live',
-        referer: 'https://tt.live/',
-        sdk: 'javascript@3.0.10'
+      // Build the correct members endpoint URL directly
+      const url = `https://${config.COMETCHAT_API_KEY}.apiclient-us.cometchat.io/v3/groups/${roomId}/members`;
+      // logger.debug(`Join chat URL is: ${url}`);
+
+      // Include the participants data as required by the API
+      const requestData = {
+        participants: [config.BOT_UID]
       };
 
-      const paths = [
-        'v3.0',
-        'groups',
-        roomId,
-        'members'
-      ];
-
-      const url = buildUrl(`https://${config.COMETCHAT_API_KEY}.apiclient-us.cometchat.io`, paths);
-      const response = await makeRequest(url, { headers, method: 'POST' });
-      logger.debug('✅ Successfully joined chat:', JSON.stringify(response, null, 2));
+      const response = await makeRequest(url, { 
+        headers: cometchatApi.headers, 
+        method: 'POST',
+        data: requestData
+      });
+      
+      // if (response) {
+      //   logger.debug(`✅ Successfully joined chat: ${JSON.stringify(response, null, 2)}`);
+      // } else {
+      //   logger.debug('✅ Successfully joined chat: Response was undefined (request may have succeeded but no data returned)');
+      // }
       return response;
     } catch (error) {
-      logger.error('❌ Error joining chat:', error.message);
+      // Check if the error is "already joined" which we can treat as success
+      if (error.message && error.message.includes('ERR_ALREADY_JOINED')) {
+        logger.debug('✅ User already joined chat group - continuing');
+        return { success: true, alreadyJoined: true };
+      }
+      
+      logger.error(`❌ Error joining chat: ${error.message}`);
       throw error;
     }
   },
@@ -98,9 +104,9 @@ const messageService = {
       const customData = await this.buildCustomData(theMessage);
       const payload = await this.buildPayload(receiver, RECEIVER_TYPE.USER, customData, theMessage);
       const response = await axios.post(`${cometchatApi.BASE_URL}/v3.0/messages`, payload, { headers: cometchatApi.headers });
-      logger.debug('✅ Private message sent:', JSON.stringify(response.data, null, 2));
+      logger.debug(`✅ Private message sent: ${JSON.stringify(response.data, null, 2)}`);
     } catch (err) {
-      logger.error('❌ Failed to send private message:', err.response?.data || err.message);
+      logger.error(`❌ Failed to send private message: ${err.response?.data || err.message}`);
     }
   },
 
@@ -152,14 +158,14 @@ const messageService = {
         headers: cometchatApi.headers 
       });
       
-      logger.debug('✅ Group message sent successfully:', {
+      logger.debug(`✅ Group message sent successfully: ${JSON.stringify({
         message: message,
         room: room,
         receiverType: receiverType,
         hasImages: !!images,
         hasMentions: !!mentions,
         responseId: response.data?.data?.id
-      });
+      })}`);
 
       return {
         message: message,
@@ -167,11 +173,11 @@ const messageService = {
       };
 
     } catch (err) {
-      logger.error('❌ Failed to send group message:', {
+      logger.error(`❌ Failed to send group message: ${JSON.stringify({
         message: typeof theMessage === 'object' ? theMessage.message : theMessage,
         error: err.response?.data || err.message,
         status: err.response?.status
-      });
+      })}`);
       
       return {
         message: typeof theMessage === 'object' ? theMessage.message : theMessage,
@@ -196,16 +202,16 @@ const messageService = {
 
       logger.debug(`Attempting to mark message as interacted. ID: ${lastMessageID}, URL: ${url}, Payload: ${JSON.stringify(data)}, Request Headers: ${JSON.stringify(headers)}`);
       const response = await axios.patch(url, data, { headers });
-      logger.debug('✅ Marked message as interacted:', JSON.stringify(response.data, null, 2));
-      logger.debug('Response status:', response.status);
-      logger.debug('Response headers:', JSON.stringify(response.headers));
+      logger.debug(`✅ Marked message as interacted: ${JSON.stringify(response.data, null, 2)}`);
+      logger.debug(`Response status: ${response.status}`);
+      logger.debug(`Response headers: ${JSON.stringify(response.headers)}`);
     } catch (err) {
-      logger.error(`❌ Error marking message as interacted for ID ${lastMessageID}:`, err.response?.data || err.message);
-      logger.error('Full error object:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
+      logger.error(`❌ Error marking message as interacted for ID ${lastMessageID}: ${err.response?.data || err.message}`);
+      logger.error(`Full error object: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`);
       if (err.response) {
-        logger.error('Full error response:', JSON.stringify(err.response, null, 2));
-        logger.error('Response status:', err.response.status);
-        logger.error('Response headers:', JSON.stringify(err.response.headers));
+        logger.error(`Full error response: ${JSON.stringify(err.response, null, 2)}`);
+        logger.error(`Response status: ${err.response.status}`);
+        logger.error(`Response headers: ${JSON.stringify(err.response.headers)}`);
       }
     }
   },
@@ -227,7 +233,7 @@ const messageService = {
       }
       return null;
     } catch (err) {
-      logger.error('❌ Error fetching last user message:', err.message);
+      logger.error(`❌ Error fetching last user message: ${err.message}`);
       return null;
     }
   },
@@ -245,7 +251,7 @@ const messageService = {
         logger.debug(`No unread messages found for user ${userID}`);
       }
     } catch (err) {
-      logger.error(`❌ Error marking all private user messages as read for user ${userID}:`, err.message);
+      logger.error(`❌ Error marking all private user messages as read for user ${userID}: ${err.message}`);
     }
   },
 
@@ -287,7 +293,7 @@ const messageService = {
         return [];
       }
     } catch ( err ) {
-      logger.error( '❌ Error fetching all messages:', err.message );
+      logger.error( `❌ Error fetching all messages: ${err.message}` );
       return [];
     }
   },
@@ -317,7 +323,7 @@ const messageService = {
         logger.debug( '📥 No private messages found.' );
       }
     } catch ( err ) {
-      logger.error( '❌ Error fetching private messages:', err.message );
+      logger.error( `❌ Error fetching private messages: ${err.message}` );
     }
   },
 
@@ -355,19 +361,21 @@ const messageService = {
       // Filter for command messages only if requested
       let filteredMessages = messages;
       if (filterCommands) {
+        const commandSwitch = process.env.COMMAND_SWITCH || config.COMMAND_SWITCH;
+        
         filteredMessages = messages.filter(msg => {
           const text = msg?.data?.text;
-          return text && text.startsWith(process.env.COMMAND_SWITCH);
+          return text && text.startsWith(commandSwitch);
         });
       }
 
-      if (filteredMessages.length > 0) {
-        logger.debug(`📥 Group ${filterCommands ? 'command ' : ''}messages:`, filteredMessages);
-      }
+      // if (filteredMessages.length > 0) {
+      //   logger.debug(`📥 Group ${filterCommands ? 'command ' : ''}messages: ${JSON.stringify(filteredMessages)}`);
+      // }
 
       return filteredMessages;
     } catch (err) {
-      logger.error('❌ Error fetching group messages:', err.message);
+      logger.error(`❌ Error fetching group messages: ${err.message}`);
       return [];
     }
   },
@@ -385,20 +393,27 @@ const messageService = {
     ];
 
     try {
+      const finalParams = [...defaultParams, ...params];
+      
       const url = buildUrl( cometchatApi.BASE_URL, [
         'v3.0', 
         'groups', 
         roomId, 
         'messages'
-      ], [
-        ...defaultParams, 
-        ...params
-      ] );
+      ], finalParams );
 
+      // logger.debug(`Making API request to: ${url}`);
+      
       const res = await cometchatApi.apiClient.get(url);
       return res.data?.data || [];
     } catch (err) {
-      logger.error('❌ Error fetching group messages:', err.message);
+      logger.error(`❌ Error in fetchGroupMessagesRaw: ${JSON.stringify({
+        message: err?.message || 'Unknown error',
+        status: err?.response?.status,
+        statusText: err?.response?.statusText,
+        url: err?.config?.url,
+        responseData: err?.response?.data
+      })}`);
       return [];
     }
   },
@@ -414,16 +429,16 @@ const messageService = {
       };
       // logger.debug(`Attempting to mark conversation as read. UserID: ${config.COMETCHAT_RECEIVER_UID}, URL: ${url}, Request Headers: ${JSON.stringify(headers)}`);
       const response = await axios.post(url, {}, { headers });
-      // logger.debug('✅ Marked conversation as read:', JSON.stringify(response.data, null, 2));
-      // logger.debug('Response status:', response.status);
-      // logger.debug('Response headers:', JSON.stringify(response.headers));
+      // logger.debug(`✅ Marked conversation as read: ${JSON.stringify(response.data, null, 2)}`);
+      // logger.debug(`Response status: ${response.status}`);
+      // logger.debug(`Response headers: ${JSON.stringify(response.headers)}`);
     } catch (err) {
-      logger.error(`❌ Error marking conversation as read for user ${config.COMETCHAT_RECEIVER_UID}:`, err.response?.data || err.message);
-      logger.error('Full error object:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
+      logger.error(`❌ Error marking conversation as read for user ${config.COMETCHAT_RECEIVER_UID}: ${err.response?.data || err.message}`);
+      logger.error(`Full error object: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`);
       if (err.response) {
-        logger.error('Full error response:', JSON.stringify(err.response, null, 2));
-        logger.error('Response status:', err.response.status);
-        logger.error('Response headers:', JSON.stringify(err.response.headers));
+        logger.error(`Full error response: ${JSON.stringify(err.response, null, 2)}`);
+        logger.error(`Response status: ${err.response.status}`);
+        logger.error(`Response headers: ${JSON.stringify(err.response.headers)}`);
       }
     }
   },
@@ -459,7 +474,7 @@ const messageService = {
         }
         logger.debug(`🔍 No messages at ${lookbackTimestamp} (${i} min ago)`);
       } catch (err) {
-        logger.error(`❌ Error fetching messages at lookback ${i}m:`, err.message);
+        logger.error(`❌ Error fetching messages at lookback ${i}m: ${err.message}`);
         return null;
       }
     }

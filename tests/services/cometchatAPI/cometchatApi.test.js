@@ -3,7 +3,8 @@ const MockAdapter = require('axios-mock-adapter');
 
 jest.mock('../../../src/config.js', () => ({
   COMETCHAT_API_KEY: 'test-api-key',
-  COMETCHAT_APP_ID: 'test-app-id'
+  COMETCHAT_APP_ID: 'test-app-id',
+  BOT_UID: 'test-bot-uid'
 }));
 
 const cometchatApi = require('../../../src/services/cometchatApi');
@@ -17,7 +18,12 @@ describe('cometchatApi module', () => {
     expect(cometchatApi.headers).toEqual({
       'Content-Type': 'application/json',
       'authtoken': 'test-app-id',
-      'appId': 'test-api-key'
+      'appid': 'test-api-key',
+      'onBehalfOf': 'test-bot-uid',
+      'dnt': 1,
+      'origin': 'https://tt.live',
+      'referer': 'https://tt.live/',
+      'sdk': 'javascript@3.0.10'
     });
   });
 
@@ -25,7 +31,7 @@ describe('cometchatApi module', () => {
     expect(cometchatApi.apiClient.defaults.baseURL).toBe(cometchatApi.BASE_URL);
     expect(cometchatApi.apiClient.defaults.headers['Content-Type']).toBe('application/json');
     expect(cometchatApi.apiClient.defaults.headers['authtoken']).toBe('test-app-id');
-    expect(cometchatApi.apiClient.defaults.headers['appId']).toBe('test-api-key');
+    expect(cometchatApi.apiClient.defaults.headers['appid']).toBe('test-api-key');
   });
 
   test('apiClient can make GET requests (mocked)', async () => {

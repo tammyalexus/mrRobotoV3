@@ -16,27 +16,45 @@ function assignSearchParams(url, searchParams) {
   // Other types are ignored (e.g., string, null, number, etc.)
 }
 
-const fetch = require('node-fetch');
+// Use built-in fetch (available in Node.js 18+)
+// const fetch = require('node-fetch'); // Removed - using built-in fetch
 
 const makeRequest = async ( url, options, extraHeaders ) => {
   // Convert string URL to URL object if needed
   const urlObj = typeof url === 'string' ? new URL(url) : url;
   
+  // Handle data -> body conversion for fetch API
   const requestOptions = {
     headers: {
       accept: 'application/json',
       'accept-language': 'en-ZA,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,af;q=0.6',
       'cache-control': 'max-age=0',
       'content-type': 'application/json',
-      ...extraHeaders
+      ...extraHeaders,
+      ...(options.headers || {}) // Merge headers from options
     },
     ...options
+  };
+  
+  // Remove headers from options to avoid duplication
+  delete requestOptions.headers.headers;
+  
+  // Convert 'data' property to 'body' for fetch API compatibility
+  if (requestOptions.data) {
+    requestOptions.body = JSON.stringify(requestOptions.data);
+    delete requestOptions.data;
   }
   
   try {
     const response = await fetch( urlObj.href, requestOptions )
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+    }
     return await response.json()
-  } catch ( error ) {}
+  } catch ( error ) {
+    throw error; // Re-throw the error instead of silently swallowing it
+  }
 }
 
 function buildUrl(host, paths = [], searchParams = []) {

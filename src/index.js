@@ -3,7 +3,7 @@ const { Bot } = require('./lib/bot.js');
 const { Chain } = require('repeat');
 
 process.on('unhandledRejection', (reason, promise) => {
-  services.logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  services.logger.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
 });
 
 // Log application starting
@@ -18,7 +18,7 @@ services.logger.info('======================================= Application Starti
       await roomBot.connect();
       services.logger.debug('✅ Bot connect() completed successfully');
     } catch (connectError) {
-      services.logger.error('❌ Error during bot.connect():', connectError);
+      services.logger.error(`❌ Error during bot.connect(): ${connectError}`);
       throw connectError;
     }
     
@@ -26,8 +26,19 @@ services.logger.info('======================================= Application Starti
       roomBot.configureListeners();
       services.logger.debug('✅ Listeners configured successfully');
     } catch (listenerError) {
-      services.logger.error('❌ Error during configureListeners():', listenerError);
+      services.logger.error(`❌ Error during configureListeners(): ${listenerError}`);
       throw listenerError;
+    }
+
+    // Join the chat group before processing messages
+    try {
+      services.logger.debug('🔄 Joining chat group...');
+      await services.messageService.joinChat(services.config.HANGOUT_ID);
+      services.logger.debug('✅ Successfully joined chat group');
+    } catch (joinError) {
+      services.logger.error(`❌ Error joining chat group: ${joinError}`);
+      // Don't throw here - continue with limited functionality
+      services.logger.warn('⚠️ Continuing without group membership - some features may not work');
     }
 
     const checkInterval = 1000 * 1; // 1 second
@@ -38,21 +49,21 @@ services.logger.info('======================================= Application Starti
           try {
             await roomBot.processNewMessages();
           } catch (error) {
-            services.logger.error('Error in processNewMessages:', error);
+            services.logger.error(`Error in processNewMessages: ${error?.message || error?.toString() || 'Unknown error'}`);
           }
         })
         .every( checkInterval ) // every 1 second
         
-      services.logger.debug('Started message processing chain with 100ms interval');
+      services.logger.debug(`Started message processing chain with ${checkInterval}ms interval`);
     } catch (chainError) {
-      services.logger.error('Error starting message processing chain:', chainError);
+      services.logger.error(`Error starting message processing chain: ${chainError}`);
       // Fallback to setInterval if Chain fails
       services.logger.info('Falling back to setInterval for message processing');
       setInterval(async () => {
         try {
           await roomBot.processNewMessages();
         } catch (error) {
-          services.logger.error('Error in processNewMessages (fallback):', error);
+          services.logger.error(`Error in processNewMessages (fallback): ${error?.message || error?.toString() || 'Unknown error'}`);
         }
       }, checkInterval );
     }      
@@ -106,15 +117,14 @@ services.logger.info('======================================= Application Starti
       //       services.logger.info('No unread messages found.');
       //     }
       //   } catch (err) {
-      //     services.logger.error('❌ Error polling unread private user messages:', err.response?.data || err.message);
+      //     services.logger.error(`❌ Error polling unread private user messages: ${err.response?.data || err.message}`);
       //   }
       // }, 5000); // 5 seconds
 
-    services.logger.info(`🚀 Bot is now running and processing messages every ${checkInterval} ms`);
     services.logger.info('======================================= Application Started Successfully =======================================');
     
   } catch (err) {
-    services.logger.error('❌ Error during startup:', err.response?.data || err.message);
+    services.logger.error(`❌ Error during startup: ${err.response?.data || err.message}`);
     services.logger.error(err);
   }
 })();
