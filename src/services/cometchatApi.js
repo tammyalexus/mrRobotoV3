@@ -5,8 +5,8 @@ const BASE_URL = `https://${config.COMETCHAT_API_KEY}.apiclient-us.cometchat.io`
 
 const headers = {
   'Content-Type': 'application/json',
-  authtoken: config.CHAT_TOKEN,
-  appid: config.COMETCHAT_API_KEY,
+  authtoken: config.COMETCHAT_APP_ID,
+  appid: config.COMETCHAT_API_KEY,  // Changed from 'appid' to 'apikey'
   onBehalfOf: config.BOT_UID,
   dnt: 1,
   origin: 'https://tt.live',

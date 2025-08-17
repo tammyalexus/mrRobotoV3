@@ -18,14 +18,14 @@ function startGroupMessagePolling(interval = 1000) {
               successCount++;
             }
           } else {
-            services.logger.warn('Skipping invalid message format:', message);
+            services.logger.warn(`Skipping invalid message format: ${message}`);
           }
         }
 
         services.logger.debug(`Command processing complete. Success: ${successCount}/${sorted.length}`);
       }
     } catch (err) {
-      services.logger.error('❌ Group polling error:', err.message);
+      services.logger.error(`❌ Group polling error: ${err.message}`);
     }
   }, interval);
 }
@@ -36,7 +36,7 @@ function startPrivateMessagePolling(interval = 1000) {
       const privateMessages = await services.messageService.fetchPrivateMessages();
       if (privateMessages && privateMessages.length > 0) {
         const sorted = privateMessages.sort((a, b) => a.id - b.id);
-        services.logger.debug('Private messages received:', sorted);
+        services.logger.debug(`Private messages received: ${sorted}`);
 
         // Process each private command individually if needed
         for (const message of sorted) {
@@ -46,7 +46,7 @@ function startPrivateMessagePolling(interval = 1000) {
         }
       }
     } catch (err) {
-      services.logger.error('❌ Private polling error:', err.message);
+      services.logger.error(`❌ Private polling error: ${err.message}`);
     }
   }, interval);
 }

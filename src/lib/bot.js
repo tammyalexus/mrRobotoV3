@@ -40,7 +40,7 @@ class Bot {
       this.services.logger.debug('✅ Room joined successfully, setting up state...');
       this.state = connection.state;
     } catch (joinError) {
-      this.services.logger.error('❌ Failed to join room:', joinError);
+      this.services.logger.error(`❌ Failed to join room: ${joinError}`);
       throw joinError;
     }
   }
@@ -70,7 +70,7 @@ class Bot {
         this.state = state; // Fixed: was using 'connection.state' instead of 'state'
         this.services.logger.debug('🔄 Reconnected successfully');
       } catch (error) {
-        this.services.logger.error('❌ Reconnection failed:', error);
+        this.services.logger.error(`❌ Reconnection failed: ${error}`);
       }
     });
   }
@@ -130,8 +130,16 @@ class Bot {
 
       await this._processMessageBatch(messages);
     } catch (error) {
-      this.services.logger.error('Error in processNewMessages:', error);
-      throw error;
+      // More defensive error handling
+      const errorMessage = error && typeof error === 'object' 
+        ? (error.message || error.toString() || 'Unknown error object')
+        : (error || 'Unknown error');
+      
+      this.services.logger.error(`Error in processNewMessages: ${errorMessage}`);
+      
+      if (error && error.stack) {
+        this.services.logger.error(`Error stack: ${error.stack}`);
+      }
     }
   }
 
@@ -176,20 +184,44 @@ class Bot {
   _shouldIgnoreMessage(sender) {
     const ignoredSenders = [
       this.services.config.BOT_UID,
-      this.services.config.CHAT_REPLY_ID
+      // this.services.config.CHAT_REPLY_ID // Not defined in .env file
     ].filter(Boolean); // Remove any undefined values
     
     return ignoredSenders.includes(sender);
   }
 
   async _handleMessage(chatMessage, sender, fullMessage) {
-    // Process the message using parseCommands
-    await this.services.parseCommands(chatMessage);
-    
-    // TODO: Add additional message handling logic here
-    // - Command routing
-    // - Response generation
-    // - Context management
+    try {
+      // Debug the services object
+      this.services.logger.debug(`Services available: ${Object.keys(this.services)}`);
+      this.services.logger.debug(`parseCommands type: ${typeof this.services.parseCommands}`);
+      
+      // Check if parseCommands exists and is a function
+      if (typeof this.services.parseCommands === 'function') {
+        const result = await this.services.parseCommands(chatMessage, this.services);
+        this.services.logger.debug(`parseCommands result: ${result}`);
+      } else {
+        this.services.logger.warn(`parseCommands is not a function: ${typeof this.services.parseCommands}`);
+      }
+      
+      // TODO: Add additional message handling logic here
+      // - Command routing
+      // - Response generation
+      // - Context management
+    } catch (error) {
+      // More defensive error handling
+      const errorMessage = error && typeof error === 'object' 
+        ? (error.message || error.toString() || 'Unknown error object')
+        : (error || 'Unknown error');
+      
+      this.services.logger.error(`Error in _handleMessage: ${errorMessage}`);
+      
+      if (error && error.stack) {
+        this.services.logger.error(`Error stack: ${error.stack}`);
+      }
+      
+      throw error; // Re-throw so processNewMessages can catch it
+    }
   }
 
   // ========================================================
