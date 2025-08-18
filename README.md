@@ -39,7 +39,7 @@ This code is provided free of charge with the licensing above attached, however 
    ```bash
    npm install
    ```
-3. Create a new file called `.env` file in the project root to configure your bot. Use the `.env_example` file to see what it should contain
+3. Create a new file called `.env` file in the project root to configure your bot. Use the `.env_example` file to see what it should contain. If you don't know where to get these details from, check out the section at the bottom called "Developing for Hangout FM" for more info
    ```env
    COMETCHAT_API_KEY=your_cometchat_api_key
    COMETCHAT_APP_ID=your_cometchat_app_id
