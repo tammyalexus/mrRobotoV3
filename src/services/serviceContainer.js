@@ -2,7 +2,6 @@
 const { messageService } = require('./messageService.js');
 const parseCommands = require('./parseCommands.js');
 const commandService = require('./commandService.js');
-const pollingService = require('../tasks/pollMessages.js');
 const playlistService = require('./playlistService.js');
 const { logger } = require('../lib/logging.js');
 const config = require('../config.js');
@@ -24,7 +23,6 @@ const services = {
   messageService,
   parseCommands,
   commandService,
-  pollingService,
   playlistService,
   logger,
   config,
