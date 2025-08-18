@@ -68,14 +68,6 @@ services.logger.info('======================================= Application Starti
       }, checkInterval );
     }      
       
-      // start polling the message service for new messages
-      // services.logger.debug('Starting group message polling');
-      // services.pollingService.startGroupMessagePolling(1000 * 1); // 1000ms * number of seconds for interval
-      // services.logger.info('Group message polling started');
-
-      // services.logger.debug('Starting private message polling');
-      // services.pollingService.startPrivateMessagePolling(1000 * 5)
-
       // =========================================================
       // WORKS BELOW THE LINE
       // =========================================================
