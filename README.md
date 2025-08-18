@@ -35,7 +35,7 @@ This repository is licensed under the **NonCommercial–Attribution License (NC-
    ```bash
    npm install
    ```
-3. Create a `.env` file in the project root to configure your bot:
+3. Create a new file called `.env` file in the project root to configure your bot. Use the `.env_example` file to see what it should contain
    ```env
    COMETCHAT_API_KEY=your_cometchat_api_key
    COMETCHAT_APP_ID=your_cometchat_app_id
@@ -46,7 +46,10 @@ This repository is licensed under the **NonCommercial–Attribution License (NC-
    CHAT_NAME={the name of your Bot}
    CHAT_COLOUR=AABBCC   # hex without “#”
    ```
-
+4. From the root of the project folder, run the following command. It should read and output the config you've just created. If it doesn't then something is wrong and the application won't be able to read it either
+   ```
+   node check-dotenv.js
+   ```
 ---
 
 ## ✅ Running the App
