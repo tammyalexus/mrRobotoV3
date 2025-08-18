@@ -16,6 +16,9 @@ This repository is licensed under the **NonCommercial–Attribution License (NC-
 
 ---
 
+This code is provided free of charge with the licensing above attached, however if you find it useful, please consider buying me a coffee to say thanks.
+<script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="jodrell" data-color="#ffaa00" data-emoji="🤖"  data-font="Cookie" data-text="Buy me a coffee" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#FFDD00" ></script>
+
 ## 🛠️ Prerequisites
 
 - **Node.js** v16+ (tested on v20)
