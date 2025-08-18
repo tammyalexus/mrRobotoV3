@@ -1,18 +1,6 @@
-const { Bot } = require('../../../src/lib/bot.js');
 const path = require('path');
 
-// Mock ttfm-socket
-jest.mock('ttfm-socket', () => ({
-  SocketClient: jest.fn().mockImplementation(() => ({
-    joinRoom: jest.fn(),
-    on: jest.fn()
-  })),
-  ServerMessageName: {},
-  StatefulServerMessageName: {},
-  StatelessServerMessageName: {}
-}));
-
-// Mock fs promises
+// Mock fs promises - must be done before requiring Bot
 const mockAppendFile = jest.fn();
 jest.mock('fs', () => ({
   promises: {
@@ -20,10 +8,27 @@ jest.mock('fs', () => ({
   }
 }));
 
+// Mock ttfm-socket
+const mockSocketInstance = {
+  joinRoom: jest.fn(),
+  on: jest.fn()
+};
+
+const MockSocketClient = jest.fn().mockImplementation(() => mockSocketInstance);
+
+jest.mock('ttfm-socket', () => ({
+  SocketClient: MockSocketClient,
+  ServerMessageName: {},
+  StatefulServerMessageName: {},
+  StatelessServerMessageName: {}
+}));
+
+// Now import Bot after mocks are set up
+const { Bot } = require('../../../src/lib/bot.js');
+
 describe('Bot', () => {
   let bot;
   let mockServices;
-  let mockSocket;
 
   beforeEach(() => {
     // Reset all mocks
@@ -31,16 +36,9 @@ describe('Bot', () => {
     
     // Clear mock on mockAppendFile
     mockAppendFile.mockClear();
-    
-    // Create mock socket
-    mockSocket = {
-      joinRoom: jest.fn(),
-      on: jest.fn()
-    };
-    
-    // Mock SocketClient constructor to return our mock socket
-    const { SocketClient } = require('ttfm-socket');
-    SocketClient.mockImplementation(() => mockSocket);
+    MockSocketClient.mockClear();
+    mockSocketInstance.joinRoom.mockClear();
+    mockSocketInstance.on.mockClear();
 
     // Create comprehensive mock services
     mockServices = {
@@ -65,9 +63,6 @@ describe('Bot', () => {
     };
 
     bot = new Bot('test-slug', mockServices);
-    
-    // Set up socket for tests that need it
-    bot.socket = mockSocket;
   });
 
   afterEach(() => {
@@ -154,12 +149,10 @@ describe('Bot', () => {
 
   describe('_createSocketConnection', () => {
     test('should create SocketClient with correct URL', async () => {
-      const { SocketClient } = require('ttfm-socket');
-      
       await bot._createSocketConnection();
       
       expect(mockServices.logger.debug).toHaveBeenCalledWith('Creating SocketClient...');
-      expect(SocketClient).toHaveBeenCalledWith('https://socket.prod.tt.fm');
+      expect(MockSocketClient).toHaveBeenCalledWith('https://socket.prod.tt.fm');
       expect(bot.socket).toBeDefined();
       expect(mockServices.logger.debug).toHaveBeenCalledWith('✅ SocketClient created');
     });
@@ -199,7 +192,10 @@ describe('Bot', () => {
 
     test('should join room successfully within timeout', async () => {
       const mockResponse = { state: { roomId: 'test' } };
-      mockSocket.joinRoom.mockResolvedValue(mockResponse);
+      mockSocketInstance.joinRoom.mockResolvedValue(mockResponse);
+      
+      // Set up socket for this test
+      bot.socket = mockSocketInstance;
       
       const joinPromise = bot._joinRoomWithTimeout();
       
@@ -208,7 +204,7 @@ describe('Bot', () => {
       
       const result = await joinPromise;
       
-      expect(mockSocket.joinRoom).toHaveBeenCalledWith('test-bot-token-456', {
+      expect(mockSocketInstance.joinRoom).toHaveBeenCalledWith('test-bot-token-456', {
         roomUuid: 'test-hangout-123'
       });
       expect(result).toBe(mockResponse);
@@ -216,7 +212,10 @@ describe('Bot', () => {
 
     test('should timeout if room join takes too long', async () => {
       // Make joinRoom hang indefinitely
-      mockSocket.joinRoom.mockImplementation(() => new Promise(() => {}));
+      mockSocketInstance.joinRoom.mockImplementation(() => new Promise(() => {}));
+      
+      // Set up socket for this test
+      bot.socket = mockSocketInstance;
       
       const joinPromise = bot._joinRoomWithTimeout();
       
@@ -228,26 +227,30 @@ describe('Bot', () => {
   });
 
   describe('_setupReconnectHandler', () => {
+    beforeEach(() => {
+      bot.socket = mockSocketInstance;
+    });
+
     test('should register reconnect event handler', () => {
       bot._setupReconnectHandler();
       
       expect(mockServices.logger.debug).toHaveBeenCalledWith('✅ Setting up reconnect handler...');
-      expect(mockSocket.on).toHaveBeenCalledWith('reconnect', expect.any(Function));
+      expect(mockSocketInstance.on).toHaveBeenCalledWith('reconnect', expect.any(Function));
     });
 
     test('should handle successful reconnect', async () => {
       const mockState = { roomId: 'reconnected-room' };
-      mockSocket.joinRoom.mockResolvedValue({ state: mockState });
+      mockSocketInstance.joinRoom.mockResolvedValue({ state: mockState });
       
       bot._setupReconnectHandler();
       
       // Get the reconnect handler function
-      const reconnectHandler = mockSocket.on.mock.calls.find(call => call[0] === 'reconnect')[1];
+      const reconnectHandler = mockSocketInstance.on.mock.calls.find(call => call[0] === 'reconnect')[1];
       
       await reconnectHandler();
       
       expect(mockServices.logger.debug).toHaveBeenCalledWith('🔄 Reconnecting to room...');
-      expect(mockSocket.joinRoom).toHaveBeenCalledWith('test-bot-token-456', {
+      expect(mockSocketInstance.joinRoom).toHaveBeenCalledWith('test-bot-token-456', {
         roomUuid: 'test-hangout-123'
       });
       expect(bot.state).toBe(mockState);
@@ -256,12 +259,12 @@ describe('Bot', () => {
 
     test('should handle reconnect errors', async () => {
       const reconnectError = new Error('Reconnect failed');
-      mockSocket.joinRoom.mockRejectedValue(reconnectError);
+      mockSocketInstance.joinRoom.mockRejectedValue(reconnectError);
       
       bot._setupReconnectHandler();
       
       // Get the reconnect handler function
-      const reconnectHandler = mockSocket.on.mock.calls.find(call => call[0] === 'reconnect')[1];
+      const reconnectHandler = mockSocketInstance.on.mock.calls.find(call => call[0] === 'reconnect')[1];
       
       await reconnectHandler();
       
@@ -270,6 +273,10 @@ describe('Bot', () => {
   });
 
   describe('configureListeners', () => {
+    beforeEach(() => {
+      bot.socket = mockSocketInstance;
+    });
+
     test('should set up all listeners', () => {
       bot._setupStatefulMessageListener = jest.fn();
       bot._setupStatelessMessageListener = jest.fn();
@@ -287,15 +294,19 @@ describe('Bot', () => {
   });
 
   describe('_setupStatefulMessageListener', () => {
+    beforeEach(() => {
+      bot.socket = mockSocketInstance;
+    });
+
     test('should register statefulMessage handler', async () => {
       bot._writeToLogFile = jest.fn().mockResolvedValue();
       
       bot._setupStatefulMessageListener();
       
-      expect(mockSocket.on).toHaveBeenCalledWith('statefulMessage', expect.any(Function));
+      expect(mockSocketInstance.on).toHaveBeenCalledWith('statefulMessage', expect.any(Function));
       
       // Test the handler
-      const handler = mockSocket.on.mock.calls.find(call => call[0] === 'statefulMessage')[1];
+      const handler = mockSocketInstance.on.mock.calls.find(call => call[0] === 'statefulMessage')[1];
       const payload = { name: 'testStatefulMessage', data: 'test' };
       
       await handler(payload);
@@ -306,15 +317,19 @@ describe('Bot', () => {
   });
 
   describe('_setupStatelessMessageListener', () => {
+    beforeEach(() => {
+      bot.socket = mockSocketInstance;
+    });
+
     test('should register statelessMessage handler', async () => {
       bot._writeToLogFile = jest.fn().mockResolvedValue();
       
       bot._setupStatelessMessageListener();
       
-      expect(mockSocket.on).toHaveBeenCalledWith('statelessMessage', expect.any(Function));
+      expect(mockSocketInstance.on).toHaveBeenCalledWith('statelessMessage', expect.any(Function));
       
       // Test the handler
-      const handler = mockSocket.on.mock.calls.find(call => call[0] === 'statelessMessage')[1];
+      const handler = mockSocketInstance.on.mock.calls.find(call => call[0] === 'statelessMessage')[1];
       const payload = { name: 'testStatelessMessage', data: 'test' };
       
       await handler(payload);
@@ -325,15 +340,19 @@ describe('Bot', () => {
   });
 
   describe('_setupServerMessageListener', () => {
+    beforeEach(() => {
+      bot.socket = mockSocketInstance;
+    });
+
     test('should register serverMessage handler', async () => {
       bot._writeToLogFile = jest.fn().mockResolvedValue();
       
       bot._setupServerMessageListener();
       
-      expect(mockSocket.on).toHaveBeenCalledWith('serverMessage', expect.any(Function));
+      expect(mockSocketInstance.on).toHaveBeenCalledWith('serverMessage', expect.any(Function));
       
       // Test the handler
-      const handler = mockSocket.on.mock.calls.find(call => call[0] === 'serverMessage')[1];
+      const handler = mockSocketInstance.on.mock.calls.find(call => call[0] === 'serverMessage')[1];
       const payload = { message: { name: 'testServerMessage' }, data: 'test' };
       
       await handler(payload);
@@ -344,15 +363,23 @@ describe('Bot', () => {
   });
 
   describe('_setupErrorListener', () => {
+    beforeEach(() => {
+      bot.socket = mockSocketInstance;
+    });
+
     test('should register error handler', async () => {
       bot._writeToLogFile = jest.fn().mockResolvedValue();
       
+      // Mock Date.toISOString for consistent timestamp
+      const mockTimestamp = '2023-01-01T12:00:00.000Z';
+      jest.spyOn(Date.prototype, 'toISOString').mockReturnValue(mockTimestamp);
+      
       bot._setupErrorListener();
       
-      expect(mockSocket.on).toHaveBeenCalledWith('error', expect.any(Function));
+      expect(mockSocketInstance.on).toHaveBeenCalledWith('error', expect.any(Function));
       
       // Test the handler
-      const handler = mockSocket.on.mock.calls.find(call => call[0] === 'error')[1];
+      const handler = mockSocketInstance.on.mock.calls.find(call => call[0] === 'error')[1];
       const errorMessage = 'Socket connection error';
       
       await handler(errorMessage);
@@ -360,7 +387,7 @@ describe('Bot', () => {
       expect(mockServices.logger.debug).toHaveBeenCalledWith(`Socket error: ${errorMessage}`);
       expect(bot._writeToLogFile).toHaveBeenCalledWith('socketError.log', {
         error: errorMessage,
-        timestamp: expect.any(String)
+        timestamp: mockTimestamp
       });
     });
   });
