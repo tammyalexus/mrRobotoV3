@@ -9,10 +9,10 @@ class Bot {
   }
 
   // ========================================================
-  // File Logging Helper
+  // Socket Message File Logging Helper
   // ========================================================
 
-  async _writeToLogFile(filename, data) {
+  async _writeSocketMessagesToLogFile(filename, data) {
     try {
       const logsDir = path.join(process.cwd(), 'logs');
       const filePath = path.join(logsDir, filename);
@@ -112,7 +112,7 @@ class Bot {
       this.services.logger.debug(`statefulMessage - ${payload.name}`);
       
       // Log payload to file
-      await this._writeToLogFile('statefulMessage.log', payload);
+      await this._writeSocketMessagesToLogFile('statefulMessage.log', payload);
       
       // TODO: Add specific handler logic based on payload.name
     });
@@ -123,7 +123,7 @@ class Bot {
       this.services.logger.debug(`statelessMessage - ${payload.name}`);
       
       // Log payload to file
-      await this._writeToLogFile('statelessMessage.log', payload);
+      await this._writeSocketMessagesToLogFile('statelessMessage.log', payload);
       
       // TODO: Add specific handler logic based on payload.name
     });
@@ -134,7 +134,7 @@ class Bot {
       this.services.logger.debug(`serverMessage - ${payload.message.name}`);
       
       // Log payload to file
-      await this._writeToLogFile('serverMessage.log', payload);
+      await this._writeSocketMessagesToLogFile('serverMessage.log', payload);
       
       // TODO: Add specific handler logic based on payload.message.name
     });
@@ -145,7 +145,7 @@ class Bot {
       this.services.logger.debug(`Socket error: ${message}`);
       
       // Log message to file
-      await this._writeToLogFile('socketError.log', { error: message, timestamp: new Date().toISOString() });
+      await this._writeSocketMessagesToLogFile('socketError.log', { error: message, timestamp: new Date().toISOString() });
       
       // TODO: Add specific error handling logic
     });

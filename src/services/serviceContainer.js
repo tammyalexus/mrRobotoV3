@@ -2,10 +2,10 @@
 const { messageService } = require('./messageService.js');
 const parseCommands = require('./parseCommands.js');
 const commandService = require('./commandService.js');
-const pollingService = require('../tasks/pollMessages.js');
 const playlistService = require('./playlistService.js');
 const { logger } = require('../lib/logging.js');
 const config = require('../config.js');
+const hangUserService = require('./hangUserService.js');
 
 // Shared state that all services can access and modify
 const sharedState = {
@@ -24,8 +24,8 @@ const services = {
   messageService,
   parseCommands,
   commandService,
-  pollingService,
   playlistService,
+  hangUserService,
   logger,
   config,
   

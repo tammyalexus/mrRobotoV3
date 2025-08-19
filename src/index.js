@@ -1,138 +1,141 @@
-const services = require('./services/serviceContainer.js');
-const { Bot } = require('./lib/bot.js');
-const { Chain } = require('repeat');
+const services = require( './services/serviceContainer.js' );
+const { Bot } = require( './lib/bot.js' );
+const { Chain } = require( 'repeat' );
 
-process.on('unhandledRejection', (reason, promise) => {
-  services.logger.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
-});
+process.on( 'unhandledRejection', ( reason, promise ) => {
+  services.logger.error( `Unhandled Rejection at: ${ promise }, reason: ${ reason }` );
+} );
 
 // Log application starting
-services.logger.info('======================================= Application Starting =======================================');
+services.logger.info( '======================================= Application Starting =======================================' );
 
-(async () => {
+( async () => {
+
   try {
-    const roomBot = new Bot(services.config.HANGOUT_ID, services);
-    services.logger.debug('🤖 Bot instance created');
+    // Fetch bot's nickname using BOT_UID and hangUserService
+    try {
+      const botNickname = await services.hangUserService.getUserNicknameByUuid( services.config.BOT_UID );
+      services.setState( 'botNickname', botNickname );
+      services.logger.info( `🤖 Bot nickname resolved and stored: ${ botNickname }` );
+    } catch ( err ) {
+      services.logger.warn( `⚠️ Could not resolve bot nickname: ${ err.message }` );
+    }
+
+    const roomBot = new Bot( services.config.HANGOUT_ID, services );
+    services.logger.debug( '🤖 Bot instance created' );
 
     try {
       await roomBot.connect();
-      services.logger.debug('✅ Bot connect() completed successfully');
-    } catch (connectError) {
-      services.logger.error(`❌ Error during bot.connect(): ${connectError}`);
+      services.logger.debug( '✅ Bot connect() completed successfully' );
+    } catch ( connectError ) {
+      services.logger.error( `❌ Error during bot.connect(): ${ connectError }` );
       throw connectError;
     }
-    
+
     try {
       roomBot.configureListeners();
-      services.logger.debug('✅ Listeners configured successfully');
-    } catch (listenerError) {
-      services.logger.error(`❌ Error during configureListeners(): ${listenerError}`);
+      services.logger.debug( '✅ Listeners configured successfully' );
+    } catch ( listenerError ) {
+      services.logger.error( `❌ Error during configureListeners(): ${ listenerError }` );
       throw listenerError;
     }
 
     // Join the chat group before processing messages
     try {
-      services.logger.debug('🔄 Joining chat group...');
-      await services.messageService.joinChat(services.config.HANGOUT_ID);
-      services.logger.debug('✅ Successfully joined chat group');
-    } catch (joinError) {
-      services.logger.error(`❌ Error joining chat group: ${joinError}`);
+      services.logger.debug( '🔄 Joining chat group...' );
+      await services.messageService.joinChat( services.config.HANGOUT_ID );
+      services.logger.debug( '✅ Successfully joined chat group' );
+    } catch ( joinError ) {
+      services.logger.error( `❌ Error joining chat group: ${ joinError }` );
       // Don't throw here - continue with limited functionality
-      services.logger.warn('⚠️ Continuing without group membership - some features may not work');
+      services.logger.warn( '⚠️ Continuing without group membership - some features may not work' );
     }
 
     const checkInterval = 1000 * 1; // 1 second
     try {
       const repeatedTasks = new Chain();
       repeatedTasks
-        .add(async () => {
+        .add( async () => {
           try {
             await roomBot.processNewMessages();
-          } catch (error) {
-            services.logger.error(`Error in processNewMessages: ${error?.message || error?.toString() || 'Unknown error'}`);
+          } catch ( error ) {
+            services.logger.error( `Error in processNewMessages: ${ error?.message || error?.toString() || 'Unknown error' }` );
           }
-        })
+        } )
         .every( checkInterval ) // every 1 second
-        
-      services.logger.debug(`Started message processing chain with ${checkInterval}ms interval`);
-    } catch (chainError) {
-      services.logger.error(`Error starting message processing chain: ${chainError}`);
+
+      services.logger.debug( `Started message processing chain with ${ checkInterval }ms interval` );
+    } catch ( chainError ) {
+      services.logger.error( `Error starting message processing chain: ${ chainError }` );
       // Fallback to setInterval if Chain fails
-      services.logger.info('Falling back to setInterval for message processing');
-      setInterval(async () => {
+      services.logger.info( 'Falling back to setInterval for message processing' );
+      setInterval( async () => {
         try {
           await roomBot.processNewMessages();
-        } catch (error) {
-          services.logger.error(`Error in processNewMessages (fallback): ${error?.message || error?.toString() || 'Unknown error'}`);
+        } catch ( error ) {
+          services.logger.error( `Error in processNewMessages (fallback): ${ error?.message || error?.toString() || 'Unknown error' }` );
         }
       }, checkInterval );
-    }      
-      
-      // start polling the message service for new messages
-      // services.logger.debug('Starting group message polling');
-      // services.pollingService.startGroupMessagePolling(1000 * 1); // 1000ms * number of seconds for interval
-      // services.logger.info('Group message polling started');
+    }
 
-      // services.logger.debug('Starting private message polling');
-      // services.pollingService.startPrivateMessagePolling(1000 * 5)
+    // =========================================================
+    // WORKS BELOW THE LINE
+    // =========================================================
 
-      // =========================================================
-      // WORKS BELOW THE LINE
-      // =========================================================
+    // can send messages in public chat
+    // services.logger.debug('Sending startup message to group');
+    // await services.messageService.sendGroupMessage("Mr. Roboto version 3 is online");
+    // services.logger.info('Startup message sent successfully');
 
-      // can send messages in public chat
-      // services.logger.debug('Sending startup message to group');
-      // await services.messageService.sendGroupMessage("Mr. Roboto version 3 is online");
-      // services.logger.info('Startup message sent successfully');
+    // go find the latest Hangout Message ID so the Bot doesn't start
+    // processing old messages on startup
+    // services.logger.debug('Retrieving latest group message ID');
+    // const latestID = await services.messageService.returnLatestGroupMessageId();
+    // services.messageService.setLatestGroupMessageId(latestID);
+    // services.logger.info(`Latest group message ID set to: ${latestID || 'null'}`);
 
-      // go find the latest Hangout Message ID so the Bot doesn't start
-      // processing old messages on startup
-      // services.logger.debug('Retrieving latest group message ID');
-      // const latestID = await services.messageService.returnLatestGroupMessageId();
-      // services.messageService.setLatestGroupMessageId(latestID);
-      // services.logger.info(`Latest group message ID set to: ${latestID || 'null'}`);
+    // find all users in the CometChat group
+    // await services.messageService.listGroupMembers()
 
-      // find all users in the CometChat group
-      // await services.messageService.listGroupMembers()
+    // Start polling for unread private user messages every 10 seconds
+    // setInterval(async () => {
+    //   try {
+    //     const userID = services.config.COMETCHAT_RECEIVER_UID;
+    //     // Use messageService to fetch all unread messages
+    //     const messages = await services.messageService.fetchAllPrivateUserMessages(userID);
+    //     if (Array.isArray(messages) && messages.length > 0) {
+    //       // Sort messages by ID ascending
+    //       const sorted = messages.slice().sort((a, b) => Number(a.id) - Number(b.id));
+    //       services.logger.info(`Unread messages (${sorted.length}):`);
+    //       for (const msg of sorted) {
+    //         services.logger.info(`- ID: ${msg.id} | Message: "${msg.message}" | Read: ${msg.readAt}`);
+    //         if (await services.parseCommands( msg.message )) {
+    //           await services.messageService.sendPrivateMessage(`Command received ${msg.message}`, msg.sender);
+    //         }
+    //       }
+    //       // Mark all as read
+    //       await services.messageService.markAllPrivateUserMessagesAsRead(userID);
+    //     } else {
+    //       services.logger.info('No unread messages found.');
+    //     }
+    //   } catch (err) {
+    //     services.logger.error(`❌ Error polling unread private user messages: ${err.response?.data || err.message}`);
+    //   }
+    // }, 5000); // 5 seconds
 
-      // Start polling for unread private user messages every 10 seconds
-      // setInterval(async () => {
-      //   try {
-      //     const userID = services.config.COMETCHAT_RECEIVER_UID;
-      //     // Use messageService to fetch all unread messages
-      //     const messages = await services.messageService.fetchAllPrivateUserMessages(userID);
-      //     if (Array.isArray(messages) && messages.length > 0) {
-      //       // Sort messages by ID ascending
-      //       const sorted = messages.slice().sort((a, b) => Number(a.id) - Number(b.id));
-      //       services.logger.info(`Unread messages (${sorted.length}):`);
-      //       for (const msg of sorted) {
-      //         services.logger.info(`- ID: ${msg.id} | Message: "${msg.message}" | Read: ${msg.readAt}`);
-      //         if (await services.parseCommands( msg.message )) {
-      //           await services.messageService.sendPrivateMessage(`Command received ${msg.message}`, msg.sender);
-      //         }
-      //       }
-      //       // Mark all as read
-      //       await services.messageService.markAllPrivateUserMessagesAsRead(userID);
-      //     } else {
-      //       services.logger.info('No unread messages found.');
-      //     }
-      //   } catch (err) {
-      //     services.logger.error(`❌ Error polling unread private user messages: ${err.response?.data || err.message}`);
-      //   }
-      // }, 5000); // 5 seconds
+    services.logger.info( '======================================= Application Started Successfully =======================================' );
 
-    services.logger.info('======================================= Application Started Successfully =======================================');
-    
     // Send startup message to group
     try {
-      await services.messageService.sendGroupMessage(`Mr. Roboto V3 is online...user ${services.config.COMMAND_SWITCH}help to see some of what I can do`);
-      services.logger.info("✅ Startup message sent to group");
-    } catch (error) {
-      services.logger.error(`❌ Failed to send startup message: ${error?.message || error?.toString() || 'Unknown error'}`);
+      const botNickname = services.getState( 'botNickname' ) || 'Bot';
+      await services.messageService.sendGroupMessage( `${ botNickname } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do` );
+      services.logger.info( "✅ Startup message sent to group" );
+    } catch ( error ) {
+      services.logger.error( `❌ Failed to send startup message: ${ error?.message || error?.toString() || 'Unknown error' }` );
     }
-    
-  } catch (err) {
-    services.logger.error(`❌ Error during startup: ${err.response?.data || err.message}`);
-    services.logger.error(err);
+
+  } catch ( err ) {
+    services.logger.error( `❌ Error during startup: ${ err.response?.data || err.message }` );
+    services.logger.error( err );
   }
-})();
+} )();
