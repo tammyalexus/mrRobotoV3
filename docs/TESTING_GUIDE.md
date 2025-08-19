@@ -168,7 +168,6 @@ tests/
 │   ├── cometchatAPI/
 │   └── messageService/
 └── tasks/                      # Task/worker tests
-    └── pollMessages.test.js
 ```
 
 ## 🚀 Common Testing Workflows

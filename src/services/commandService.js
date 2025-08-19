@@ -12,6 +12,7 @@ const config = require('../config.js');
 async function processCommand(command, messageRemainder, services = null, context = {}) {
   // Fallback to direct imports if services not provided
   const messageService = services?.messageService || require('./messageService.js').messageService;
+  const hangUserService = services?.hangUserService || require('./hangUserService.js');
   
   try {
     const trimmedCommand = command.trim().toLowerCase();
@@ -31,7 +32,7 @@ async function processCommand(command, messageRemainder, services = null, contex
         return await handleStatusCommand(args, messageService, context);
         
       case 'echo':
-        return await handleEchoCommand(args, messageService, context);
+        return await handleEchoCommand(args, messageService, hangUserService, context);
         
       // Add more commands here as needed
       default:
@@ -100,7 +101,7 @@ async function handleStatusCommand(args, messageService, context) {
   };
 }
 
-async function handleEchoCommand(args, messageService, context) {
+async function handleEchoCommand(args, messageService, hangUserService, context) {
   if (!args.trim()) {
     const response = '❓ Echo what? Please provide a message to echo.';
     await messageService.sendGroupMessage(response);
@@ -111,7 +112,21 @@ async function handleEchoCommand(args, messageService, context) {
     };
   }
   
-  const response = `🔊 Echo: ${args}`;
+  const senderUuid = context && typeof context.sender === 'string' && context.sender.trim().length
+    ? context.sender
+    : null;
+  let senderDisplay = 'unknown';
+  if (senderUuid && hangUserService && typeof hangUserService.getUserNicknameByUuid === 'function') {
+    try {
+      const nickname = await hangUserService.getUserNicknameByUuid(senderUuid);
+      if (nickname && typeof nickname === 'string') {
+        senderDisplay = nickname;
+      }
+    } catch (e) {
+      // Swallow lookup errors; keep 'unknown'
+    }
+  }
+  const response = `🔊 Echo: ${args} (from ${senderDisplay})`;
   await messageService.sendGroupMessage(response);
   
   return {
