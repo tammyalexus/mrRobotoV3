@@ -1,4 +1,5 @@
 const { ServerMessageName, SocketClient, StatefulServerMessageName, StatelessServerMessageName } = require('ttfm-socket');
+const { applyPatch } = require('fast-json-patch');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -108,13 +109,37 @@ class Bot {
   }
 
   _setupStatefulMessageListener() {
-    this.socket.on('statefulMessage', async (payload) => {
-      this.services.logger.debug(`statefulMessage - ${payload.name}`);
+    this.socket.on('statefulMessage', async (message) => {
+      this.services.logger.debug(`statefulMessage - ${message.name}`);
       
       // Log payload to file
-      await this._writeSocketMessagesToLogFile('statefulMessage.log', payload);
+      await this._writeSocketMessagesToLogFile('statefulMessage.log', message);
       
-      // TODO: Add specific handler logic based on payload.name
+      // Apply state patch to update current state
+      if (message.statePatch && this.state) {
+        try {
+          const patchResult = applyPatch(
+            this.state,
+            message.statePatch,
+            true,  // validate operation
+            false  // mutate document
+          );
+          
+          // Update the bot's state with the patched state
+          this.state = patchResult.newDocument;
+          
+          this.services.logger.debug(`State updated via patch for message: ${message.name}`);
+          this.services.logger.debug(`Applied ${message.statePatch.length} patch operations`);
+        } catch (error) {
+          this.services.logger.error(`Failed to apply state patch for ${message.name}: ${error.message}`);
+          // Continue execution even if patch fails to avoid breaking the bot
+        }
+      } else if (message.statePatch && !this.state) {
+        this.services.logger.warn(`Received state patch but no current state available for message: ${message.name}`);
+      }
+      
+      // TODO: Add specific handler logic based on message.name
+      // This could include handling specific events like song changes, user actions, etc.
     });
   }
 

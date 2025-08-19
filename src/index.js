@@ -128,7 +128,7 @@ services.logger.info( '======================================= Application Start
     // Send startup message to group
     try {
       const botNickname = services.getState( 'botNickname' ) || 'Bot';
-      await services.messageService.sendGroupMessage( `${ botNickname } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do` );
+      // await services.messageService.sendGroupMessage( `${ botNickname } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do` );
       services.logger.info( "✅ Startup message sent to group" );
     } catch ( error ) {
       services.logger.error( `❌ Failed to send startup message: ${ error?.message || error?.toString() || 'Unknown error' }` );
