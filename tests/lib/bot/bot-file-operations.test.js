@@ -32,7 +32,7 @@ describe('Bot - File Operations Integration', () => {
     bot = new Bot('test-slug', mockServices);
   });
 
-  describe('_writeToLogFile with real fs module', () => {
+  describe('_writeSocketMessagesToLogFile with real fs module', () => {
     test('should handle file write errors', async () => {
       // Mock fs.appendFile to throw an error
       const fs = require('fs').promises;
@@ -41,7 +41,7 @@ describe('Bot - File Operations Integration', () => {
       const testError = new Error('Permission denied');
       fs.appendFile = jest.fn().mockRejectedValue(testError);
       
-      await bot._writeToLogFile('test.log', { test: 'data' });
+      await bot._writeSocketMessagesToLogFile('test.log', { test: 'data' });
       
       // Check that error was logged
       expect(mockServices.logger.error).toHaveBeenCalledWith(
@@ -59,7 +59,7 @@ describe('Bot - File Operations Integration', () => {
       
       fs.appendFile = jest.fn().mockResolvedValue();
       
-      await bot._writeToLogFile('success.log', { success: true });
+      await bot._writeSocketMessagesToLogFile('success.log', { success: true });
       
       // Should not log any errors
       expect(mockServices.logger.error).not.toHaveBeenCalled();
