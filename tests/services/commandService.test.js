@@ -5,6 +5,11 @@ jest.mock('../../src/services/messageService.js', () => ({
   }
 }));
 
+// Mock hangUserService to resolve nickname from UUID
+jest.mock('../../src/services/hangUserService.js', () => ({
+  getUserNicknameByUuid: jest.fn().mockResolvedValue('Nick-From-UUID')
+}));
+
 // Mock logging module
 jest.mock('../../src/lib/logging.js', () => ({
   logger: {
@@ -83,16 +88,25 @@ describe('commandService', () => {
       );
     });
 
-    test('should handle echo command with message', async () => {
+    test('should handle echo command with message and include sender nickname', async () => {
       const testMessage = 'Hello World';
       const result = await commandService('echo', testMessage, mockServices, mockContext);
       
       expect(result.success).toBe(true);
       expect(result.shouldRespond).toBe(true);
       expect(result.response).toContain(testMessage);
+      expect(result.response).toContain('from Nick-From-UUID');
       expect(mockMessageService.sendGroupMessage).toHaveBeenCalledWith(
-        expect.stringContaining(testMessage)
+        expect.stringContaining('from Nick-From-UUID')
       );
+    });
+
+    test('should fall back to unknown when nickname lookup fails', async () => {
+      const hangUserService = require('../../src/services/hangUserService.js');
+      hangUserService.getUserNicknameByUuid.mockRejectedValueOnce(new Error('lookup failed'));
+
+      const result = await commandService('echo', 'msg', mockServices, mockContext);
+      expect(result.response).toContain('from unknown');
     });
 
     test('should handle echo command without message', async () => {
