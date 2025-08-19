@@ -1,59 +1,76 @@
 function assignSearchParams(url, searchParams) {
   if (Array.isArray(searchParams)) {
-    // Case 1: array of key-value pairs
     url.search = new URLSearchParams(searchParams).toString();
   } else if (
     typeof searchParams === 'object' &&
     searchParams !== null &&
     !(searchParams instanceof URLSearchParams)
   ) {
-    // Case 2: plain object
     url.search = new URLSearchParams(Object.entries(searchParams)).toString();
   } else if (searchParams instanceof URLSearchParams) {
-    // Case 3: already a URLSearchParams instance
     url.search = searchParams.toString();
   }
-  // Other types are ignored (e.g., string, null, number, etc.)
 }
 
 // Use built-in fetch (available in Node.js 18+)
-// const fetch = require('node-fetch'); // Removed - using built-in fetch
 
-const makeRequest = async ( url, options, extraHeaders ) => {
-  // Convert string URL to URL object if needed
+const makeRequest = async (url, options = {}, extraHeaders = {}) => {
   const urlObj = typeof url === 'string' ? new URL(url) : url;
-  
-  // Handle data -> body conversion for fetch API
-  const requestOptions = {
-    headers: {
-      accept: 'application/json',
-      'accept-language': 'en-ZA,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,af;q=0.6',
-      'cache-control': 'max-age=0',
-      'content-type': 'application/json',
-      ...extraHeaders,
-      ...(options.headers || {}) // Merge headers from options
-    },
-    ...options
+
+  const defaultHeaders = {
+    accept: 'application/json',
+    'accept-language': 'en-ZA,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,af;q=0.6',
+    'cache-control': 'max-age=0',
+    'content-type': 'application/json'
   };
-  
-  // Remove headers from options to avoid duplication
-  delete requestOptions.headers.headers;
-  
-  // Convert 'data' property to 'body' for fetch API compatibility
-  if (requestOptions.data) {
-    requestOptions.body = JSON.stringify(requestOptions.data);
-    delete requestOptions.data;
+
+  const { headers: optionsHeaders = {}, data, ...restOptions } = options || {};
+
+  // Merge order: defaults -> extraHeaders -> options.headers (options take precedence)
+  const mergedHeaders = {
+    ...defaultHeaders,
+    ...extraHeaders,
+    ...optionsHeaders
+  };
+
+  const requestOptions = {
+    ...restOptions,
+    headers: mergedHeaders
+  };
+
+  // Convert 'data' to 'body' with sensible defaults
+  if (typeof data !== 'undefined') {
+    const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+    const isURLSearchParams = data instanceof URLSearchParams;
+
+    if (isFormData) {
+      requestOptions.body = data;
+      // Let the runtime set the correct multipart boundary
+      if (requestOptions.headers && requestOptions.headers['content-type']) {
+        delete requestOptions.headers['content-type'];
+      }
+    } else if (isURLSearchParams) {
+      requestOptions.body = data.toString();
+      requestOptions.headers['content-type'] = 'application/x-www-form-urlencoded;charset=UTF-8';
+    } else if (typeof data === 'string' || Buffer.isBuffer(data)) {
+      requestOptions.body = data;
+    } else {
+      requestOptions.body = JSON.stringify(data);
+      if (!requestOptions.headers['content-type']) {
+        requestOptions.headers['content-type'] = 'application/json';
+      }
+    }
   }
-  
+
   try {
-    const response = await fetch( urlObj.href, requestOptions )
+    const response = await fetch(urlObj.href, requestOptions);
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
     }
-    return await response.json()
-  } catch ( error ) {
-    throw error; // Re-throw the error instead of silently swallowing it
+    return await response.json();
+  } catch (error) {
+    throw error;
   }
 }
 

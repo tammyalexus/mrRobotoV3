@@ -82,7 +82,7 @@ describe('makeRequest', () => {
     });
   });
 
-  test('should merge headers from options correctly (currently buggy - options overrides defaults)', async () => {
+  test('should merge headers from options correctly', async () => {
     const mockResponse = { success: true };
     const options = {
       method: 'POST',
@@ -99,13 +99,15 @@ describe('makeRequest', () => {
 
     await makeRequest('https://api.example.com/test', options);
 
-    // BUG: The ...options spread overwrites the carefully merged headers
     expect(fetch).toHaveBeenCalledWith('https://api.example.com/test', {
       method: 'POST',
       headers: {
+        accept: 'application/json',
+        'accept-language': 'en-ZA,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,af;q=0.6',
+        'cache-control': 'max-age=0',
+        'content-type': 'application/json',
         'Authorization': 'Bearer token456',
         'X-Request-ID': 'req-123'
-        // Default headers are lost due to bug in source code
       }
     });
   });
@@ -137,7 +139,7 @@ describe('makeRequest', () => {
     });
   });
 
-  test('should handle both extraHeaders and options.headers (currently buggy - options completely overwrites)', async () => {
+  test('should handle both extraHeaders and options.headers (options override extraHeaders, defaults preserved)', async () => {
     const mockResponse = { success: true };
     const extraHeaders = { 'Authorization': 'Bearer extra-token' };
     const options = {
@@ -151,12 +153,14 @@ describe('makeRequest', () => {
 
     await makeRequest('https://api.example.com/test', options, extraHeaders);
 
-    // BUG: The ...options spread completely overwrites the merged headers
     expect(fetch).toHaveBeenCalledWith('https://api.example.com/test', {
       headers: {
+        accept: 'application/json',
+        'accept-language': 'en-ZA,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,af;q=0.6',
+        'cache-control': 'max-age=0',
+        'content-type': 'application/json',
         'Authorization': 'Bearer options-token',
         'X-Custom': 'value'
-        // All default headers and extraHeaders are lost due to bug
       }
     });
   });
