@@ -36,7 +36,7 @@ We have successfully created comprehensive test coverage for `src/lib/bot.js` wi
 
 #### Constructor & Setup
 - ✅ `constructor(slug, services)`
-- ✅ `_writeToLogFile(filename, data)`
+- ✅ `_writeSocketMessagesToLogFile(filename, data)`
 
 #### Connection Flow
 - ✅ `connect()`

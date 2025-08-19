@@ -76,7 +76,7 @@ describe('Bot', () => {
     });
   });
 
-  describe('_writeToLogFile', () => {
+  describe('_writeSocketMessagesToLogFile', () => {
     test('should write formatted log entry to file', async () => {
       const filename = 'test.log';
       const data = { message: 'test data', id: 123 };
@@ -85,7 +85,7 @@ describe('Bot', () => {
       const mockTimestamp = '2023-01-01T12:00:00.000Z';
       jest.spyOn(Date.prototype, 'toISOString').mockReturnValue(mockTimestamp);
       
-      await bot._writeToLogFile(filename, data);
+      await bot._writeSocketMessagesToLogFile(filename, data);
       
       const expectedPath = path.join(process.cwd(), 'logs', filename);
       const expectedContent = `${mockTimestamp}: ${JSON.stringify(data, null, 2)}\n`;
@@ -100,7 +100,7 @@ describe('Bot', () => {
       
       mockAppendFile.mockRejectedValueOnce(writeError);
       
-      await bot._writeToLogFile(filename, data);
+      await bot._writeSocketMessagesToLogFile(filename, data);
       
       expect(mockServices.logger.error).toHaveBeenCalledWith(
         `Failed to write to log file ${filename}: ${writeError.message}`
@@ -299,7 +299,7 @@ describe('Bot', () => {
     });
 
     test('should register statefulMessage handler', async () => {
-      bot._writeToLogFile = jest.fn().mockResolvedValue();
+      bot._writeSocketMessagesToLogFile = jest.fn().mockResolvedValue();
       
       bot._setupStatefulMessageListener();
       
@@ -312,7 +312,7 @@ describe('Bot', () => {
       await handler(payload);
       
       expect(mockServices.logger.debug).toHaveBeenCalledWith('statefulMessage - testStatefulMessage');
-      expect(bot._writeToLogFile).toHaveBeenCalledWith('statefulMessage.log', payload);
+      expect(bot._writeSocketMessagesToLogFile).toHaveBeenCalledWith('statefulMessage.log', payload);
     });
   });
 
@@ -322,7 +322,7 @@ describe('Bot', () => {
     });
 
     test('should register statelessMessage handler', async () => {
-      bot._writeToLogFile = jest.fn().mockResolvedValue();
+      bot._writeSocketMessagesToLogFile = jest.fn().mockResolvedValue();
       
       bot._setupStatelessMessageListener();
       
@@ -335,7 +335,7 @@ describe('Bot', () => {
       await handler(payload);
       
       expect(mockServices.logger.debug).toHaveBeenCalledWith('statelessMessage - testStatelessMessage');
-      expect(bot._writeToLogFile).toHaveBeenCalledWith('statelessMessage.log', payload);
+      expect(bot._writeSocketMessagesToLogFile).toHaveBeenCalledWith('statelessMessage.log', payload);
     });
   });
 
@@ -345,7 +345,7 @@ describe('Bot', () => {
     });
 
     test('should register serverMessage handler', async () => {
-      bot._writeToLogFile = jest.fn().mockResolvedValue();
+      bot._writeSocketMessagesToLogFile = jest.fn().mockResolvedValue();
       
       bot._setupServerMessageListener();
       
@@ -358,7 +358,7 @@ describe('Bot', () => {
       await handler(payload);
       
       expect(mockServices.logger.debug).toHaveBeenCalledWith('serverMessage - testServerMessage');
-      expect(bot._writeToLogFile).toHaveBeenCalledWith('serverMessage.log', payload);
+      expect(bot._writeSocketMessagesToLogFile).toHaveBeenCalledWith('serverMessage.log', payload);
     });
   });
 
@@ -368,7 +368,7 @@ describe('Bot', () => {
     });
 
     test('should register error handler', async () => {
-      bot._writeToLogFile = jest.fn().mockResolvedValue();
+      bot._writeSocketMessagesToLogFile = jest.fn().mockResolvedValue();
       
       // Mock Date.toISOString for consistent timestamp
       const mockTimestamp = '2023-01-01T12:00:00.000Z';
@@ -385,7 +385,7 @@ describe('Bot', () => {
       await handler(errorMessage);
       
       expect(mockServices.logger.debug).toHaveBeenCalledWith(`Socket error: ${errorMessage}`);
-      expect(bot._writeToLogFile).toHaveBeenCalledWith('socketError.log', {
+      expect(bot._writeSocketMessagesToLogFile).toHaveBeenCalledWith('socketError.log', {
         error: errorMessage,
         timestamp: mockTimestamp
       });
