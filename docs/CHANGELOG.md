@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - JSON patch-based state management for real-time socket updates using `fast-json-patch`
+  - **ENSURE YOU RUN `npm install` TO INSTALL ANY NEW DEPENDENCIES**
 - Enhanced `_setupStatefulMessageListener` with proper state patching and error handling
 - Comprehensive state patching tests covering patch application, error scenarios, and immutability
 - `hangSocketServices` for song voting functionality with upVote/downVote methods
