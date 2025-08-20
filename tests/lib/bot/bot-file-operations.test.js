@@ -113,29 +113,29 @@ describe('Bot - File Operations Integration', () => {
       mockServices.config.SOCKET_MESSAGE_LOG_LEVEL = 'DEBUG';
       bot = new Bot('test-slug', mockServices);
 
-      // First message
-      await bot._writeSocketMessagesToLogFile('test.log', { message: 1 });
+      // First message with name
+      await bot._writeSocketMessagesToLogFile('test.log', { name: 'songChanged', message: 1 });
       
-      // Second message
-      await bot._writeSocketMessagesToLogFile('test.log', { message: 2 });
+      // Second message with name
+      await bot._writeSocketMessagesToLogFile('test.log', { name: 'userJoined', message: 2 });
       
-      // Third message with different base name
-      await bot._writeSocketMessagesToLogFile('other.log', { message: 3 });
+      // Third message with different base name and message name
+      await bot._writeSocketMessagesToLogFile('other.log', { name: 'statusUpdate', message: 3 });
 
       expect(fs.appendFile).toHaveBeenCalledTimes(3);
       
       const calls = fs.appendFile.mock.calls;
       
-      // Check first call - padded counter at start
-      expect(calls[0][0]).toMatch(/000001_test\.log$/);
+      // Check first call - padded counter at start with message name
+      expect(calls[0][0]).toMatch(/000001_test_songChanged\.log$/);
       expect(calls[0][1]).toContain('"message": 1');
       
-      // Check second call - padded counter at start
-      expect(calls[1][0]).toMatch(/000002_test\.log$/);
+      // Check second call - padded counter at start with message name
+      expect(calls[1][0]).toMatch(/000002_test_userJoined\.log$/);
       expect(calls[1][1]).toContain('"message": 2');
       
-      // Check third call - padded counter at start
-      expect(calls[2][0]).toMatch(/000003_other\.log$/);
+      // Check third call - padded counter at start with message name
+      expect(calls[2][0]).toMatch(/000003_other_statusUpdate\.log$/);
       expect(calls[2][1]).toContain('"message": 3');
     });
 
@@ -143,27 +143,38 @@ describe('Bot - File Operations Integration', () => {
       mockServices.config.SOCKET_MESSAGE_LOG_LEVEL = 'DEBUG';
       bot = new Bot('test-slug', mockServices);
 
-      await bot._writeSocketMessagesToLogFile('stateful.log', { type: 'stateful' });
-      await bot._writeSocketMessagesToLogFile('stateless.log', { type: 'stateless' });
-      await bot._writeSocketMessagesToLogFile('server.log', { type: 'server' });
+      await bot._writeSocketMessagesToLogFile('stateful.log', { name: 'roomUpdate', type: 'stateful' });
+      await bot._writeSocketMessagesToLogFile('stateless.log', { name: 'ping', type: 'stateless' });
+      await bot._writeSocketMessagesToLogFile('server.log', { message: { name: 'serverAlert' }, type: 'server' });
 
       expect(fs.appendFile).toHaveBeenCalledTimes(3);
       
       const calls = fs.appendFile.mock.calls;
-      expect(calls[0][0]).toMatch(/000001_stateful\.log$/);
-      expect(calls[1][0]).toMatch(/000002_stateless\.log$/);
-      expect(calls[2][0]).toMatch(/000003_server\.log$/);
+      expect(calls[0][0]).toMatch(/000001_stateful_roomUpdate\.log$/);
+      expect(calls[1][0]).toMatch(/000002_stateless_ping\.log$/);
+      expect(calls[2][0]).toMatch(/000003_server_serverAlert\.log$/);
     });
 
     test('should handle filenames without .log extension in DEBUG mode', async () => {
       mockServices.config.SOCKET_MESSAGE_LOG_LEVEL = 'DEBUG';
       bot = new Bot('test-slug', mockServices);
 
-      await bot._writeSocketMessagesToLogFile('noextension', { test: 'data' });
+      await bot._writeSocketMessagesToLogFile('noextension', { name: 'testMessage', test: 'data' });
 
       expect(fs.appendFile).toHaveBeenCalledTimes(1);
       const [[filePath]] = fs.appendFile.mock.calls;
-      expect(filePath).toMatch(/000001_noextension\.log$/);
+      expect(filePath).toMatch(/000001_noextension_testMessage\.log$/);
+    });
+
+    test('should handle messages without names in DEBUG mode', async () => {
+      mockServices.config.SOCKET_MESSAGE_LOG_LEVEL = 'DEBUG';
+      bot = new Bot('test-slug', mockServices);
+
+      await bot._writeSocketMessagesToLogFile('test.log', { message: 'no name property' });
+
+      expect(fs.appendFile).toHaveBeenCalledTimes(1);
+      const [[filePath]] = fs.appendFile.mock.calls;
+      expect(filePath).toMatch(/000001_test\.log$/);
     });
 
     test('should include timestamp and JSON formatting', async () => {

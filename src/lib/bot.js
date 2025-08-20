@@ -27,11 +27,25 @@ class Bot {
       let filePath;
       
       if (logLevel === 'DEBUG') {
-        // In DEBUG mode, each message gets its own numbered file
+        // In DEBUG mode, each message gets its own numbered file with message name
         this.socketLogCounter++;
         const baseFilename = filename.replace('.log', '');
         const paddedCounter = String(this.socketLogCounter).padStart(6, '0');
-        const debugFilename = `${paddedCounter}_${baseFilename}.log`;
+        
+        // Extract message name from data
+        let messageName = '';
+        if (data && typeof data === 'object') {
+          // For different message types, the name might be in different places
+          messageName = data.name || (data.message && data.message.name) || '';
+        }
+        
+        let debugFilename;
+        if (messageName) {
+          debugFilename = `${paddedCounter}_${baseFilename}_${messageName}.log`;
+        } else {
+          debugFilename = `${paddedCounter}_${baseFilename}.log`;
+        }
+        
         filePath = path.join(logsDir, debugFilename);
       } else {
         // In ON mode, use the original filename
