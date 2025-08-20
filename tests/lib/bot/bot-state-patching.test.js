@@ -21,7 +21,8 @@ const mockServices = {
   config: {
     HANGOUT_ID: 'test-hangout',
     BOT_USER_TOKEN: 'test-token',
-    BOT_UID: 'bot-123'
+    BOT_UID: 'bot-123',
+    SOCKET_MESSAGE_LOG_LEVEL: 'ON' // Add this required config
   },
   updateLastMessageId: jest.fn()
 };
