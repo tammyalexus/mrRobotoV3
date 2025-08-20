@@ -47,7 +47,8 @@ describe( 'Bot', () => {
         HANGOUT_ID: 'test-hangout-123',
         BOT_USER_TOKEN: 'test-bot-token-456',
         BOT_UID: 'test-bot-uid-789',
-        COMMAND_SWITCH: '!'
+        COMMAND_SWITCH: '!',
+        SOCKET_MESSAGE_LOG_LEVEL: 'ON'
       },
       logger: {
         debug: jest.fn(),
@@ -186,6 +187,47 @@ describe( 'Bot', () => {
       await expect( bot._joinSocketRoom() ).rejects.toThrow( 'Room join failed' );
 
       expect( mockServices.logger.error ).toHaveBeenCalledWith( `❌ Failed to join room: ${ joinError }` );
+    } );
+
+    test( 'should log initial state when SOCKET_MESSAGE_LOG_LEVEL is DEBUG', async () => {
+      const mockState = { roomId: 'debug-room', users: ['user1'], currentSong: { id: '123' } };
+      bot._joinRoomWithTimeout = jest.fn().mockResolvedValue( { state: mockState } );
+      mockServices.config.SOCKET_MESSAGE_LOG_LEVEL = 'DEBUG';
+
+      await bot._joinSocketRoom();
+
+      expect( mockAppendFile ).toHaveBeenCalledWith(
+        expect.stringMatching(/000000_initialState\.log$/),
+        expect.stringContaining('"roomId": "debug-room"')
+      );
+      expect( mockServices.logger.debug ).toHaveBeenCalledWith( 'Initial state logged to 000000_initialState.log' );
+    } );
+
+    test( 'should not log initial state when SOCKET_MESSAGE_LOG_LEVEL is not DEBUG', async () => {
+      const mockState = { roomId: 'test-room', users: [] };
+      bot._joinRoomWithTimeout = jest.fn().mockResolvedValue( { state: mockState } );
+      mockServices.config.SOCKET_MESSAGE_LOG_LEVEL = 'ON';
+
+      await bot._joinSocketRoom();
+
+      expect( mockAppendFile ).not.toHaveBeenCalledWith(
+        expect.stringMatching(/000000_initialState\.log$/),
+        expect.anything()
+      );
+    } );
+
+    test( 'should handle initial state logging errors gracefully', async () => {
+      const mockState = { roomId: 'error-room', users: [] };
+      bot._joinRoomWithTimeout = jest.fn().mockResolvedValue( { state: mockState } );
+      mockServices.config.SOCKET_MESSAGE_LOG_LEVEL = 'DEBUG';
+      
+      const logError = new Error( 'Disk full' );
+      mockAppendFile.mockRejectedValueOnce( logError );
+
+      await bot._joinSocketRoom();
+
+      expect( bot.state ).toBe( mockState );
+      expect( mockServices.logger.error ).toHaveBeenCalledWith( `Failed to log initial state: ${ logError.message }` );
     } );
   } );
 

@@ -7,6 +7,7 @@ class Bot {
   constructor(slug, services) {
     this.services = services;
     this.lastMessageIDs = {}
+    this.socketLogCounter = 0; // Counter for debug mode logging
   }
 
   // ========================================================
@@ -14,9 +15,29 @@ class Bot {
   // ========================================================
 
   async _writeSocketMessagesToLogFile(filename, data) {
+    const logLevel = this.services.config.SOCKET_MESSAGE_LOG_LEVEL;
+    
+    // If logging is OFF, don't log anything
+    if (logLevel === 'OFF') {
+      return;
+    }
+    
     try {
       const logsDir = path.join(process.cwd(), 'logs');
-      const filePath = path.join(logsDir, filename);
+      let filePath;
+      
+      if (logLevel === 'DEBUG') {
+        // In DEBUG mode, each message gets its own numbered file
+        this.socketLogCounter++;
+        const baseFilename = filename.replace('.log', '');
+        const paddedCounter = String(this.socketLogCounter).padStart(6, '0');
+        const debugFilename = `${paddedCounter}_${baseFilename}.log`;
+        filePath = path.join(logsDir, debugFilename);
+      } else {
+        // In ON mode, use the original filename
+        filePath = path.join(logsDir, filename);
+      }
+      
       const timestamp = new Date().toISOString();
       const logEntry = `${timestamp}: ${JSON.stringify(data, null, 2)}\n`;
       
@@ -59,6 +80,21 @@ class Bot {
       const connection = await this._joinRoomWithTimeout();
       this.services.logger.debug('✅ Room joined successfully, setting up state...');
       this.state = connection.state;
+      
+      // Log initial state if DEBUG logging is enabled
+      if (this.services.config.SOCKET_MESSAGE_LOG_LEVEL === 'DEBUG') {
+        try {
+          const logsDir = path.join(process.cwd(), 'logs');
+          const initialStateFile = path.join(logsDir, '000000_initialState.log');
+          const timestamp = new Date().toISOString();
+          const logEntry = `${timestamp}: ${JSON.stringify(this.state, null, 2)}\n`;
+          
+          await fs.appendFile(initialStateFile, logEntry);
+          this.services.logger.debug('Initial state logged to 000000_initialState.log');
+        } catch (logError) {
+          this.services.logger.error(`Failed to log initial state: ${logError.message}`);
+        }
+      }
     } catch (joinError) {
       this.services.logger.error(`❌ Failed to join room: ${joinError}`);
       throw joinError;

@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Standardized changelog documentation following Keep a Changelog format
 
 ### Changed
+- Improved logging for socket messages to aid debugging
 - Enhanced bot.js to use fast-json-patch for stateful message processing
 - Improved error handling in state patch application with graceful degradation
 - Updated Jest configuration to exclude handlers/** and playlistService.js from coverage
