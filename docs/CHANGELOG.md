@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Improved socket logging
   - added SOCKET_MESSAGE_LOG_LEVEL to .env file
-  - can of OFF, ON and DEBUG
+  - options are OFF, ON and DEBUG. Defaults to OFF
   - OFF = no separate socket message logging
   - ON = socket logging to files on a per message type basis
   - DEBUG = every socket message logged to its own file with an incrementing number
