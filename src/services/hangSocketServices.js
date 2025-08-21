@@ -15,7 +15,7 @@ const hangSocketServices = {
     try {
       logger.debug(`hangSocketServices.upVote: Sending upvote for room ${config.HANGOUT_ID}`);
       
-      await socket.action(ActionName.voteOnSong, {
+      await socket.action( ActionName.voteOnSong, {
         roomUuid: config.HANGOUT_ID,
         userUuid: config.BOT_UID,
         songVotes: { like: true }
