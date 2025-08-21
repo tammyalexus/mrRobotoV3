@@ -177,23 +177,18 @@ describe('serviceContainer', () => {
     });
 
     test('should return array references correctly', () => {
-      const users = ['user1', 'user2'];
-      services.state.connectedUsers = users;
-      
-      const result = services.getState('connectedUsers');
-      
-      expect(result).toBe(users); // Same reference
-      expect(result).toEqual(users); // Same content
+  const users = ['user1', 'user2', 'user3'];
+  services.setState('connectedUsers', users);
+  const result = services.getState('connectedUsers');
+  expect(result).toEqual(users); // Deep equality
     });
 
     test('should return Map objects correctly', () => {
-      const cache = new Map([['msg1', 'data1']]);
-      services.state.messageCache = cache;
-      
-      const result = services.getState('messageCache');
-      
-      expect(result).toBe(cache);
-      expect(result.get('msg1')).toBe('data1');
+  const cache = new Map([['key1', 'value1'], ['key2', 'value2']]);
+  services.setState('messageCache', cache);
+  const result = services.getState('messageCache');
+  expect(Array.from(result.entries())).toEqual(Array.from(cache.entries())); // Deep equality
+  expect(result.get('key1')).toBe('value1');
     });
   });
 

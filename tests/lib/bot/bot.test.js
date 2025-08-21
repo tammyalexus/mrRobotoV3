@@ -47,7 +47,8 @@ describe( 'Bot', () => {
         HANGOUT_ID: 'test-hangout-123',
         BOT_USER_TOKEN: 'test-bot-token-456',
         BOT_UID: 'test-bot-uid-789',
-        COMMAND_SWITCH: '!'
+        COMMAND_SWITCH: '!',
+        SOCKET_MESSAGE_LOG_LEVEL: 'ON'
       },
       logger: {
         debug: jest.fn(),
@@ -118,31 +119,69 @@ describe( 'Bot', () => {
 
   describe( 'connect', () => {
     test( 'should execute full connection flow', async () => {
+      // Set up socket mock before creating connection
+      const mockSocket = {
+        on: jest.fn(),
+        joinRoom: jest.fn().mockResolvedValue( { state: {} } )
+      };
+      MockSocketClient.mockImplementation( () => mockSocket );
+
       // Mock all connection steps
-      bot._joinCometChat = jest.fn().mockResolvedValue();
-      bot._createSocketConnection = jest.fn().mockResolvedValue();
+      const originalCreateConnection = bot._createSocketConnection;
+      bot._createSocketConnection = jest.fn().mockImplementation( async () => {
+        await originalCreateConnection.call( bot );
+        return;
+      } );
       bot._joinSocketRoom = jest.fn().mockResolvedValue();
+      bot._joinCometChat = jest.fn().mockResolvedValue();
       bot._setupReconnectHandler = jest.fn();
 
       await bot.connect();
 
-      expect( bot._joinCometChat ).toHaveBeenCalled();
+      // Verify operations were called
       expect( bot._createSocketConnection ).toHaveBeenCalled();
       expect( bot._joinSocketRoom ).toHaveBeenCalled();
+      expect( bot._joinCometChat ).toHaveBeenCalled();
       expect( bot._setupReconnectHandler ).toHaveBeenCalled();
+
+      // Verify socket listeners were set up
+      expect( mockSocket.on ).toHaveBeenCalledWith( 'statefulMessage', expect.any( Function ) );
+      expect( mockSocket.on ).toHaveBeenCalledWith( 'statelessMessage', expect.any( Function ) );
+      expect( mockSocket.on ).toHaveBeenCalledWith( 'serverMessage', expect.any( Function ) );
+      expect( mockSocket.on ).toHaveBeenCalledWith( 'error', expect.any( Function ) );
     } );
 
     test( 'should handle connection errors', async () => {
+      // Set up socket mock
+      const mockSocket = {
+        on: jest.fn(),
+        joinRoom: jest.fn().mockResolvedValue( { state: {} } )
+      };
+      MockSocketClient.mockImplementation( () => mockSocket );
+
       const connectionError = new Error( 'Connection failed' );
+      const originalCreateConnection = bot._createSocketConnection;
+      bot._createSocketConnection = jest.fn().mockImplementation( async () => {
+        await originalCreateConnection.call( bot );
+        return;
+      } );
+      bot._joinSocketRoom = jest.fn().mockResolvedValue();
       bot._joinCometChat = jest.fn().mockRejectedValue( connectionError );
-      bot._createSocketConnection = jest.fn();
-      bot._joinSocketRoom = jest.fn();
       bot._setupReconnectHandler = jest.fn();
 
       await expect( bot.connect() ).rejects.toThrow( 'Connection failed' );
 
+      // Should have called these in order until the error
+      expect( bot._createSocketConnection ).toHaveBeenCalled();
+      expect( bot._joinSocketRoom ).toHaveBeenCalled();
       expect( bot._joinCometChat ).toHaveBeenCalled();
-      expect( bot._createSocketConnection ).not.toHaveBeenCalled();
+      expect( bot._setupReconnectHandler ).not.toHaveBeenCalled();
+
+      // Verify socket listeners were set up before the error
+      expect( mockSocket.on ).toHaveBeenCalledWith( 'statefulMessage', expect.any( Function ) );
+      expect( mockSocket.on ).toHaveBeenCalledWith( 'statelessMessage', expect.any( Function ) );
+      expect( mockSocket.on ).toHaveBeenCalledWith( 'serverMessage', expect.any( Function ) );
+      expect( mockSocket.on ).toHaveBeenCalledWith( 'error', expect.any( Function ) );
     } );
   } );
 
@@ -186,6 +225,47 @@ describe( 'Bot', () => {
       await expect( bot._joinSocketRoom() ).rejects.toThrow( 'Room join failed' );
 
       expect( mockServices.logger.error ).toHaveBeenCalledWith( `❌ Failed to join room: ${ joinError }` );
+    } );
+
+    test( 'should log initial state when SOCKET_MESSAGE_LOG_LEVEL is DEBUG', async () => {
+      const mockState = { roomId: 'debug-room', users: [ 'user1' ], currentSong: { id: '123' } };
+      bot._joinRoomWithTimeout = jest.fn().mockResolvedValue( { state: mockState } );
+      mockServices.config.SOCKET_MESSAGE_LOG_LEVEL = 'DEBUG';
+
+      await bot._joinSocketRoom();
+
+      expect( mockAppendFile ).toHaveBeenCalledWith(
+        expect.stringMatching( /000000_initialState\.log$/ ),
+        expect.stringContaining( '"roomId": "debug-room"' )
+      );
+      expect( mockServices.logger.debug ).toHaveBeenCalledWith( 'Initial state logged to 000000_initialState.log' );
+    } );
+
+    test( 'should not log initial state when SOCKET_MESSAGE_LOG_LEVEL is not DEBUG', async () => {
+      const mockState = { roomId: 'test-room', users: [] };
+      bot._joinRoomWithTimeout = jest.fn().mockResolvedValue( { state: mockState } );
+      mockServices.config.SOCKET_MESSAGE_LOG_LEVEL = 'ON';
+
+      await bot._joinSocketRoom();
+
+      expect( mockAppendFile ).not.toHaveBeenCalledWith(
+        expect.stringMatching( /000000_initialState\.log$/ ),
+        expect.anything()
+      );
+    } );
+
+    test( 'should handle initial state logging errors gracefully', async () => {
+      const mockState = { roomId: 'error-room', users: [] };
+      bot._joinRoomWithTimeout = jest.fn().mockResolvedValue( { state: mockState } );
+      mockServices.config.SOCKET_MESSAGE_LOG_LEVEL = 'DEBUG';
+
+      const logError = new Error( 'Disk full' );
+      mockAppendFile.mockRejectedValueOnce( logError );
+
+      await bot._joinSocketRoom();
+
+      expect( bot.state ).toBe( mockState );
+      expect( mockServices.logger.error ).toHaveBeenCalledWith( `Failed to log initial state: ${ logError.message }` );
     } );
   } );
 

@@ -1,5 +1,25 @@
 const { logger } = require('../lib/logging.js');
 const config = require('../config.js');
+const fs = require('fs');
+const path = require('path');
+
+// Dynamically load all command handlers from src/commands
+const commands = {};
+const commandsDir = path.join(__dirname, '../commands');
+fs.readdirSync(commandsDir).forEach(file => {
+  if (file.endsWith('.js')) {
+    // Extract command name from filename: handleStateCommand.js -> state
+    const match = file.match(/^handle(.*)Command\.js$/);
+    if (match && match[1]) {
+      const commandName = match[1].toLowerCase();
+      commands[commandName] = require(path.join(commandsDir, file));
+    }
+    // Also support handleUnknownCommand.js as 'unknown'
+    if (file === 'handleUnknownCommand.js') {
+      commands['unknown'] = require(path.join(commandsDir, file));
+    }
+  }
+});
 
 /**
  * Processes bot commands and generates appropriate responses
@@ -9,162 +29,66 @@ const config = require('../config.js');
  * @param {Object} context - Additional context (sender, fullMessage, etc.)
  * @returns {Promise<Object>} Result object with success status and response
  */
-async function processCommand(command, messageRemainder, services = null, context = {}) {
+async function processCommand ( command, messageRemainder, services = null, context = {} ) {
   // Fallback to direct imports if services not provided
   const messageService = services?.messageService || require('./messageService.js').messageService;
   const hangUserService = services?.hangUserService || require('./hangUserService.js');
-  
+
   try {
-    const trimmedCommand = command.trim().toLowerCase();
+  const trimmedCommand = command.trim().toLowerCase();
     const args = messageRemainder.trim();
-    
+
     logger.debug(`Processing command: "${trimmedCommand}" with args: "${args}"`);
-    
-    // Command routing
-    switch (trimmedCommand) {
-      case 'help':
-        return await handleHelpCommand(args, messageService, context);
-      
-      case 'ping':
-        return await handlePingCommand(args, messageService, context);
-      
-      case 'status':
-        return await handleStatusCommand(args, messageService, context);
-        
-      case 'echo':
-        return await handleEchoCommand(args, messageService, hangUserService, context);
-        
-      // Add more commands here as needed
-      default:
-        return await handleUnknownCommand(trimmedCommand, args, messageService, context);
+
+    let result;
+    if (commands[trimmedCommand]) {
+      if (trimmedCommand === 'echo') {
+        result = await commands.echo(args, messageService, hangUserService, context);
+      } else if (trimmedCommand === 'state') {
+        result = await commands.state(services, context);
+      } else {
+        result = await commands[trimmedCommand](args, messageService, context);
+      }
+    } else {
+      // Fallback to unknown command handler
+      result = await commands.unknown(trimmedCommand, args, messageService, context);
     }
-    
+
+    // Guarantee shouldRespond: true for any result with error === 'Unknown command' or command === 'unknown'
+    if ((result && result.error === 'Unknown command') || trimmedCommand === 'unknown') {
+      return {
+        success: false,
+        error: 'Unknown command',
+        response: result.response,
+        shouldRespond: true
+      };
+    }
+    return result;
   } catch (error) {
-    const errorMessage = error && typeof error === 'object' 
+    const errorMessage = error && typeof error === 'object'
       ? (error.message || error.toString() || 'Unknown error object')
       : (error || 'Unknown error');
-    
     logger.error(`Failed to process command "${command}": ${errorMessage}`);
-    
-    return {
-      success: false,
-      error: errorMessage,
-      shouldRespond: false
-    };
-  }
-}
 
-// Command handlers
-
-async function handleHelpCommand(args, messageService, context) {
-  const helpText = `🤖 Available Commands:
-${config.COMMAND_SWITCH}help - Show this help message
-${config.COMMAND_SWITCH}ping - Check if bot is responding
-${config.COMMAND_SWITCH}status - Show bot status
-${config.COMMAND_SWITCH}echo [message] - Echo back your message`;
-
-  await messageService.sendGroupMessage(helpText);
-  
-  return {
-    success: true,
-    response: helpText,
-    shouldRespond: true
-  };
-}
-
-async function handlePingCommand(args, messageService, context) {
-  const response = '🏓 Pong! Bot is alive and responding.';
-  
-  await messageService.sendGroupMessage(response);
-  
-  return {
-    success: true,
-    response: response,
-    shouldRespond: true
-  };
-}
-
-async function handleStatusCommand(args, messageService, context) {
-  const uptime = process.uptime();
-  const uptimeFormatted = formatUptime(uptime);
-  
-  const response = `🤖 Bot Status:
-✅ Online and operational
-⏱️ Uptime: ${uptimeFormatted}`;
-
-  await messageService.sendGroupMessage(response);
-  
-  return {
-    success: true,
-    response: response,
-    shouldRespond: true
-  };
-}
-
-async function handleEchoCommand(args, messageService, hangUserService, context) {
-  if (!args.trim()) {
-    const response = '❓ Echo what? Please provide a message to echo.';
-    await messageService.sendGroupMessage(response);
-    return {
-      success: false,
-      response: response,
-      shouldRespond: true
-    };
-  }
-  
-  const senderUuid = context && typeof context.sender === 'string' && context.sender.trim().length
-    ? context.sender
-    : null;
-  let senderDisplay = 'unknown';
-  if (senderUuid && hangUserService && typeof hangUserService.getUserNicknameByUuid === 'function') {
-    try {
-      const nickname = await hangUserService.getUserNicknameByUuid(senderUuid);
-      if (nickname && typeof nickname === 'string') {
-        senderDisplay = nickname;
-      }
-    } catch (e) {
-      // Swallow lookup errors; keep 'unknown'
+    // If error is specifically about unknown command, respond to user
+    const isUnknownCommand = (errorMessage === 'Unknown command') || (error && error.error === 'Unknown command');
+    if (isUnknownCommand) {
+      const response = `❓ Unknown command: "${command}". Type ${config.COMMAND_SWITCH}help for available commands.`;
+      await messageService.sendGroupMessage(response);
+      return {
+        success: false,
+        error: 'Unknown command',
+        response,
+        shouldRespond: true
+      };
+    } else {
+      // For other errors (network, string, etc.), do not respond to user
+      return {
+        success: false,
+        error: errorMessage,
+        shouldRespond: false
+      };
     }
-  }
-  const response = `🔊 Echo: ${args} (from ${senderDisplay})`;
-  await messageService.sendGroupMessage(response);
-  
-  return {
-    success: true,
-    response: response,
-    shouldRespond: true
-  };
-}
-
-async function handleUnknownCommand(command, args, messageService, context) {
-  const response = `❓ Unknown command: "${command}". Type ${config.COMMAND_SWITCH}help for available commands.`;
-  
-  await messageService.sendGroupMessage(response);
-  
-  return {
-    success: false,
-    response: response,
-    shouldRespond: true,
-    error: 'Unknown command'
-  };
-}
-
-// Utility functions
-
-function formatUptime(seconds) {
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-  
-  if (days > 0) {
-    return `${days}d ${hours}h ${minutes}m ${secs}s`;
-  } else if (hours > 0) {
-    return `${hours}h ${minutes}m ${secs}s`;
-  } else if (minutes > 0) {
-    return `${minutes}m ${secs}s`;
-  } else {
-    return `${secs}s`;
   }
 }
 
