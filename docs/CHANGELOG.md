@@ -12,6 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Features may be incomplete or subject to breaking changes
 - API stability not guaranteed until 1.0.0 release
 
+## [0.3.0-alpha] - 2025-08-21
+### Added
+- Upvote function added
+  - Bot will upvote 90 seconds after song starts playing
+
+### Changed
+- Improved socket logging
+  - added SOCKET_MESSAGE_LOG_LEVEL to .env file
+  - can of OFF, ON and DEBUG
+  - OFF = no separate socket message logging
+  - ON = socket logging to files on a per message type basis
+  - DEBUG = every socket message logged to its own file with an incrementing number
+
 ## [0.2.0-alpha] - 2025-08-19
 
 ### Added
