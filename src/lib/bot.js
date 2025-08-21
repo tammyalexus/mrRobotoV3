@@ -66,9 +66,9 @@ class Bot {
   // ========================================================
 
   async connect() {
+    await this._joinSocketRoom();
     await this._joinCometChat();
     await this._createSocketConnection();
-    await this._joinSocketRoom();
     this._setupReconnectHandler();
   }
 
