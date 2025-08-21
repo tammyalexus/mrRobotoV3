@@ -103,7 +103,8 @@ class Bot {
     try {
       const connection = await this._joinRoomWithTimeout();
       this.services.logger.debug( '✅ Room joined successfully, setting up state...' );
-      this.state = connection.state;
+  this.state = connection.state;
+  this.services.hangoutState = connection.state;
 
       // Log initial state if DEBUG logging is enabled
       if ( this.services.config.SOCKET_MESSAGE_LOG_LEVEL === 'DEBUG' ) {
@@ -111,7 +112,7 @@ class Bot {
           const logsDir = path.join( process.cwd(), 'logs' );
           const initialStateFile = path.join( logsDir, '000000_initialState.log' );
           const timestamp = new Date().toISOString();
-          const logEntry = `${ timestamp }: ${ JSON.stringify( this.state, null, 2 ) }\n`;
+          const logEntry = `${ timestamp }: ${ JSON.stringify( this.services.hangoutState, null, 2 ) }\n`;
 
           await fs.appendFile( initialStateFile, logEntry );
           this.services.logger.debug( 'Initial state logged to 000000_initialState.log' );
@@ -147,7 +148,8 @@ class Bot {
         const { state } = await this.socket.joinRoom( this.services.config.BOT_USER_TOKEN, {
           roomUuid: this.services.config.HANGOUT_ID
         } );
-        this.state = state; // Fixed: was using 'connection.state' instead of 'state'
+  this.state = state;
+  this.services.hangoutState = state;
         this.services.logger.debug( '🔄 Reconnected successfully' );
       } catch ( error ) {
         this.services.logger.error( `❌ Reconnection failed: ${ error }` );
@@ -187,6 +189,7 @@ class Bot {
 
           // Update the bot's state with the patched state
           this.state = patchResult.newDocument;
+          this.services.hangoutState = patchResult.newDocument;
 
           this.services.logger.debug( `State updated via patch for message: ${ message.name }` );
           this.services.logger.debug( `Applied ${ message.statePatch.length } patch operations` );
@@ -391,8 +394,9 @@ class Bot {
       this.socket = null;
     }
 
-    this.state = null;
-    this.services.logger.debug( '✅ Bot disconnected' );
+  this.state = null;
+  this.services.hangoutState = null;
+  this.services.logger.debug( '✅ Bot disconnected' );
   }
 }
 
