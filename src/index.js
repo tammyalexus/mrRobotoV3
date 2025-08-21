@@ -32,14 +32,6 @@ services.logger.info( '======================================= Application Start
       throw connectError;
     }
 
-    try {
-      roomBot.configureListeners();
-      services.logger.debug( '✅ Listeners configured successfully' );
-    } catch ( listenerError ) {
-      services.logger.error( `❌ Error during configureListeners(): ${ listenerError }` );
-      throw listenerError;
-    }
-
     // Join the chat group before processing messages
     try {
       services.logger.debug( '🔄 Joining chat group...' );
@@ -50,9 +42,6 @@ services.logger.info( '======================================= Application Start
       // Don't throw here - continue with limited functionality
       services.logger.warn( '⚠️ Continuing without group membership - some features may not work' );
     }
-
-    // 10 second pause to allow room/user messages to come in before we start parsing
-    await new Promise(resolve => setTimeout(resolve, 1000 * 10));
 
     const checkInterval = 1000 * 1; // 1 second
     try {
