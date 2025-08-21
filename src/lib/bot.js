@@ -95,6 +95,8 @@ class Bot {
     this.services.logger.debug( 'Creating SocketClient...' );
     this.socket = new SocketClient( 'https://socket.prod.tt.fm' );
     this.services.logger.debug( '✅ SocketClient created' );
+    this.services.socket = this.socket; // Register socket to serviceContainer
+    this.services.logger.debug( 'Socket registered to serviceContainer' );
   }
 
   async _joinSocketRoom () {
@@ -103,8 +105,8 @@ class Bot {
     try {
       const connection = await this._joinRoomWithTimeout();
       this.services.logger.debug( '✅ Room joined successfully, setting up state...' );
-  this.state = connection.state;
-  this.services.hangoutState = connection.state;
+      this.state = connection.state;
+      this.services.hangoutState = connection.state;
 
       // Log initial state if DEBUG logging is enabled
       if ( this.services.config.SOCKET_MESSAGE_LOG_LEVEL === 'DEBUG' ) {
@@ -207,9 +209,20 @@ class Bot {
         this.services.logger.warn( `Received state patch but no current state available for message: ${ message.name }` );
       }
 
-      // TODO: Add specific handler logic based on message.name
-      // This could include handling specific events like song changes, user actions, etc.
-    } );
+      // Handler logic based on message.name
+      try {
+        const handlers = require('../handlers');
+        const handlerFn = handlers[message.name];
+        if (typeof handlerFn === 'function') {
+          this.services.logger.debug(`Calling handler for statefulMessage: ${message.name}`);
+          await handlerFn(message, this.state, this.services);
+        } else {
+          this.services.logger.debug(`No handler found for statefulMessage: ${message.name}`);
+        }
+      } catch (err) {
+        this.services.logger.error(`Error calling handler for statefulMessage ${message.name}: ${err.message}`);
+      }
+    });
   }
 
   _setupStatelessMessageListener () {
