@@ -47,7 +47,7 @@ async function processCommand ( command, messageRemainder, services = null, cont
 
     async function handleStateCommand ( services, context ) {
       try {
-        const state = services?.bot?.state || null;
+        const state = services?.hangoutState || null;
         if ( !state ) {
           const response = '⚠️ No hangout state available to save.';
           await services.messageService.sendGroupMessage( response );
