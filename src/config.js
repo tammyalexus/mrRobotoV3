@@ -5,6 +5,7 @@ module.exports = {
   COMETCHAT_API_KEY: process.env.COMETCHAT_API_KEY,
   COMETCHAT_APP_ID: process.env.COMETCHAT_APP_ID,
   LOG_LEVEL: process.env.LOG_LEVEL,
+  SOCKET_MESSAGE_LOG_LEVEL: process.env.SOCKET_MESSAGE_LOG_LEVEL || 'OFF',
   BOT_UID: process.env.BOT_UID,
   HANGOUT_ID: process.env.HANGOUT_ID,
   BOT_USER_TOKEN: process.env.BOT_USER_TOKEN,
