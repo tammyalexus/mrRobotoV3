@@ -32,8 +32,8 @@ This code is provided free of charge with the licensing above attached, however 
 
 1. Clone the repository with the latest stable release:
    ```bash
-   # Latest release (v0.3.0)
-   git clone --branch v0.3.0 https://github.com/jodrell2000/mrRobotoV3.git
+   # Latest release (v0.4.0_alpha)
+   git clone --branch v0.4.0_alpha https://github.com/jodrell2000/mrRobotoV3.git
    cd mrRobotoV3
    ```
 2. Install dependencies:
