@@ -12,6 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Features may be incomplete or subject to breaking changes
 - API stability not guaranteed until 1.0.0 release
 
+## [0.4.0-alpha] - 2025-08-21
+### BREAKING CHANGE
+- The .env value COMETCHAT_APP_ID has been changed to COMETCHAT_AUTH_TOKEN throughout the codebase to simplify onboarding. You **MUST** update the name of this variable in your .env file
+
+### Added
+- specific page in the docs directory on how to create the .env file
+- assets for the enhanced documentation
+
+### Changed
+- Improved the README and onboarding documentation
+
 ## [0.3.0-alpha] - 2025-08-21
 ### Added
 - Upvote function added
