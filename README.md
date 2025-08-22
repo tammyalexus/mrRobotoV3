@@ -30,26 +30,18 @@ This code is provided free of charge with the licensing above attached, however 
 
 ## 🚀 Setup
 
-1. Clone the repository:
+1. Clone the repository with the latest stable release:
    ```bash
-   git clone https://github.com/jodrell2000/mrRobotoV3.git
+   # Latest release (v0.3.0)
+   git clone --branch v0.3.0 https://github.com/jodrell2000/mrRobotoV3.git
    cd mrRobotoV3
    ```
 2. Install dependencies:
    ```bash
    npm install
    ```
-3. Create a new file called `.env` file in the project root to configure your bot. Use the `.env_example` file to see what it should contain. If you don't know where to get these details from, check out the section at the bottom called "Developing for Hangout FM" for more info
-   ```env
-   COMETCHAT_API_KEY=your_cometchat_api_key
-   COMETCHAT_APP_ID=your_cometchat_app_id
-   BOT_UID={the UUID of your Bot}
-   COMETCHAT_RECEIVER_UID={the UUID of test user}
-   HANGOUT_ID={the UUID of your Hangout}
-   CHAT_AVATAR_ID={the Hangout avatar ID for your Bot
-   CHAT_NAME={the name of your Bot}
-   CHAT_COLOUR=AABBCC   # hex without “#”
-   ```
+3. Create a .env file for your Bot. Details on how to obtain all the information needed to build the .env file can be found here: [Creating your .env file](docs/CREATING_YOUR_ENV_FILE.md)
+
 4. From the root of the project folder, run the following command. It should read and output the config you've just created. If it doesn't then something is wrong and the application won't be able to read it either
    ```
    node check-dotenv.js
@@ -93,35 +85,15 @@ All welcome! Whether it's fixing an issue, suggesting improvements, or helping w
 
 ---
 
+
 ## Developing for Hangout FM
 
-In order to receive actions from the site your Bot will need to connect to the Turntable LIVE Socket Client here: 
-https://www.npmjs.com/package/ttfm-socket
+In order to receive actions from the site your Bot connects to the Turntable LIVE Socket Client and runs commands using both the socket, and by calling the Hang.fm REST endpoints
 
-There are then multiple API endpoints you can send REST messages to. These include 
+Details for the socket can be found here: https://www.npmjs.com/package/ttfm-socket
 
+Details about the various REST endpoints can be found on the following Swagger pages
 * The User Service: https://gateway.prod.tt.fm/api/user-service/api/
 * The Room Service: https://gateway.prod.tt.fm/api/room-service/api/
 * The Social Service: https://gateway.prod.tt.fm/api/social-service/api/
 * The Playlist Service: https://gateway.prod.tt.fm/api/playlist-service/api/
-
-You'll need to use some of these services to get the basic info to be able to start a Bot
-
-To create a new Bot and get a token for it, head to the BotSignup endpoint here: https://gateway.prod.tt.fm/api/user-service/api/#/Bot%20endpoints/signUpBot
-
-However, in order to use that you need to be authorised so will need to get your own auth token. You can find this using your browser's developer tools to look in the browser storage. Once you're logged into hang.fm look for a key called "token-storage" and copy its value. You MUST remove the double quotes around the token to be able to use it. You can then paste that into the authentication at the top of any Swagger page, or once you have it, use the Bots token instead.
-
-Now you have the Bot token from the signUpBot endpoint, deauthorise yourself on that swagger page, and head to:
-https://gateway.prod.tt.fm/api/user-service/api/#/CometChat/getUserCometChatAuthToken
-
-Authorise yourself (click the padlock on the right side) using the Bot token and execute to get the "cometAuthToken". Add that to your .env file as "COMETCHAT_APP_ID"
-
-Next head to: https://gateway.prod.tt.fm/api/user-service/api/#/Bot%20endpoints/getBotToken and execute, using the Bot token again, to get the Hang token and add it to the .env file as BOT_USER_TOKEN
-
-**DO NOT SHARE ANY OF THESE IDs OR CHECK THEM INTO GIT. If you do other people will be able to login as your Bot**
-
-For the bot's avatar, you'll want to use the bot token to update the bot's profile via https://gateway.prod.tt.fm/api/user-service/api/#/User%20profile/updateProfile. 
-
-There are two special bot avatars. Their IDs are bot-01 and bot-2. Set one of those on the Bot profile and also use it as the CHAT_AVATAR_ID
-
-The CHAT_API_KEY for Hangout.fm is 193427bb5702bab7. Hangout uses CometChat and that ID is actually yhe Hangout App ID for them. The REST API for CometChat is available here: https://api-explorer.cometchat.com/reference/chat-apis
