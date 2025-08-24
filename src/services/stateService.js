@@ -30,6 +30,15 @@ class StateService {
     }
 
     /**
+     * Returns the name of the hangout
+     * @returns {string} The name of the hangout, or 'Our Hangout' if not set
+     */
+    getHangoutName() {
+        const settings = this._getSettings();
+        return settings.name || 'our Hangout';
+    }
+
+    /**
      * Returns information about all users in the room
      * @returns {Array} Array of user objects with uuid, tokenRole, canDj, and highestRole
      * @private
