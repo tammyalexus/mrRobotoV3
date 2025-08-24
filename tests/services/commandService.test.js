@@ -18,6 +18,11 @@ jest.mock('../../src/lib/logging.js', () => ({
   }
 }));
 
+// Mock stateService module
+jest.mock('../../src/services/stateService.js', () => ({
+  getUserRole: jest.fn().mockReturnValue('user')
+}));
+
 // Mock config module
 jest.mock('../../src/config.js', () => ({
   COMMAND_SWITCH: '!'
@@ -30,6 +35,11 @@ const mockMessageService = {
   sendGroupMessage: jest.fn().mockResolvedValue({ success: true })
 };
 
+// Mock stateService
+const mockStateService = {
+  getUserRole: jest.fn().mockReturnValue('user') // Default to user role for tests
+};
+
 // Mock services
 const mockServices = {
   messageService: mockMessageService,
@@ -39,6 +49,23 @@ const mockServices = {
   },
   config: {
     COMMAND_SWITCH: '!'
+  },
+  stateService: mockStateService,
+  hangoutState: {
+    settings: {
+      name: "Test Room"
+    },
+    allUsers: [
+      {
+        uuid: "testUser",
+        tokenRole: "user"
+      }
+    ],
+    voteCounts: {
+      likes: 0,
+      dislikes: 0,
+      stars: 0
+    }
   }
 };
 
@@ -52,6 +79,8 @@ const mockContext = {
 describe('commandService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset stateService mock to default behavior
+    mockStateService.getUserRole.mockReturnValue('user');
   });
 
   describe('processCommand', () => {
@@ -137,14 +166,21 @@ describe('commandService', () => {
       expect(result.error).toContain('Network error');
     });
 
-    test('should work without services parameter (fallback)', async () => {
-      // This test ensures backward compatibility with mocked messageService
-      const result = await commandService('help', '');
-      
-      // Should not throw an error and should use the mocked messageService
-      expect(typeof result).toBe('object');
-      expect(result.success).toBe(true);
-      expect(result.response).toContain('Available Commands');
+    test('should work with minimal or missing services', async () => {
+      // Should work with empty services object due to fallbacks
+      const result1 = await commandService('help', '', {}, mockContext);
+      expect(result1.success).toBe(true);
+      expect(result1.response).toContain('Available Commands');
+
+      // Should work with undefined services due to fallbacks
+      const result2 = await commandService('help', '', undefined, mockContext);
+      expect(result2.success).toBe(true);
+      expect(result2.response).toContain('Available Commands');
+
+      // Should work with partial services object
+      const result3 = await commandService('help', '', { messageService: mockMessageService }, mockContext);
+      expect(result3.success).toBe(true);
+      expect(result3.response).toContain('Available Commands');
     });
 
     test('should handle command with extra whitespace', async () => {
@@ -182,6 +218,25 @@ describe('commandService', () => {
       const result3 = await commandService('ping', '', mockServices, mockContext);
       expect(result3.success).toBe(false);
       expect(result3.error).toBe('[object Object]');
+    });
+
+    test('should allow state command for owner', async () => {
+      mockStateService.getUserRole.mockReturnValueOnce('owner');
+      const result = await commandService('state', '', mockServices, mockContext);
+      
+      expect(result.success).toBe(true);
+      expect(result.shouldRespond).toBe(true);
+      expect(result.response).toContain('Current hangout state saved');
+    });
+
+    test('should deny state command for regular user', async () => {
+      mockStateService.getUserRole.mockReturnValueOnce('user');
+      const result = await commandService('state', '', mockServices, mockContext);
+      
+      expect(result.success).toBe(false);
+      expect(result.shouldRespond).toBe(true);
+      expect(result.error).toBe('Insufficient permissions');
+      expect(result.response).toContain('don\'t have permission');
     });
   });
 
