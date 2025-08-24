@@ -2,9 +2,21 @@
 const parseCommands = require('../../src/services/parseCommands.js');
 const commandService = require('../../src/services/commandService.js');
 
+// Mock fs promises
+jest.mock('fs', () => ({
+  promises: {
+    appendFile: jest.fn().mockResolvedValue()
+  }
+}));
+
 // Mock messageService
 const mockMessageService = {
   sendGroupMessage: jest.fn().mockResolvedValue({ success: true })
+};
+
+// Mock stateService
+const mockStateService = {
+  getUserRole: jest.fn().mockReturnValue('user') // Default to user role for tests
 };
 
 // Mock services
@@ -16,12 +28,30 @@ const mockServices = {
   },
   config: {
     COMMAND_SWITCH: '!'
+  },
+  stateService: mockStateService,
+  hangoutState: {
+    settings: {
+      name: "Test Room"
+    },
+    allUsers: [
+      {
+        uuid: "testUser",
+        tokenRole: "user"
+      }
+    ],
+    voteCounts: {
+      likes: 0,
+      dislikes: 0,
+      stars: 0
+    }
   }
 };
 
 describe('Command Flow Integration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockStateService.getUserRole.mockReturnValue('user'); // Reset to default user role
   });
 
   test('should parse command and process it through commandService', async () => {
@@ -138,5 +168,49 @@ describe('Command Flow Integration', () => {
     expect(mockMessageService.sendGroupMessage).toHaveBeenCalledWith(
       expect.stringContaining('Unknown command')
     );
+  });
+
+  test('should allow owner commands for owner role', async () => {
+    mockStateService.getUserRole.mockReturnValueOnce('owner');
+    
+    const parseResult = await parseCommands('!state', mockServices);
+    const context = {
+      sender: 'ownerUser',
+      fullMessage: {},
+      chatMessage: '!state'
+    };
+
+    const commandResult = await commandService(
+      parseResult.command,
+      parseResult.remainder,
+      mockServices,
+      context
+    );
+
+    expect(commandResult.success).toBe(true);
+    expect(commandResult.shouldRespond).toBe(true);
+  });
+
+  test('should deny owner commands for user role', async () => {
+    mockStateService.getUserRole.mockReturnValueOnce('user');
+    
+    const parseResult = await parseCommands('!state', mockServices);
+    const context = {
+      sender: 'regularUser',
+      fullMessage: {},
+      chatMessage: '!state'
+    };
+
+    const commandResult = await commandService(
+      parseResult.command,
+      parseResult.remainder,
+      mockServices,
+      context
+    );
+
+    expect(commandResult.success).toBe(false);
+    expect(commandResult.shouldRespond).toBe(true);
+    expect(commandResult.error).toBe('Insufficient permissions');
+    expect(commandResult.response).toContain('don\'t have permission');
   });
 });

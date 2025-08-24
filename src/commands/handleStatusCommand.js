@@ -1,3 +1,6 @@
+// Set required role level for this command
+const requiredRole = 'USER';
+
 function formatUptime(seconds) {
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
@@ -14,7 +17,18 @@ function formatUptime(seconds) {
   }
 }
 
-module.exports = async function handleStatusCommand(args, messageService, context) {
+/**
+ * Shows the current status of the bot
+ * @param {Object} commandParams - Standard command parameters
+ * @param {string} commandParams.command - The command name
+ * @param {string} commandParams.args - Command arguments
+ * @param {Object} commandParams.services - Service container
+ * @param {Object} commandParams.context - Command context
+ * @returns {Promise<Object>} Command result
+ */
+async function handleStatusCommand(commandParams) {
+  const { services } = commandParams;
+  const { messageService } = services;
   const uptime = process.uptime();
   const uptimeFormatted = formatUptime(uptime);
   const response = `🤖 Bot Status:\n✅ Online and operational\n⏱️ Uptime: ${uptimeFormatted}`;
@@ -24,4 +38,9 @@ module.exports = async function handleStatusCommand(args, messageService, contex
     response,
     shouldRespond: true
   };
-};
+}
+
+// Attach role level to the function
+handleStatusCommand.requiredRole = requiredRole;
+
+module.exports = handleStatusCommand;

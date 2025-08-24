@@ -7,6 +7,7 @@ const { hangSocketServices } = require('./hangSocketServices.js');
 const { logger } = require('../lib/logging.js');
 const config = require('../config.js');
 const hangUserService = require('./hangUserService.js');
+const StateService = require('./stateService.js');
 
 // Shared state that all services can access and modify
 const sharedState = {
@@ -54,6 +55,14 @@ const services = {
     this.hangoutState.lastMessageId = id;
     if (this.state) this.state.lastMessageId = id;
     this.logger.debug(`Last message ID updated to: ${id}`);
+  },
+
+  initializeStateService() {
+    if (!this.hangoutState) {
+      throw new Error('Cannot initialize StateService: hangoutState is not set');
+    }
+    this.stateService = new StateService(this.hangoutState);
+    this.logger.debug('StateService initialized');
   }
 };
 
