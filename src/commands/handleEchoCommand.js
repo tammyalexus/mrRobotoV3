@@ -1,4 +1,18 @@
-module.exports = async function handleEchoCommand(args, messageService, hangUserService, context) {
+// Set required role level for this command
+const requiredRole = 'USER';
+
+/**
+ * Echoes a message back to the chat
+ * @param {Object} commandParams - Standard command parameters
+ * @param {string} commandParams.command - The command name
+ * @param {string} commandParams.args - Command arguments
+ * @param {Object} commandParams.services - Service container
+ * @param {Object} commandParams.context - Command context
+ * @returns {Promise<Object>} Command result
+ */
+async function handleEchoCommand(commandParams) {
+  const { args, services, context } = commandParams;
+  const { messageService, hangUserService } = services;
   if (!args.trim()) {
     const response = '❓ Echo what? Please provide a message to echo.';
     await messageService.sendGroupMessage(response);
@@ -29,4 +43,9 @@ module.exports = async function handleEchoCommand(args, messageService, hangUser
     response,
     shouldRespond: true
   };
-};
+}
+
+// Attach role level to the function
+handleEchoCommand.requiredRole = requiredRole;
+
+module.exports = handleEchoCommand;

@@ -107,6 +107,9 @@ class Bot {
       this.services.logger.debug( '✅ Room joined successfully, setting up state...' );
       this.state = connection.state;
       this.services.hangoutState = connection.state;
+      
+      // Initialize the state service
+      this.services.initializeStateService();
 
       // Log initial state if DEBUG logging is enabled
       if ( this.services.config.SOCKET_MESSAGE_LOG_LEVEL === 'DEBUG' ) {

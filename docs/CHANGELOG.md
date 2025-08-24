@@ -12,6 +12,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Features may be incomplete or subject to breaking changes
 - API stability not guaranteed until 1.0.0 release
 
+## [0.4.2-alpha] - 2025-08-24
+### Added
+- New stateService for managing user roles and permissions
+- Comprehensive role-based access control system
+- Documentation for writing new commands (WRITING_NEW_COMMANDS.md)
+
+### Changed
+- Standardized command parameter structure with unified `commandParams` object
+- Improved command handler pattern for better maintainability
+- Enhanced service container with fallback support for essential services
+- Command permissions now use hierarchical role system: OWNER > coOwner > MODERATOR > USER
+
+### Technical Details
+- Commands now receive a consistent parameter object containing:
+  - command: The command name
+  - args: Command arguments
+  - services: Service container with fallbacks
+  - context: Sender and message context
+
 ## [0.4.0-alpha] - 2025-08-21
 ### BREAKING CHANGE
 - The .env value COMETCHAT_APP_ID has been changed to COMETCHAT_AUTH_TOKEN throughout the codebase to simplify onboarding. You **MUST** update the name of this variable in your .env file
