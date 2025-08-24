@@ -2,6 +2,7 @@ const { logger } = require( '../lib/logging.js' );
 const config = require( '../config.js' );
 const fs = require( 'fs' );
 const path = require( 'path' );
+const { hasPermission } = require('../lib/roleUtils');
 
 // Dynamically load all command handlers from src/commands
 const commands = {};
@@ -29,10 +30,16 @@ fs.readdirSync( commandsDir ).forEach( file => {
  * @param {Object} context - Additional context (sender, fullMessage, etc.)
  * @returns {Promise<Object>} Result object with success status and response
  */
-async function processCommand ( command, messageRemainder, services = null, context = {} ) {
-  // Fallback to direct imports if services not provided
-  const messageService = services?.messageService || require( './messageService.js' ).messageService;
-  const hangUserService = services?.hangUserService || require( './hangUserService.js' );
+async function processCommand ( command, messageRemainder, services = {}, context = {} ) {
+  // Build a complete services container, falling back to direct imports for essential services
+  const serviceContainer = {
+    // Start with any provided services
+    ...services,
+    // Ensure essential services are available
+    messageService: services.messageService || require('./messageService.js').messageService,
+    hangUserService: services.hangUserService || require('./hangUserService.js'),
+    stateService: services.stateService || require('./stateService.js')
+  };
 
   try {
     const trimmedCommand = command.trim().toLowerCase();
@@ -40,23 +47,36 @@ async function processCommand ( command, messageRemainder, services = null, cont
 
     logger.debug( `Processing command: "${ trimmedCommand }" with args: "${ args }"` );
 
-    let result;
+    // Create standardized commandParams object that all commands will receive
+    const commandParams = {
+      command: trimmedCommand,      // The command name
+      args: args,                   // Command arguments (everything after the command)
+      services: serviceContainer,   // Pass the complete services container
+      context                      // Context object with sender info etc.
+    };
+
     // Always treat 'unknown' command as an unknown command
     if ( trimmedCommand === 'unknown' || !commands[ trimmedCommand ] ) {
-      result = await commands.unknown( trimmedCommand, args, messageService, context );
-      return result;  // The unknown command handler already sets the correct properties
+      return await commands.unknown( commandParams );
     }
 
-    // Handle known commands
-    if ( trimmedCommand === 'echo' ) {
-      result = await commands.echo( args, messageService, hangUserService, context );
-    } else if ( trimmedCommand === 'state' ) {
-      result = await commands.state( services, context );
-    } else {
-      result = await commands[ trimmedCommand ]( args, messageService, context );
+    // Check user's role and command permissions
+    const userRole = await serviceContainer.stateService.getUserRole(context.sender);
+    const commandLevel = commands[trimmedCommand].requiredRole || 'USER';
+    
+    if (!hasPermission(userRole, commandLevel)) {
+      const response = `❌ You don't have permission to use the "${trimmedCommand}" command. Required role: ${commandLevel}`;
+      await serviceContainer.messageService.sendGroupMessage(response);
+      return {
+        success: false,
+        error: 'Insufficient permissions',
+        response,
+        shouldRespond: true
+      };
     }
 
-    return result;
+    // All commands now receive the same standardized parameters
+    return await commands[trimmedCommand](commandParams);
   } catch ( error ) {
     const errorMessage = error && typeof error === 'object'
       ? ( error.message || error.toString() || 'Unknown error object' )
@@ -67,7 +87,7 @@ async function processCommand ( command, messageRemainder, services = null, cont
     const isUnknownCommand = ( errorMessage === 'Unknown command' ) || ( error && error.error === 'Unknown command' );
     if ( isUnknownCommand ) {
       const response = `❓ Unknown command: "${ command }". Type ${ config.COMMAND_SWITCH }help for available commands.`;
-      await messageService.sendGroupMessage( response );
+      await serviceContainer.messageService.sendGroupMessage( response );
       return {
         success: false,
         error: 'Unknown command',

@@ -8,20 +8,51 @@ jest.mock( 'fs', () => ( {
   }
 } ) );
 
+// Mock Logger module
+jest.mock('../../../src/lib/logging', () => ({
+    logger: {
+        error: jest.fn(),
+        warn: jest.fn(),
+        info: jest.fn(),
+        debug: jest.fn()
+    }
+}));
+
+// Mock CometChatApi
+jest.mock('../../../src/services/cometchatApi', () => {
+    return jest.fn().mockImplementation(() => ({
+        // Add any methods that CometChatApi uses
+    }));
+});
+
+// Mock MessageService
+jest.mock('../../../src/services/messageService', () => {
+    return jest.fn().mockImplementation(() => ({
+        joinChat: jest.fn().mockResolvedValue(),
+        fetchGroupMessages: jest.fn().mockResolvedValue([]),
+        sendGroupMessage: jest.fn().mockResolvedValue()
+    }));
+});
+
+// Mock parseCommands
+jest.mock('../../../src/services/parseCommands', () => ({
+    parseCommands: jest.fn()
+}));
+
 // Mock ttfm-socket
 const mockSocketInstance = {
-  joinRoom: jest.fn(),
-  on: jest.fn()
+    joinRoom: jest.fn(),
+    on: jest.fn()
 };
 
-const MockSocketClient = jest.fn().mockImplementation( () => mockSocketInstance );
+const MockSocketClient = jest.fn().mockImplementation(() => mockSocketInstance);
 
-jest.mock( 'ttfm-socket', () => ( {
-  SocketClient: MockSocketClient,
-  ServerMessageName: {},
-  StatefulServerMessageName: {},
-  StatelessServerMessageName: {}
-} ) );
+jest.mock('ttfm-socket', () => ({
+    SocketClient: MockSocketClient,
+    ServerMessageName: {},
+    StatefulServerMessageName: {},
+    StatelessServerMessageName: {}
+}));
 
 // Now import Bot after mocks are set up
 const { Bot } = require( '../../../src/lib/bot.js' );
@@ -41,31 +72,36 @@ describe( 'Bot', () => {
     mockSocketInstance.joinRoom.mockClear();
     mockSocketInstance.on.mockClear();
 
-    // Create comprehensive mock services
-    mockServices = {
-      config: {
-        HANGOUT_ID: 'test-hangout-123',
-        BOT_USER_TOKEN: 'test-bot-token-456',
-        BOT_UID: 'test-bot-uid-789',
-        COMMAND_SWITCH: '!',
-        SOCKET_MESSAGE_LOG_LEVEL: 'ON'
-      },
-      logger: {
-        debug: jest.fn(),
-        error: jest.fn(),
-        warn: jest.fn(),
-        info: jest.fn()
-      },
-      messageService: {
-        joinChat: jest.fn().mockResolvedValue(),
-        fetchGroupMessages: jest.fn().mockResolvedValue( [] ),
-        sendGroupMessage: jest.fn().mockResolvedValue()
-      },
-      parseCommands: jest.fn(),
-      commandService: jest.fn(),
-      updateLastMessageId: jest.fn(),
-      getState: jest.fn()
+    const ServiceContainer = require('../../../src/lib/serviceContainer');
+    
+    // Create a real ServiceContainer with mocked internal services
+    mockServices = new ServiceContainer({
+      HANGOUT_ID: 'test-hangout-123',
+      BOT_USER_TOKEN: 'test-bot-token-456',
+      BOT_UID: 'test-bot-uid-789',
+      COMMAND_SWITCH: '!',
+      SOCKET_MESSAGE_LOG_LEVEL: 'ON'
+    });
+    
+    // Mock the logger methods
+    mockServices.logger = {
+      debug: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+      info: jest.fn()
     };
+    
+    // Mock the message service methods
+    mockServices.messageService = {
+      joinChat: jest.fn().mockResolvedValue(),
+      fetchGroupMessages: jest.fn().mockResolvedValue([]),
+      sendGroupMessage: jest.fn().mockResolvedValue()
+    };
+    
+    // Mock other services
+    mockServices.parseCommands = jest.fn();
+    mockServices.commandService = jest.fn();
+    mockServices.getState = jest.fn();
     // Patch getState for nickname
     originalGetState = mockServices.getState;
     // Additional tests for bot nickname usage in startup message
@@ -486,15 +522,14 @@ describe( 'Bot', () => {
 describe( 'Bot nickname usage in startup message', () => {
   let mockServices;
   beforeEach( () => {
-    mockServices = {
-      config: {
-        HANGOUT_ID: 'test-hangout-123',
-        BOT_USER_TOKEN: 'test-bot-token-456',
-        BOT_UID: 'test-bot-uid-789',
-        COMMAND_SWITCH: '!'
-      },
-      getState: jest.fn()
-    };
+    const ServiceContainer = require('../../../src/lib/serviceContainer');
+    mockServices = new ServiceContainer({
+      HANGOUT_ID: 'test-hangout-123',
+      BOT_USER_TOKEN: 'test-bot-token-456',
+      BOT_UID: 'test-bot-uid-789',
+      COMMAND_SWITCH: '!'
+    });
+    mockServices.getState = jest.fn();
   } );
 
   test( 'should use botNickname from services.getState in startup message', async () => {
