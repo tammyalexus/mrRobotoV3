@@ -16,7 +16,7 @@ async function handleHelpCommand(commandParams) {
   const { services } = commandParams;
   const { messageService } = services;
   const helpText = `🤖 Available Commands:\n${config.COMMAND_SWITCH}help - Show this help message\n${config.COMMAND_SWITCH}ping - Check if bot is responding\n${config.COMMAND_SWITCH}status - Show bot status\n${config.COMMAND_SWITCH}echo [message] - Echo back your message`;
-  await messageService.sendGroupMessage(helpText);
+  await messageService.sendGroupMessage(helpText, { services });
   return {
     success: true,
     response: helpText,

@@ -14,6 +14,11 @@ const mockMessageService = {
   sendGroupMessage: jest.fn().mockResolvedValue({ success: true })
 };
 
+// Mock hangUserService
+const mockHangUserService = {
+  getUserNicknameByUuid: jest.fn().mockResolvedValue('TestUser')
+};
+
 // Mock stateService
 const mockStateService = {
   getUserRole: jest.fn().mockReturnValue('user') // Default to user role for tests
@@ -30,6 +35,18 @@ const mockServices = {
     COMMAND_SWITCH: '!'
   },
   stateService: mockStateService,
+  hangUserService: mockHangUserService,
+  dataService: {
+    getValue: jest.fn()
+      .mockReturnValue('test-value'),
+    getAllData: jest.fn().mockReturnValue({
+      botData: {
+        CHAT_AVATAR_ID: 'test-avatar',
+        CHAT_NAME: 'TestBot',
+        CHAT_COLOUR: 'ff0000'
+      }
+    })
+  },
   hangoutState: {
     settings: {
       name: "Test Room"
@@ -83,7 +100,10 @@ describe('Command Flow Integration', () => {
     expect(commandResult.shouldRespond).toBe(true);
     expect(commandResult.response).toContain('Available Commands');
     expect(mockMessageService.sendGroupMessage).toHaveBeenCalledWith(
-      expect.stringContaining('Available Commands')
+      expect.stringContaining('Available Commands'),
+      expect.objectContaining({
+        services: mockServices
+      })
     );
   });
 
@@ -116,7 +136,10 @@ describe('Command Flow Integration', () => {
     expect(commandResult.shouldRespond).toBe(true);
     expect(commandResult.response).toContain('Hello World');
     expect(mockMessageService.sendGroupMessage).toHaveBeenCalledWith(
-      expect.stringContaining('Hello World')
+      expect.stringContaining('Hello World'),
+      expect.objectContaining({
+        services: mockServices
+      })
     );
   });
 
@@ -166,7 +189,10 @@ describe('Command Flow Integration', () => {
     expect(commandResult.error).toBe('Unknown command');
     expect(commandResult.response).toContain('Unknown command');
     expect(mockMessageService.sendGroupMessage).toHaveBeenCalledWith(
-      expect.stringContaining('Unknown command')
+      expect.stringContaining('Unknown command'),
+      expect.objectContaining({
+        services: mockServices
+      })
     );
   });
 

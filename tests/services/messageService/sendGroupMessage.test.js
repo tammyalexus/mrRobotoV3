@@ -22,6 +22,23 @@ describe('messageService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    // Mock services object for tests
+    const mockServices = {
+      dataService: {
+        getValue: jest.fn()
+          .mockReturnValueOnce('avatar123')  // for CHAT_AVATAR_ID
+          .mockReturnValueOnce('TestBot')    // for CHAT_NAME
+          .mockReturnValueOnce('ff0000'),    // for CHAT_COLOUR
+        getAllData: jest.fn().mockReturnValue({
+          botData: {
+            CHAT_AVATAR_ID: 'avatar123',
+            CHAT_NAME: 'TestBot',
+            CHAT_COLOUR: 'ff0000'
+          }
+        })
+      }
+    };
+
     // Spy and mock before each test runs
     buildCustomDataSpy = jest.spyOn(messageService, 'buildCustomData').mockResolvedValue({
       message: "Test message",
@@ -66,7 +83,7 @@ describe('messageService', () => {
     await messageService.sendGroupMessage("Test message");
 
     // Verify internal helper functions called correctly
-    expect(buildCustomDataSpy).toHaveBeenCalledWith("Test message");
+    expect(buildCustomDataSpy).toHaveBeenCalledWith("Test message", expect.any(Object));
     expect(buildPayloadSpy).toHaveBeenCalledWith(
       expect.any(String),   // receiver id (string)
       "group",             // receiverType
@@ -93,9 +110,9 @@ describe('messageService', () => {
 
     await messageService.sendGroupMessage('Offline');
 
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('❌ Failed to send group message:')
-    );
+    // Check for the error message split into parts
+    expect(logger.error).toHaveBeenCalledWith('❌ Failed to send group message: Offline');
+    expect(logger.error).toHaveBeenCalledWith('Error message: Group failed');
   });
 
   test('does not use logger.error on successful API call', async () => {
@@ -113,8 +130,8 @@ describe('messageService', () => {
     axios.post.mockRejectedValue(error);
     await messageService.sendGroupMessage('Oops');
 
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('❌ Failed to send group message:')
-    );
+    // Check for the error message split into parts
+    expect(logger.error).toHaveBeenCalledWith('❌ Failed to send group message: Oops');
+    expect(logger.error).toHaveBeenCalledWith('Error message: API failure');
   });
 });

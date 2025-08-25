@@ -8,6 +8,7 @@ jest.mock('fs', () => ({
 // Mock logging
 jest.mock('../../src/lib/logging.js', () => ({
     logger: {
+        debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
         error: jest.fn()

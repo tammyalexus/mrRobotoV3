@@ -20,6 +20,7 @@ class DataService {
             try {
                 this.data = JSON.parse(fileContent);
                 logger.info('Successfully loaded data from data.json');
+                logger.debug(`data: ${JSON.stringify(this.data, null, 2)}`);
                 return this.data;
             } catch (parseError) {
                 logger.error(`Failed to parse data.json: ${parseError.message}`);
@@ -38,11 +39,11 @@ class DataService {
 
     /**
      * Get a value from the loaded data
-     * @param {string} key - The key to look up
+     * @param {string} key - The key to look up, can be a dot-notation path (e.g., 'botData.CHAT_NAME')
      * @returns {*} The value for the key, or undefined if not found
      */
     getValue(key) {
-        return this.data[key];
+        return key.split('.').reduce((obj, k) => obj?.[k], this.data);
     }
 
     /**
