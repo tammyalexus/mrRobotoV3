@@ -12,9 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Features may be incomplete or subject to breaking changes
 - API stability not guaranteed until 1.0.0 release
 
-## [0.4.3-alpha] - 2025-08-25
+## [0.4.3_alpha] - 2025-08-25
 ### Added
-- New `!welcome` command for moderators to customize the welcome message
+- New `welcome` command for moderators to customize the welcome message
 - DataService for managing global configuration via data.json
 - Configurable welcome messages with dynamic placeholders ({username}, {hangoutName})
 - data.json file for persistent bot configuration
@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Command permissions enforce moderator-only access for welcome message updates
 - Configuration changes persist across bot restarts via data.json
 
-## [0.4.2-alpha] - 2025-08-24
+## [0.4.2_alpha] - 2025-08-24
 ### Added
 - New stateService for managing user roles and permissions
 - Comprehensive role-based access control system
@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - services: Service container with fallbacks
   - context: Sender and message context
 
-## [0.4.0-alpha] - 2025-08-21
+## [0.4.0_alpha] - 2025-08-21
 ### BREAKING CHANGE
 - The .env value COMETCHAT_APP_ID has been changed to COMETCHAT_AUTH_TOKEN throughout the codebase to simplify onboarding. You **MUST** update the name of this variable in your .env file
 
@@ -60,7 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Improved the README and onboarding documentation
 
-## [0.3.0-alpha] - 2025-08-21
+## [0.3.0_alpha] - 2025-08-21
 ### Added
 - Upvote function added
   - Bot will upvote 90 seconds after song starts playing
@@ -73,7 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ON = socket logging to files on a per message type basis
   - DEBUG = every socket message logged to its own file with an incrementing number
 
-## [0.2.0-alpha] - 2025-08-19
+## [0.2.0_alpha] - 2025-08-19
 
 ### Added
 - JSON patch-based state management for real-time socket updates using `fast-json-patch`
@@ -100,7 +100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed state management to maintain immutability during patch operations
 - Improved error handling to prevent bot crashes on malformed patches
 
-## [0.1.0-alpha] - 2025-08-19
+## [0.1.0_alpha] - 2025-08-19
 
 ### Added
 - Initial alpha release of Mr. Roboto V3
