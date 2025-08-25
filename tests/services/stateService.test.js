@@ -146,4 +146,30 @@ describe('StateService', () => {
             expect(stateService._getAllUserData()).toEqual({});
         });
     });
+
+    describe('getHangoutName (public)', () => {
+        it('should return the hangout name from settings', () => {
+            mockState.settings = { name: 'My Cool Hangout' };
+            stateService = new StateService(mockState);
+            expect(stateService.getHangoutName()).toBe('My Cool Hangout');
+        });
+
+        it('should return "our Hangout" if no name in settings', () => {
+            mockState.settings = { description: 'A room without a name' };
+            stateService = new StateService(mockState);
+            expect(stateService.getHangoutName()).toBe('our Hangout');
+        });
+
+        it('should return "our Hangout" if settings is null', () => {
+            mockState.settings = null;
+            stateService = new StateService(mockState);
+            expect(stateService.getHangoutName()).toBe('our Hangout');
+        });
+
+        it('should return "our Hangout" if settings.name is empty string', () => {
+            mockState.settings = { name: '' };
+            stateService = new StateService(mockState);
+            expect(stateService.getHangoutName()).toBe('our Hangout');
+        });
+    });
 });
