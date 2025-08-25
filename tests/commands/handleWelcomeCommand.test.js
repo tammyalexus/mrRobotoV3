@@ -1,32 +1,43 @@
-const handleWelcomeCommand = require('../../src/commands/handleWelcomeCommand');
-const fs = require('fs').promises;
-jest.mock('fs');
+// Mock the fs module before requiring the command
+jest.mock('fs', () => ({
+    promises: {
+        writeFile: jest.fn(),
+        readFile: jest.fn()
+    }
+}));
 
-describe.skip('handleWelcomeCommand', () => {
+const handleWelcomeCommand = require('../../src/commands/handleWelcomeCommand');
+const fs = require('fs');
+
+describe('handleWelcomeCommand', () => {
     let mockServices;
     let mockCommandParams;
 
     beforeEach(() => {
-        // Reset all mocks
         jest.clearAllMocks();
+        jest.resetAllMocks();
 
-        // Mock services
         mockServices = {
             messageService: {
                 sendGroupMessage: jest.fn()
             },
             dataService: {
-                loadData: jest.fn(),
-                getAllData: jest.fn().mockReturnValue({ welcomeMessage: 'old message' })
+                loadData: jest.fn().mockResolvedValue(),
+                getAllData: jest.fn().mockReturnValue({ welcomeMessage: 'old message' }),
+                getValue: jest.fn().mockReturnValue('New welcome message')  // Return the expected value after update
+            },
+            logger: {
+                info: jest.fn(),
+                debug: jest.fn(),
+                warn: jest.fn(),
+                error: jest.fn()
             }
         };
 
-        // Mock fs.promises
-        fs.promises = {
-            writeFile: jest.fn().mockResolvedValue(undefined)
-        };
+        // Mock fs.promises methods
+        fs.promises.writeFile.mockResolvedValue();
+        fs.promises.readFile.mockResolvedValue(JSON.stringify({ welcomeMessage: 'New welcome message' }, null, 2));
 
-        // Setup command parameters
         mockCommandParams = {
             command: 'welcome',
             args: 'New welcome message',
@@ -61,7 +72,10 @@ describe.skip('handleWelcomeCommand', () => {
     });
 
     it('should handle errors when updating file', async () => {
-        fs.promises.writeFile.mockRejectedValue(new Error('Write error'));
+        // Override the writeFile mock to throw an error for this test
+        fs.promises.writeFile.mockImplementation(() => {
+            throw new Error('Write error');
+        });
 
         const result = await handleWelcomeCommand(mockCommandParams);
 

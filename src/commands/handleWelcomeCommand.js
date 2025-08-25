@@ -28,27 +28,37 @@ async function handleWelcomeCommand(commandParams) {
         };
     }
 
+    const { logger } = services;
+    logger.info('Starting welcome message update process');
     try {
-        const { logger } = services;
-        logger.info('Starting welcome message update process');
-        
-        // Update the welcome message in dataService
+        // Load current data
         logger.debug('Loading current data...');
-        await dataService.loadData(); // Ensure we have latest data
+        await dataService.loadData();
         const currentData = dataService.getAllData();
         logger.debug(`Current data before update: ${JSON.stringify(currentData)}`);
-        
+
         const newData = {
             ...currentData,
             welcomeMessage: args
         };
         logger.debug(`New data to write: ${JSON.stringify(newData)}`);
 
-        // Update the data.json file
+        // Write to file (catch errors here)
         const dataFilePath = path.join(process.cwd(), 'data.json');
         logger.debug(`Writing to file: ${dataFilePath}`);
-        await fs.writeFile(dataFilePath, JSON.stringify(newData, null, 2), 'utf8');
-        
+        try {
+            await fs.writeFile(dataFilePath, JSON.stringify(newData, null, 2), 'utf8');
+        } catch (error) {
+            const response = `❌ Failed to update welcome message: ${error.message}`;
+            await messageService.sendGroupMessage(response);
+            return {
+                success: false,
+                shouldRespond: true,
+                response,
+                error: error.message
+            };
+        }
+
         // Verify file was written correctly
         const fileContent = await fs.readFile(dataFilePath, 'utf8');
         logger.debug(`File content after write: ${fileContent}`);
@@ -56,17 +66,24 @@ async function handleWelcomeCommand(commandParams) {
         // Reload the data in the service to ensure it's up to date
         logger.debug('Reloading data into service...');
         await dataService.loadData();
-        
+
         // Verify the update in memory
         const reloadedData = dataService.getAllData();
         logger.debug(`Data in memory after reload: ${JSON.stringify(reloadedData)}`);
-        
+
         // Verify the specific welcome message was updated
         const updatedMessage = dataService.getValue('welcomeMessage');
         logger.debug(`Updated welcome message in service: ${updatedMessage}`);
-        
+
         if (updatedMessage !== args) {
-            throw new Error('Welcome message in memory does not match new message after reload');
+            const response = `❌ Failed to update welcome message: Welcome message in memory does not match new message after reload`;
+            await messageService.sendGroupMessage(response);
+            return {
+                success: false,
+                shouldRespond: true,
+                response,
+                error: 'Welcome message in memory does not match new message after reload'
+            };
         }
 
         const response = `✅ Welcome message updated to: "${args}"`;
