@@ -66,6 +66,17 @@ class Bot {
   // ========================================================
 
   async connect () {
+    // Load data from data.json first
+    try {
+      await this.services.dataService.loadData();
+      // Add the loaded data to services for global access
+      this.services.data = this.services.dataService.getAllData();
+    } catch (error) {
+      this.services.logger.error('Failed to load data.json:', error);
+      // Continue with empty data object
+      this.services.data = {};
+    }
+
     // First create the socket connection
     await this._createSocketConnection();
 
