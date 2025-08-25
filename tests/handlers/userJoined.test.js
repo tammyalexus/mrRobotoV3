@@ -15,7 +15,7 @@ jest.mock('../../src/services/serviceContainer.js', () => ({
         warn: jest.fn()
     },
     data: {
-        welcomeMessage: '👋 Welcome to {hangoutName}, {username}!'
+        welcomeMessage: "Hi {username}, welcome to '{hangoutName}'"
     }
 }));
 
