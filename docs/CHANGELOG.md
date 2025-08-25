@@ -12,6 +12,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Features may be incomplete or subject to breaking changes
 - API stability not guaranteed until 1.0.0 release
 
+## [0.4.3-alpha] - 2025-08-25
+### Added
+- New `!welcome` command for moderators to customize the welcome message
+- DataService for managing global configuration via data.json
+- Configurable welcome messages with dynamic placeholders ({username}, {hangoutName})
+- data.json file for persistent bot configuration
+
+### Changed
+- Welcome messages now use the DataService instead of hardcoded strings
+- Improved message templating with dynamic placeholder replacement
+- Enhanced service container with new DataService integration
+
+### Technical Details
+- DataService provides methods for loading and accessing global configuration
+- Welcome messages support placeholders that are replaced at runtime
+- Command permissions enforce moderator-only access for welcome message updates
+- Configuration changes persist across bot restarts via data.json
+
 ## [0.4.2-alpha] - 2025-08-24
 ### Added
 - New stateService for managing user roles and permissions
