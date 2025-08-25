@@ -14,7 +14,7 @@ async function handlePingCommand(commandParams) {
   const { services } = commandParams;
   const { messageService } = services;
   const response = '🏓 Pong! Bot is alive and responding.';
-  await messageService.sendGroupMessage(response);
+  await messageService.sendGroupMessage(response, { services });
   return {
     success: true,
     response,

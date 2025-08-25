@@ -22,6 +22,23 @@ describe('messageService.sendGroupMessage - Object Parameters', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    // Mock services object for tests
+    const mockServices = {
+      dataService: {
+        getValue: jest.fn()
+          .mockReturnValueOnce('avatar123')  // for CHAT_AVATAR_ID
+          .mockReturnValueOnce('TestBot')    // for CHAT_NAME
+          .mockReturnValueOnce('ff0000'),    // for CHAT_COLOUR
+        getAllData: jest.fn().mockReturnValue({
+          botData: {
+            CHAT_AVATAR_ID: 'avatar123',
+            CHAT_NAME: 'TestBot',
+            CHAT_COLOUR: 'ff0000'
+          }
+        })
+      }
+    };
+
     // Spy and mock before each test runs
     buildCustomDataSpy = jest.spyOn(messageService, 'buildCustomData').mockResolvedValue({
       message: "Test message",
@@ -75,7 +92,7 @@ describe('messageService.sendGroupMessage - Object Parameters', () => {
 
     expect(result.message).toBe('Test with custom room');
     expect(result.messageResponse).toEqual(mockResponse.data);
-    expect(buildCustomDataSpy).toHaveBeenCalledWith('Test with custom room');
+    expect(buildCustomDataSpy).toHaveBeenCalledWith('Test with custom room', expect.any(Object));
     expect(buildPayloadSpy).toHaveBeenCalledWith(
       'custom-room-id',
       'group',
@@ -110,7 +127,7 @@ describe('messageService.sendGroupMessage - Object Parameters', () => {
     const result = await messageService.sendGroupMessage(messageObj);
 
     expect(result.message).toBe('Test with images');
-    expect(buildCustomDataSpy).toHaveBeenCalledWith('Test with images');
+    expect(buildCustomDataSpy).toHaveBeenCalledWith('Test with images', expect.any(Object));
     // Verify that images were added to customData
     expect(mockCustomDataWithImages.imageUrls).toEqual(['image1.jpg', 'image2.jpg']);
   });
@@ -130,7 +147,7 @@ describe('messageService.sendGroupMessage - Object Parameters', () => {
     const result = await messageService.sendGroupMessage(messageObj);
 
     expect(result.message).toBe('Test with mentions');
-    expect(buildCustomDataSpy).toHaveBeenCalledWith('Test with mentions');
+    expect(buildCustomDataSpy).toHaveBeenCalledWith('Test with mentions', expect.any(Object));
     
     // Check that the spy was called and verify mentions structure
     const customDataCall = buildCustomDataSpy.mock.results[0].value;

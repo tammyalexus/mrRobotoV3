@@ -32,7 +32,7 @@ async function handleStatusCommand(commandParams) {
   const uptime = process.uptime();
   const uptimeFormatted = formatUptime(uptime);
   const response = `🤖 Bot Status:\n✅ Online and operational\n⏱️ Uptime: ${uptimeFormatted}`;
-  await messageService.sendGroupMessage(response);
+  await messageService.sendGroupMessage(response, { services });
   return {
     success: true,
     response,

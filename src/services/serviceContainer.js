@@ -22,6 +22,9 @@ const sharedState = {
 };
 
 // Services container with shared references
+const dataService = new DataService();
+dataService.loadData().catch(err => logger.error('Failed to load data:', err));
+
 const services = {
   // External services
   messageService,
@@ -32,7 +35,7 @@ const services = {
   hangUserService,
   logger,
   config,
-  dataService: new DataService(),
+  dataService,
   
   // Shared state
   state: sharedState,
