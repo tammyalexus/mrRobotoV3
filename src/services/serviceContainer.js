@@ -8,6 +8,7 @@ const { logger } = require('../lib/logging.js');
 const config = require('../config.js');
 const hangUserService = require('./hangUserService.js');
 const StateService = require('./stateService.js');
+const DataService = require('./dataService.js');
 
 // Shared state that all services can access and modify
 const sharedState = {
@@ -31,6 +32,7 @@ const services = {
   hangUserService,
   logger,
   config,
+  dataService: new DataService(),
   
   // Shared state
   state: sharedState,
