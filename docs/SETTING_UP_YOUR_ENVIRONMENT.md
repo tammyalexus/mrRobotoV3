@@ -33,9 +33,9 @@
 
       ```json
       {
-      "botNickName": "string",
-      "avatarId": "string",
-      "color": "string"
+         "botNickName": "string",
+         "avatarId": "string",
+         "color": "string"
       }
       ```
 
@@ -44,14 +44,14 @@
       * avatarId: this can be either bot-1 or bot-2. Both are grey robot avatars. bot-1 has blue eyes and detailing, bot-2 has green eyes and orange detailing
       * color: this si the colour you want your Bot's name to appear as in the chat. The colour value needs to be a hex representation of a colour, without the leading `#` character, eg "ff9900" for orange. Look here if you need help finding a colour: https://www.w3schools.com/colors/colors_picker.asp
 
-   * You should also update the 'Basic Bot details' section of your .env file with this info
+   * You will also need these details later when you fill out the information in the data.json file so don't lose them
 
    * The request body should end up looking something like,
       ```json
       {
-      "botNickName": "Mr HangBot",
-      "avatarId": "bot-1",
-      "color": "00ccff"
+         "botNickName": "Mr HangBot",
+         "avatarId": "bot-1",
+         "color": "00ccff"
       }
       ```
    * Once you've filled that in, click the large blue 'Execute' button
@@ -122,4 +122,15 @@
 8. Finally, you need to decide how the bot will identify commands. The Bot will ignore everything in chat and Private messages unless it starts with this character
    * eg. hello would be ignored, but if you pick '/' as youd command switch then /hello would send a command to the Bot
    * the characters / or ! are typically used but you can choose anything that suits your Hangout
+
 ---
+
+# Updating your data.json file
+
+      ```json
+      {
+         "botNickName": "Mr HangBot",
+         "avatarId": "bot-1",
+         "color": "00ccff"
+      }
+      ```
