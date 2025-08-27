@@ -38,7 +38,8 @@ async function processCommand ( command, messageRemainder, services = {}, contex
     // Ensure essential services are available
     messageService: services.messageService || require('./messageService.js').messageService,
     hangUserService: services.hangUserService || require('./hangUserService.js'),
-    stateService: services.stateService || require('./stateService.js')
+    stateService: services.stateService || require('./stateService.js'),
+    dataService: services.dataService || require('./dataService.js')
   };
 
   try {
@@ -66,7 +67,7 @@ async function processCommand ( command, messageRemainder, services = {}, contex
     
     if (!hasPermission(userRole, commandLevel)) {
       const response = `❌ You don't have permission to use the "${trimmedCommand}" command. Required role: ${commandLevel}`;
-      await serviceContainer.messageService.sendGroupMessage(response);
+      await serviceContainer.messageService.sendGroupMessage(response, { services: serviceContainer });
       return {
         success: false,
         error: 'Insufficient permissions',
@@ -87,7 +88,7 @@ async function processCommand ( command, messageRemainder, services = {}, contex
     const isUnknownCommand = ( errorMessage === 'Unknown command' ) || ( error && error.error === 'Unknown command' );
     if ( isUnknownCommand ) {
       const response = `❓ Unknown command: "${ command }". Type ${ config.COMMAND_SWITCH }help for available commands.`;
-      await serviceContainer.messageService.sendGroupMessage( response );
+      await serviceContainer.messageService.sendGroupMessage(response, { services: serviceContainer });
       return {
         success: false,
         error: 'Unknown command',

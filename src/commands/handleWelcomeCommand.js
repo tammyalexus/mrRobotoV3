@@ -20,7 +20,7 @@ async function handleWelcomeCommand(commandParams) {
 
     if (!args || args.trim().length === 0) {
         const response = `❌ Please provide a new welcome message. Usage: ${config.COMMAND_SWITCH}welcome Hi {username}, welcome to {hangoutName}`;
-        await messageService.sendGroupMessage(response);
+        await messageService.sendGroupMessage(response, { services });
         return {
             success: false,
             shouldRespond: true,
@@ -50,7 +50,7 @@ async function handleWelcomeCommand(commandParams) {
             await fs.writeFile(dataFilePath, JSON.stringify(newData, null, 2), 'utf8');
         } catch (error) {
             const response = `❌ Failed to update welcome message: ${error.message}`;
-            await messageService.sendGroupMessage(response);
+            await messageService.sendGroupMessage(response, { services });
             return {
                 success: false,
                 shouldRespond: true,
@@ -77,7 +77,7 @@ async function handleWelcomeCommand(commandParams) {
 
         if (updatedMessage !== args) {
             const response = `❌ Failed to update welcome message: Welcome message in memory does not match new message after reload`;
-            await messageService.sendGroupMessage(response);
+            await messageService.sendGroupMessage(response, { services });
             return {
                 success: false,
                 shouldRespond: true,
@@ -87,7 +87,7 @@ async function handleWelcomeCommand(commandParams) {
         }
 
         const response = `✅ Welcome message updated to: "${args}"`;
-        await messageService.sendGroupMessage(response);
+        await messageService.sendGroupMessage(response, { services });
         return {
             success: true,
             shouldRespond: true,
@@ -95,7 +95,7 @@ async function handleWelcomeCommand(commandParams) {
         };
     } catch (error) {
         const response = `❌ Failed to update welcome message: ${error.message}`;
-        await messageService.sendGroupMessage(response);
+        await messageService.sendGroupMessage(response, { services });
         return {
             success: false,
             shouldRespond: true,
