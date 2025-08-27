@@ -1,30 +1,54 @@
 # Setting Up Your Environment
 
-This guide will walk you through setting up your environment for the bot. There are two main sections:
+This guide will walk you through setting up your environment for the bot. Expected setup time: ~30 minutes.
 
-- [Creating your .env file](#creating-your-env-file) - Set up authentication and configuration
-- [Updating your data.json file](#updating-your-datajson-file) - Configure bot behavior and appearance
+## Prerequisites
+- A Hang.fm account
+- Access to your browser's Developer Tools
+- A text editor
+- Basic understanding of JSON format
+
+## Table of Contents
+1. [Creating your .env file](#creating-your-env-file)
+   - [Getting Your User Token](#getting-your-user-token)
+   - [Registering Your Bot](#registering-your-bot)
+   - [Getting Bot Tokens](#getting-bot-tokens)
+   - [Setting Up Hangout Access](#setting-up-hangout-access)
+   - [Configuring Command Prefix](#configuring-command-prefix)
+2. [Updating your data.json file](#updating-your-datajson-file)
+   - [Welcome Message Configuration](#welcome-message-configuration)
+   - [Bot Data Configuration](#bot-data-configuration)
 
 ---
 
-# Creating your .env file
+# 1. Creating your .env file
+**Time Estimate: 20-25 minutes**
+
+## Step 1: Setting up the Environment File
+**Time: ~2 minutes**
 
 1. Create a new file in the project root folder called `.env`
 2. Copy/Paste the contents of `.env_example` into that file
-3. Find your Hang.fm user token. You will need this once in order to register a Bot with Hang.fm
-   
-   Every user can have one, and only one, Bot registered to them.
+
+## Step 2: Getting Your User Token
+**Time: ~5 minutes**
+
+> ⚠️ **IMPORTANT**: Every user can have one, and only one, Bot registered to them.
+> 
+> 🔒 **SECURITY WARNING**: Your user token gives full access to your account. Never share it with anyone!
 
    Log into Hang.fm as your personal user and open the Developer Tools
    * Chrome: https://developer.chrome.com/docs/devtools/storage/localstorage
    * Firefox: https://firefox-source-docs.mozilla.org/devtools-user/storage_inspector/
    * Safari: https://developer.apple.com/documentation/safari-developer-tools/enabling-developer-features
 
-   Next open storage and look for `Local Storage`
-   
-   Finally, within Local Storage look for a key called "token-storage" and copy its value. This is your personal user-token for Hang.fm. You MUST remove the double quotes around the token to be able to use it. This value will let others use the Hang.fm website as you so DO NOT SHARE IT WITH ANYONE
+### Finding Your Token:
+1. Open Developer Tools and navigate to Storage/Local Storage
+2. Look for a key called `token-storage`
+3. Copy its value (remember to remove the double quotes)
 
-4. Now that you have your user-token you can register a Bot with Hang.fm and get its token to add to the .env file
+## Step 3: Registering Your Bot with Hang.fm
+**Time: ~5 minutes**
 
    * Head to: https://gateway.prod.tt.fm/api/user-service/api/#/Bot%20endpoints/signUpBot
 
@@ -135,9 +159,16 @@ This guide will walk you through setting up your environment for the bot. There 
 ---
 
 # Updating your data.json file
-The data.json file in the project root contains the Bot "memory". THe data file is read when the Bot starts, and the items in it can be updated by some commands while it's running so that changes persist between restarts.
+## Understanding data.json
+**Time: ~5 minutes**
 
-Here is an example of the complete data.json file
+The `data.json` file in the project root contains the Bot's "memory". This file serves two purposes:
+1. Initial configuration when the Bot starts
+2. Persistent storage for settings that can be updated via commands while running
+
+> 💡 **TIP**: While you should set these values initially, afterwards it's recommended to use Bot commands to modify them.
+
+### Example Configuration
 
 ```json
 {
