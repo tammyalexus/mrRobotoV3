@@ -1,3 +1,12 @@
+# Setting Up Your Environment
+
+This guide will walk you through setting up your environment for the bot. There are two main sections:
+
+- [Creating your .env file](#creating-your-env-file) - Set up authentication and configuration
+- [Updating your data.json file](#updating-your-datajson-file) - Configure bot behavior and appearance
+
+---
+
 # Creating your .env file
 
 1. Create a new file in the project root folder called `.env`
@@ -46,7 +55,7 @@
 
    * You will also need these details later when you fill out the information in the data.json file so don't lose them
 
-   * The request body should end up looking something like,
+   * <a name="example-registration"></a>The request body should end up looking something like,
       ```json
       {
          "botNickName": "Mr HangBot",
@@ -142,18 +151,11 @@ Here is an example of the complete data.json file
 ```
 You should set these values to something appropriate before you first start, but then afterwards only change the values using the relevant comamnds
 
-1. Firstly "welcomeMessage"
+1. Firstly we update the value for "welcomeMessage"
    * this is use by the Bot to greet people when they arrive in the Hangout
    * the token {username} will be substituted by the BOt for the Nickname of the user joining the Hangout
    * the token {hangoutName} will be substituted for the name/title of the Hangout
-2. Next we have the botData section
+2. Next we have to update the botData section
    * this is data used with Hang.fm itself, as well as the Chat provider CometChat
    * the data in this section *MUST* mirror the data entered when the Bot was registered
-   * if the data here (matching the registration example) was used to register the Bot, then the data.json file should be as in the example above
-   ```json
-   {
-      "botNickName": "Mr HangBot",
-      "avatarId": "bot-1",
-      "color": "00ccff"
-   }
-   ```
+   * if the data here (matching the [registration example above](#example-registration)) was used to register the Bot, then the data.json file should be as in the example above
