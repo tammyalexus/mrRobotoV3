@@ -45,12 +45,24 @@ const mockServices = {
   messageService: mockMessageService,
   logger: {
     debug: jest.fn(),
+    info: jest.fn(),
     error: jest.fn()
   },
   config: {
     COMMAND_SWITCH: '!'
   },
   stateService: mockStateService,
+  hangUserService: require('../../src/services/hangUserService.js'),
+  dataService: {
+    getValue: jest.fn().mockReturnValue('test-value'),
+    getAllData: jest.fn().mockReturnValue({
+      botData: {
+        CHAT_AVATAR_ID: 'test-avatar',
+        CHAT_NAME: 'TestBot',
+        CHAT_COLOUR: 'ff0000'
+      }
+    })
+  },
   hangoutState: {
     settings: {
       name: "Test Room"
@@ -91,7 +103,10 @@ describe('commandService', () => {
       expect(result.shouldRespond).toBe(true);
       expect(result.response).toContain('Available Commands');
       expect(mockMessageService.sendGroupMessage).toHaveBeenCalledWith(
-        expect.stringContaining('Available Commands')
+        expect.stringContaining('Available Commands'),
+        expect.objectContaining({
+          services: expect.any(Object)
+        })
       );
     });
 
@@ -102,7 +117,10 @@ describe('commandService', () => {
       expect(result.shouldRespond).toBe(true);
       expect(result.response).toContain('Pong');
       expect(mockMessageService.sendGroupMessage).toHaveBeenCalledWith(
-        expect.stringContaining('Pong')
+        expect.stringContaining('Pong'),
+        expect.objectContaining({
+          services: expect.any(Object)
+        })
       );
     });
 
@@ -113,7 +131,10 @@ describe('commandService', () => {
       expect(result.shouldRespond).toBe(true);
       expect(result.response).toContain('Bot Status');
       expect(mockMessageService.sendGroupMessage).toHaveBeenCalledWith(
-        expect.stringContaining('Bot Status')
+        expect.stringContaining('Bot Status'),
+        expect.objectContaining({
+          services: expect.any(Object)
+        })
       );
     });
 
@@ -126,7 +147,10 @@ describe('commandService', () => {
       expect(result.response).toContain(testMessage);
       expect(result.response).toContain('from Nick-From-UUID');
       expect(mockMessageService.sendGroupMessage).toHaveBeenCalledWith(
-        expect.stringContaining('from Nick-From-UUID')
+        expect.stringContaining('from Nick-From-UUID'),
+        expect.objectContaining({
+          services: expect.any(Object)
+        })
       );
     });
 

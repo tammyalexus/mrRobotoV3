@@ -1,13 +1,15 @@
 // Mock the fs module before requiring the DataService
 jest.mock('fs', () => ({
     promises: {
-        readFile: jest.fn()
+        readFile: jest.fn(),
+        writeFile: jest.fn()
     }
 }));
 
 // Mock logging
 jest.mock('../../src/lib/logging.js', () => ({
     logger: {
+        debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
         error: jest.fn()
@@ -15,20 +17,20 @@ jest.mock('../../src/lib/logging.js', () => ({
 }));
 
 const path = require('path');
-const DataService = require('../../src/services/dataService');
+const dataService = require('../../src/services/dataService');
 const fs = require('fs');
 
 describe('DataService', () => {
-    let dataService;
     const mockData = {
         welcomeMessage: "Hi {username}, welcome to '{hangoutName}'"
     };
 
     beforeEach(() => {
-        // Reset all mocks before creating new instance
+        // Reset all mocks before each test
         jest.clearAllMocks();
         fs.promises.readFile.mockReset();
-        dataService = new DataService();
+        // Reset the internal data
+        dataService.data = {};
     });
 
     describe('loadData', () => {
@@ -81,7 +83,6 @@ describe('DataService', () => {
     });
 
     describe('getAllData', () => {
-
         beforeEach(async () => {
             // Always mock the file read to return the expected mockData for this test
             fs.promises.readFile.mockResolvedValueOnce(JSON.stringify(mockData));
@@ -90,6 +91,68 @@ describe('DataService', () => {
 
         it('should return all data', () => {
             expect(dataService.getAllData()).toEqual(mockData);
+        });
+    });
+
+    describe('setValue', () => {
+        beforeEach(async () => {
+            fs.promises.readFile.mockResolvedValueOnce(JSON.stringify(mockData));
+            fs.promises.writeFile.mockResolvedValue();
+            await dataService.loadData();
+        });
+
+        it('should set a top-level value', async () => {
+            await dataService.setValue('newKey', 'newValue');
+            expect(dataService.getValue('newKey')).toBe('newValue');
+            // Verify file was written
+            expect(fs.promises.writeFile).toHaveBeenCalled();
+            
+            // Verify the path
+            expect(fs.promises.writeFile.mock.calls[0][0]).toContain('data.json');
+            
+            // Parse and verify the written data
+            const writtenData = JSON.parse(fs.promises.writeFile.mock.calls[0][1]);
+            expect(writtenData).toHaveProperty('newKey', 'newValue');
+        });
+
+        it('should set a nested value', async () => {
+            await dataService.setValue('nested.deep.value', 'test');
+            expect(dataService.getValue('nested.deep.value')).toBe('test');
+            // Verify file was written
+            expect(fs.promises.writeFile).toHaveBeenCalled();
+            
+            // Verify the path
+            expect(fs.promises.writeFile.mock.calls[0][0]).toContain('data.json');
+            
+            // Parse and verify the written data
+            const writtenData = JSON.parse(fs.promises.writeFile.mock.calls[0][1]);
+            expect(writtenData.nested.deep.value).toBe('test');
+        });
+
+        it('should update an existing value', async () => {
+            await dataService.setValue('welcomeMessage', 'Updated message');
+            expect(dataService.getValue('welcomeMessage')).toBe('Updated message');
+            // Verify file was written
+            expect(fs.promises.writeFile).toHaveBeenCalled();
+            
+            // Verify the path
+            expect(fs.promises.writeFile.mock.calls[0][0]).toContain('data.json');
+            
+            // Parse and verify the written data
+            const writtenData = JSON.parse(fs.promises.writeFile.mock.calls[0][1]);
+            expect(writtenData.welcomeMessage).toBe('Updated message');
+        });
+
+        it('should handle file write errors', async () => {
+            fs.promises.writeFile.mockRejectedValueOnce(new Error('Write failed'));
+            await expect(dataService.setValue('test', 'value')).rejects.toThrow('Write failed');
+        });
+
+        it('should create intermediate objects for nested paths', async () => {
+            await dataService.setValue('a.b.c.d', 'deep');
+            expect(dataService.getValue('a.b.c.d')).toBe('deep');
+            expect(dataService.getValue('a.b.c')).toEqual({ d: 'deep' });
+            expect(fs.promises.writeFile).toHaveBeenCalled();
         });
     });
 });

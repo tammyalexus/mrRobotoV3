@@ -15,7 +15,7 @@ async function handleEchoCommand(commandParams) {
   const { messageService, hangUserService } = services;
   if (!args.trim()) {
     const response = '❓ Echo what? Please provide a message to echo.';
-    await messageService.sendGroupMessage(response);
+    await messageService.sendGroupMessage(response, { services });
     return {
       success: false,
       response,
@@ -37,7 +37,7 @@ async function handleEchoCommand(commandParams) {
     }
   }
   const response = `🔊 Echo: ${args} (from ${senderDisplay})`;
-  await messageService.sendGroupMessage(response);
+  await messageService.sendGroupMessage(response, { services });
   return {
     success: true,
     response,

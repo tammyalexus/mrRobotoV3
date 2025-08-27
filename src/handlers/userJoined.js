@@ -34,7 +34,7 @@ async function userJoined(message) {
         .replace('{username}', nickname);
       
       services.logger.debug(`Sending welcome message: ${welcomeMessage}`);
-      await services.messageService.sendGroupMessage(welcomeMessage);
+      await services.messageService.sendGroupMessage(welcomeMessage, { services });
     }
   } catch (error) {
     services.logger.error('Error processing userJoined message:', error);
