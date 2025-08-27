@@ -26,12 +26,18 @@ function getLatestGroupMessageId() {
   return latestGroupMessageId;
 }
 
-async function buildCustomData( theMessage ) {
+async function buildCustomData( theMessage, services ) {
+  // Log only necessary service properties to avoid circular references
+  if (services.dataService) {
+    if (services.dataService.getAllData) {
+      const data = services.dataService.getAllData();
+    }
+  }
   return {
     message: theMessage,
-    avatarId: config.CHAT_AVATAR_ID,
-    userName: config.CHAT_NAME,
-    color: `#${ config.CHAT_COLOUR }`,
+    avatarId: services.dataService?.getValue('botData.CHAT_AVATAR_ID'),
+    userName: services.dataService?.getValue('botData.CHAT_NAME'),
+    color: `#${services.dataService?.getValue('botData.CHAT_COLOUR')}`,
     mentions: [], // Will be populated by sendGroupMessage if provided
     userUuid: config.BOT_UID, // Standardized to BOT_UID
     badges: [ 'VERIFIED', 'STAFF' ],
@@ -99,9 +105,9 @@ const messageService = {
     }
   },
 
-  sendPrivateMessage: async function(theMessage, receiver) {
+  sendPrivateMessage: async function(theMessage, receiver, services = {}) {
     try {
-      const customData = await this.buildCustomData(theMessage);
+      const customData = await this.buildCustomData(theMessage, services);
       const payload = await this.buildPayload(receiver, RECEIVER_TYPE.USER, customData, theMessage);
       const response = await axios.post(`${cometchatApi.BASE_URL}/v3.0/messages`, payload, { headers: cometchatApi.headers });
       logger.debug(`✅ Private message sent: ${JSON.stringify(response.data, null, 2)}`);
@@ -136,7 +142,7 @@ const messageService = {
         throw new Error('Message content is required');
       }
 
-      const customData = await this.buildCustomData(message);
+      const customData = await this.buildCustomData(message, options.services || {});
       
       // Add images if provided
       if (images) {
@@ -173,11 +179,17 @@ const messageService = {
       };
 
     } catch (err) {
-      logger.error(`❌ Failed to send group message: ${JSON.stringify({
-        message: typeof theMessage === 'object' ? theMessage.message : theMessage,
-        error: err.response?.data || err.message,
-        status: err.response?.status
-      })}`);
+      // Log error details separately to avoid circular structure issues
+      logger.error(`❌ Failed to send group message: ${typeof theMessage === 'object' ? theMessage.message : theMessage}`);
+      if (err.response?.data) {
+        logger.error(`Error response data: ${err.response.data}`);
+      }
+      if (err.message) {
+        logger.error(`Error message: ${err.message}`);
+      }
+      if (err.response?.status) {
+        logger.error(`Error status: ${err.response.status}`);
+      }
       
       return {
         message: typeof theMessage === 'object' ? theMessage.message : theMessage,

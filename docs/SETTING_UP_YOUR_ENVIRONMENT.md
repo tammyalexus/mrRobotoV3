@@ -1,21 +1,54 @@
-# Creating your .env file
+# Setting Up Your Environment
+
+This guide will walk you through setting up your environment for the bot. Expected setup time: ~30 minutes.
+
+## Prerequisites
+- A Hang.fm account
+- Access to your browser's Developer Tools
+- A text editor
+- Basic understanding of JSON format
+
+## Table of Contents
+1. [Creating your .env file](#creating-your-env-file)
+   - [Getting Your User Token](#getting-your-user-token)
+   - [Registering Your Bot](#registering-your-bot)
+   - [Getting Bot Tokens](#getting-bot-tokens)
+   - [Setting Up Hangout Access](#setting-up-hangout-access)
+   - [Configuring Command Prefix](#configuring-command-prefix)
+2. [Updating your data.json file](#updating-your-datajson-file)
+   - [Welcome Message Configuration](#welcome-message-configuration)
+   - [Bot Data Configuration](#bot-data-configuration)
+
+---
+
+# 1. Creating your .env file
+**Time Estimate: 20-25 minutes**
+
+## Step 1: Setting up the Environment File
+**Time: ~2 minutes**
 
 1. Create a new file in the project root folder called `.env`
 2. Copy/Paste the contents of `.env_example` into that file
-3. Find your Hang.fm user token. You will need this once in order to register a Bot with Hang.fm
-   
-   Every user can have one, and only one, Bot registered to them.
+
+## Step 2: Getting Your User Token
+**Time: ~5 minutes**
+
+> ⚠️ **IMPORTANT**: Every user can have one, and only one, Bot registered to them.
+> 
+> 🔒 **SECURITY WARNING**: Your user token gives full access to your account. Never share it with anyone!
 
    Log into Hang.fm as your personal user and open the Developer Tools
    * Chrome: https://developer.chrome.com/docs/devtools/storage/localstorage
    * Firefox: https://firefox-source-docs.mozilla.org/devtools-user/storage_inspector/
    * Safari: https://developer.apple.com/documentation/safari-developer-tools/enabling-developer-features
 
-   Next open storage and look for `Local Storage`
-   
-   Finally, within Local Storage look for a key called "token-storage" and copy its value. This is your personal user-token for Hang.fm. You MUST remove the double quotes around the token to be able to use it. This value will let others use the Hang.fm website as you so DO NOT SHARE IT WITH ANYONE
+### Finding Your Token:
+1. Open Developer Tools and navigate to Storage/Local Storage
+2. Look for a key called `token-storage`
+3. Copy its value (remember to remove the double quotes)
 
-4. Now that you have your user-token you can register a Bot with Hang.fm and get its token to add to the .env file
+## Step 3: Registering Your Bot with Hang.fm
+**Time: ~5 minutes**
 
    * Head to: https://gateway.prod.tt.fm/api/user-service/api/#/Bot%20endpoints/signUpBot
 
@@ -33,9 +66,9 @@
 
       ```json
       {
-      "botNickName": "string",
-      "avatarId": "string",
-      "color": "string"
+         "botNickName": "string",
+         "avatarId": "string",
+         "color": "string"
       }
       ```
 
@@ -44,14 +77,14 @@
       * avatarId: this can be either bot-1 or bot-2. Both are grey robot avatars. bot-1 has blue eyes and detailing, bot-2 has green eyes and orange detailing
       * color: this si the colour you want your Bot's name to appear as in the chat. The colour value needs to be a hex representation of a colour, without the leading `#` character, eg "ff9900" for orange. Look here if you need help finding a colour: https://www.w3schools.com/colors/colors_picker.asp
 
-   * You should also update the 'Basic Bot details' section of your .env file with this info
+   * You will also need these details later when you fill out the information in the data.json file so don't lose them
 
-   * The request body should end up looking something like,
+   * <a name="example-registration"></a>The request body should end up looking something like,
       ```json
       {
-      "botNickName": "Mr HangBot",
-      "avatarId": "bot-1",
-      "color": "00ccff"
+         "botNickName": "Mr HangBot",
+         "avatarId": "bot-1",
+         "color": "00ccff"
       }
       ```
    * Once you've filled that in, click the large blue 'Execute' button
@@ -122,4 +155,38 @@
 8. Finally, you need to decide how the bot will identify commands. The Bot will ignore everything in chat and Private messages unless it starts with this character
    * eg. hello would be ignored, but if you pick '/' as youd command switch then /hello would send a command to the Bot
    * the characters / or ! are typically used but you can choose anything that suits your Hangout
+
 ---
+
+# Updating your data.json file
+## Understanding data.json
+**Time: ~5 minutes**
+
+The `data.json` file in the project root contains the Bot's "memory". This file serves two purposes:
+1. Initial configuration when the Bot starts
+2. Persistent storage for settings that can be updated via commands while running
+
+> 💡 **TIP**: While you should set these values initially, afterwards it's recommended to use Bot commands to modify them.
+
+### Example Configuration
+
+```json
+{
+   "welcomeMessage": "Hi {username}, welcome to {hangoutName}",
+   "botData": {
+      "CHAT_AVATAR_ID": "bot-1",
+      "CHAT_NAME": "Mr HangBot",
+      "CHAT_COLOUR": "00ccff"
+   }
+} 
+```
+You should set these values to something appropriate before you first start, but then afterwards only change the values using the relevant comamnds
+
+1. Firstly we update the value for "welcomeMessage"
+   * this is use by the Bot to greet people when they arrive in the Hangout
+   * the token {username} will be substituted by the BOt for the Nickname of the user joining the Hangout
+   * the token {hangoutName} will be substituted for the name/title of the Hangout
+2. Next we have to update the botData section
+   * this is data used with Hang.fm itself, as well as the Chat provider CometChat
+   * the data in this section *MUST* mirror the data entered when the Bot was registered
+   * if the data here (matching the [registration example above](#example-registration)) was used to register the Bot, then the data.json file should be as in the example above

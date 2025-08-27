@@ -19,7 +19,7 @@ async function handleStateCommand(commandParams) {
     const state = services?.hangoutState || null;
     if (!state) {
       const response = '⚠️ No hangout state available to save.';
-      await services.messageService.sendGroupMessage(response);
+      await services.messageService.sendGroupMessage(response, { services });
       return {
         success: false,
         response,
