@@ -126,11 +126,34 @@
 ---
 
 # Updating your data.json file
+The data.json file in the project root contains the Bot "memory". THe data file is read when the Bot starts, and the items in it can be updated by some commands while it's running so that changes persist between restarts.
 
-      ```json
-      {
-         "botNickName": "Mr HangBot",
-         "avatarId": "bot-1",
-         "color": "00ccff"
-      }
-      ```
+Here is an example of the complete data.json file
+
+```json
+{
+   "welcomeMessage": "Hi {username}, welcome to {hangoutName}",
+   "botData": {
+      "CHAT_AVATAR_ID": "bot-1",
+      "CHAT_NAME": "Mr HangBot",
+      "CHAT_COLOUR": "00ccff"
+   }
+} 
+```
+You should set these values to something appropriate before you first start, but then afterwards only change the values using the relevant comamnds
+
+1. Firstly "welcomeMessage"
+   * this is use by the Bot to greet people when they arrive in the Hangout
+   * the token {username} will be substituted by the BOt for the Nickname of the user joining the Hangout
+   * the token {hangoutName} will be substituted for the name/title of the Hangout
+2. Next we have the botData section
+   * this is data used with Hang.fm itself, as well as the Chat provider CometChat
+   * the data in this section *MUST* mirror the data entered when the Bot was registered
+   * if the data here (matching the registration example) was used to register the Bot, then the data.json file should be as in the example above
+   ```json
+   {
+      "botNickName": "Mr HangBot",
+      "avatarId": "bot-1",
+      "color": "00ccff"
+   }
+   ```
