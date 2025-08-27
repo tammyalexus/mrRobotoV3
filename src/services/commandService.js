@@ -38,7 +38,8 @@ async function processCommand ( command, messageRemainder, services = {}, contex
     // Ensure essential services are available
     messageService: services.messageService || require('./messageService.js').messageService,
     hangUserService: services.hangUserService || require('./hangUserService.js'),
-    stateService: services.stateService || require('./stateService.js')
+    stateService: services.stateService || require('./stateService.js'),
+    dataService: services.dataService || require('./dataService.js')
   };
 
   try {
