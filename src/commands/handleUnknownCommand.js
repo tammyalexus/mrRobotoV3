@@ -16,7 +16,7 @@ async function handleUnknownCommand(commandParams) {
   const { command, services } = commandParams;
   const { messageService } = services;
   const response = `❓ Unknown command: "${command}". Type ${config.COMMAND_SWITCH}help for available commands.`;
-  await messageService.sendGroupMessage(response);
+  await messageService.sendGroupMessage(response, { services });
   return {
     success: false,
     response,

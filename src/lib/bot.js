@@ -320,6 +320,7 @@ class Bot {
     if ( !chatMessage ) return;
 
     const sender = message?.sender ?? '';
+
     if ( this._shouldIgnoreMessage( sender ) ) return;
 
     this.services.logger.debug( `Processing message: "${ chatMessage }" from ${ sender }` );

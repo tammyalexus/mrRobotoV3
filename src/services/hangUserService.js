@@ -45,8 +45,38 @@ async function getUserNicknameByUuid(userUuid) {
   }
 }
 
-module.exports = {
-  getUserNicknameByUuid
-};
+async function updateHangNickname(newNickname) {
+  try {
+    if (!newNickname || typeof newNickname !== 'string') {
+      throw new Error('newNickname must be a non-empty string');
+    }
 
+    const url = `${config.TTFM_GATEWAY_BASE_URL}/api/user-service/users/profile`;
+    const payload = {
+      nickname: newNickname
+    };
+
+    logger.debug(`hangUserService.updateHangNickname: attempting to update nickname to "${newNickname}"`);
+    
+    const response = await makeRequest(
+      url, 
+      { 
+        method: 'POST',
+        data: payload 
+      },
+      { Authorization: `Bearer ${config.BOT_USER_TOKEN}` }
+    );
+
+    logger.debug(`hangUserService.updateHangNickname: successfully updated nickname to "${newNickname}"`);
+    return response;
+  } catch (err) {
+    logger.error(`hangUserService.updateHangNickname: failed to update nickname -> ${err.message}`);
+    throw new Error(`Failed to update nickname: ${err.message}`);
+  }
+}
+
+module.exports = {
+  getUserNicknameByUuid,
+  updateHangNickname
+};
 
