@@ -12,6 +12,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Features may be incomplete or subject to breaking changes
 - API stability not guaranteed until 1.0.0 release
 
+## [0.4.4_alpha] - 2025-08-27
+### BREAKING CHANGE
+- Removed CHAT_NAME, CHAT_AVATAR_ID, and CHAT_COLOUR fields from .env file
+  - These settings are now managed exclusively through data.json
+  - Existing bots will need to transfer these values to data.json
+  - See [migration guide](docs/migrations/0.4.3_to_0.4.4_alpha.md) for detailed instructions
+
+### Added
+- New `changeBotName` command for owners to modify bot name and appearance
+- Enhanced DataService with methods for updating bot configuration
+- HangUserService for improved user management and role verification
+
+### Changed
+- Expanded data.json structure to include bot appearance settings
+  - Added CHAT_NAME, CHAT_AVATAR_ID, and CHAT_COLOUR fields
+  - Settings persist across bot restarts and can be updated at runtime
+- Improved DataService with atomic file operations
+  - Added validation for configuration changes
+  - Enhanced error handling for file operations
+- Enhanced HangUserService with robust role checking
+  - Added methods for verifying user permissions
+  - Improved integration with command authorization
+
+### Technical Details
+- DataService now manages bot appearance configuration via data.json
+- HangUserService provides comprehensive user role management
+- New changeBotName command restricted to OWNER role
+- Configuration changes are validated before being persisted
+- Improved error handling for invalid configuration updates
+
 ## [0.4.3_alpha] - 2025-08-25
 ### Added
 - New `welcome` command for moderators to customize the welcome message
