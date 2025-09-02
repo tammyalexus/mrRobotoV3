@@ -12,6 +12,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Features may be incomplete or subject to breaking changes
 - API stability not guaranteed until 1.0.0 release
 
+## [0.4.5_alpha] - 2025-09-02
+### Added
+- New `sendGroupPictureMessage` function in messageService
+  - Allows sending messages with embedded images
+  - Simplifies image message handling in commands
+  - Accepts message text, image URL, and optional services container
+  - Example usage in commands:
+    ```javascript
+    messageService.sendGroupPictureMessage(
+      "Check out this image!",
+      "https://example.com/image.jpg",
+      serviceContainer
+    );
+    ```
+
+### Technical Details
+- Built on top of existing sendGroupMessage infrastructure
+- Handles single image URL (automatically wrapped in array)
+- Includes proper error handling and logging
+- Maintains consistency with existing message service patterns
+
 ## [0.4.4_alpha] - 2025-08-27
 ### BREAKING CHANGE
 - Removed CHAT_NAME, CHAT_AVATAR_ID, and CHAT_COLOUR fields from .env file
