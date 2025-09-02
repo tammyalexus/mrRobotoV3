@@ -75,7 +75,14 @@ services.logger.info( '======================================= Application Start
     // Send startup message to group
     try {
       const botNickname = services.getState( 'botNickname' ) || 'Bot';
-      await services.messageService.sendGroupMessage( `${ botNickname } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do`, { services } );
+      // await services.messageService.sendGroupMessage( `${ botNickname } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do`, { services } );
+
+      await services.messageService.sendGroupPictureMessage(
+        `${ botNickname } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do`,
+        "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmprZG5yMDY1aDVndGo3cDI4eWN2cTJ1cHNrODlkcTgzbDhzc25obSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Cmr1OMJ2FN0B2/giphy.gif",
+        { services }
+      );
+
       services.logger.info( "✅ Startup message sent to group" );
     } catch ( error ) {
       services.logger.error( `❌ Failed to send startup message: ${ error?.message || error?.toString() || 'Unknown error' }` );
