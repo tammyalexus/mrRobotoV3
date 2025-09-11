@@ -1,3 +1,4 @@
+const { logger } = require( '../lib/logging.js' );
 const axios = require( 'axios' );
 const config = require( '../config.js' );
 const { buildUrl, makeRequest } = require( '../lib/buildUrl' );
@@ -78,24 +79,24 @@ async function fetchMessages ( endpoint, params = {} ) {
     const url = buildUrl( BASE_URL, [ endpoint ], queryParams );
 
     // Debug logging for request details
-    console.log( `[CometChat API] fetchMessages - Endpoint: ${ endpoint }` );
-    console.log( `[CometChat API] fetchMessages - Raw params:`, params );
-    console.log( `[CometChat API] fetchMessages - Query params:`, queryParams );
-    console.log( `[CometChat API] fetchMessages - Final URL: ${ url }` );
+    logger.debug( `[CometChat API] fetchMessages - Endpoint: ${ endpoint }` );
+    logger.debug( `[CometChat API] fetchMessages - Raw params:`, params );
+    logger.debug( `[CometChat API] fetchMessages - Query params:`, queryParams );
+    logger.debug( `[CometChat API] fetchMessages - Final URL: ${ url }` );
 
     const response = await apiClient.get( url );
 
     // Debug logging for response details
-    console.log( `[CometChat API] fetchMessages - Response status: ${ response.status }` );
-    console.log( `[CometChat API] fetchMessages - Response data count: ${ response.data?.data?.length || 0 }` );
+    logger.debug( `[CometChat API] fetchMessages - Response status: ${ response.status }` );
+    logger.debug( `[CometChat API] fetchMessages - Response data count: ${ response.data?.data?.length || 0 }` );
 
     if ( response.data?.data?.length > 0 ) {
       const messages = response.data.data;
-      console.log( `[CometChat API] fetchMessages - First message ID: ${ messages[ 0 ]?.id }` );
-      console.log( `[CometChat API] fetchMessages - Last message ID: ${ messages[ messages.length - 1 ]?.id }` );
-      console.log( `[CometChat API] fetchMessages - Message IDs: ${ messages.map( m => m.id ).join( ', ' ) }` );
+      logger.debug( `[CometChat API] fetchMessages - First message ID: ${ messages[ 0 ]?.id }` );
+      logger.debug( `[CometChat API] fetchMessages - Last message ID: ${ messages[ messages.length - 1 ]?.id }` );
+      logger.debug( `[CometChat API] fetchMessages - Message IDs: ${ messages.map( m => m.id ).join( ', ' ) }` );
     } else {
-      console.log( `[CometChat API] fetchMessages - No messages returned` );
+      logger.debug( `[CometChat API] fetchMessages - No messages returned` );
     }
 
     return response;

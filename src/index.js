@@ -42,7 +42,7 @@ services.logger.info( '======================================= Application Start
       services.logger.warn( '⚠️ Continuing without group membership - some features may not work' );
     }
 
-    const checkInterval = 1000 * 1; // 1 second
+    const checkInterval = 1000 * 5; // 1 second
 
     // Start message processing with setInterval
     setInterval( async () => {

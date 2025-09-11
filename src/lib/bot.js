@@ -77,9 +77,6 @@ class Bot {
       this.services.data = {};
     }
 
-    // Initialize lastMessageIDs from service container state
-    this._initializeMessageTracking();
-
     // First create the socket connection
     await this._createSocketConnection();
 
@@ -92,6 +89,9 @@ class Bot {
     // Join CometChat after socket connection is established
     await this._joinCometChat();
 
+    // Initialize lastMessageIDs from service container state AFTER connections are established
+    await this._initializeMessageTracking();
+
     // Finally set up reconnect handler
     this._setupReconnectHandler();
   }
@@ -100,16 +100,34 @@ class Bot {
   // Connection Helper Functions
   // ========================================================
 
-  _initializeMessageTracking () {
+  async _initializeMessageTracking () {
     // Initialize lastMessageIDs from service container state
     const lastMessageId = this.services.getState( 'lastMessageId' );
+
     if ( lastMessageId ) {
       this.lastMessageIDs.id = lastMessageId;
       // We don't have fromTimestamp in persistent state, so start fresh
       this.lastMessageIDs.fromTimestamp = Date.now();
       this.services.logger.debug( `Initialized message tracking with ID: ${ lastMessageId }` );
     } else {
-      this.services.logger.debug( 'No previous message ID found, starting fresh' );
+      this.services.logger.debug( 'No previous message ID found, will fetch from latest messages' );
+
+      // Try to get the latest message ID to establish a baseline using the correct API function
+      try {
+        const latestMessageId = await this.services.messageService.returnLatestGroupMessageId();
+        if ( latestMessageId ) {
+          this.lastMessageIDs.id = latestMessageId;
+          this.lastMessageIDs.fromTimestamp = Date.now();
+          this.services.updateLastMessageId( latestMessageId );
+          this.services.logger.debug( `Initialized tracking with latest message ID: ${ latestMessageId }` );
+        } else {
+          this.services.logger.debug( 'No messages found to establish baseline, starting fresh' );
+          this.lastMessageIDs.fromTimestamp = Date.now();
+        }
+      } catch ( error ) {
+        this.services.logger.warn( `Could not fetch latest message ID: ${ error.message }` );
+        this.lastMessageIDs.fromTimestamp = Date.now();
+      }
     }
   }
 
@@ -316,10 +334,23 @@ class Bot {
   }
 
   async _fetchNewMessages () {
-    this.services.logger.debug( `this.lastMessageIDs?.id: ${ this.lastMessageIDs?.id }` );
+    // Get the most current lastMessageId from service container state
+    const serviceLastMessageId = this.services.getState( 'lastMessageId' );
+    const localLastMessageId = this.lastMessageIDs?.id;
+
+    // Use service state if available, fallback to local state
+    const effectiveLastMessageId = serviceLastMessageId || localLastMessageId;
+
+    // Debug logging to track synchronization
+    this.services.logger.debug( `[Bot] _fetchNewMessages:` );
+    this.services.logger.debug( `[Bot] - Service container lastMessageId: ${ serviceLastMessageId }` );
+    this.services.logger.debug( `[Bot] - Local lastMessageIDs.id: ${ localLastMessageId }` );
+    this.services.logger.debug( `[Bot] - Effective lastMessageId: ${ effectiveLastMessageId }` );
+    this.services.logger.debug( `[Bot] - fromTimestamp: ${ this.lastMessageIDs?.fromTimestamp }` );
+
     const messages = await this.services.messageService.fetchGroupMessages( this.services.config.HANGOUT_ID, {
       fromTimestamp: this.lastMessageIDs?.fromTimestamp,
-      lastID: this.lastMessageIDs?.id,
+      lastID: effectiveLastMessageId,
       filterCommands: true // Get command messages for processing
     } );
 
