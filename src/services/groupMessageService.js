@@ -229,8 +229,8 @@ const groupMessageService = {
             logger.debug( `[GroupMessage] - resolved messageId: ${ messageId }` );
 
             if ( messageId ) {
-                params.push( [ 'withMessageId', messageId ] );
-                logger.debug( `[GroupMessage] - Added withMessageId parameter: ${ messageId }` );
+                params.push( [ 'id', messageId ] );
+                logger.debug( `[GroupMessage] - Added id parameter: ${ messageId }` );
             } else {
                 logger.debug( `[GroupMessage] - No messageId available, fetching latest messages` );
             }
@@ -325,7 +325,7 @@ const groupMessageService = {
             [ 'hideMessagesFromBlockedUsers', 0 ],
             [ 'unread', 0 ],
             [ 'withTags', 0 ],
-            [ 'undelivered', 1 ],
+            [ 'undelivered', 0 ],
             [ 'hideDeleted', 0 ],
             [ 'affix', 'append' ],
         ];
@@ -333,11 +333,6 @@ const groupMessageService = {
         try {
             const finalParams = [ ...defaultParams, ...params ];
 
-            // Debug: Log the final parameters being sent
-            logger.debug( `[GroupMessageRaw] fetchGroupMessagesRaw called with roomId: ${ roomId }` );
-            logger.debug( `[GroupMessageRaw] Input params:`, params );
-            logger.debug( `[GroupMessageRaw] Default params:`, defaultParams );
-            logger.debug( `[GroupMessageRaw] Final merged params:`, finalParams );
 
             // Use cometchatApi.fetchMessages with the correct endpoint format
             const response = await cometchatApi.fetchMessages( `v3.0/groups/${ roomId }/messages`, finalParams );

@@ -43,16 +43,19 @@ async function sendMessage ( payload ) {
 async function joinChatGroup ( roomId ) {
   try {
     const url = `https://${ config.COMETCHAT_API_KEY }.apiclient-us.cometchat.io/v3/groups/${ roomId }/members`;
+    logger.debug( `[CometChat API] joinChatGroup - URL: ${ url }` );
 
     const requestData = {
       participants: [ config.BOT_UID ]
     };
+    logger.debug( `[CometChat API] joinChatGroup - Request Data: ${ JSON.stringify( requestData ) }` );
 
     const response = await makeRequest( url, {
       headers,
       method: 'POST',
       data: requestData
     } );
+    logger.debug( `[CometChat API] joinChatGroup - Response Status: ${ response.status }` );
 
     return response;
   } catch ( error ) {

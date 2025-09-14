@@ -74,7 +74,8 @@ const messageService = {
         [ 'affix', 'append' ],
         [ 'updatedAt', lookbackTimestamp ]
       ] );
-
+      
+      logger.debug( `[messageService] returnLatestGroupMessageId - url: ${ url }` );
       try {
         const res = await cometchatApi.apiClient.get( url );
         const messages = res.data?.data;
