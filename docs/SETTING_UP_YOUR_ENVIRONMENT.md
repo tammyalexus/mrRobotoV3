@@ -9,10 +9,10 @@ This guide will walk you through setting up your environment for the bot. Expect
 - Basic understanding of JSON format
 
 ## Table of Contents
-1. [Creating your .env file](#creating-your-env-file)
-   - [Getting Your User Token](#getting-your-user-token)
-   - [Registering Your Bot](#registering-your-bot)
-   - [Getting Bot Tokens](#getting-bot-tokens)
+1. [Creating your .env file](#1-creating-your-env-file)
+   - [Getting Your User Token](#step-2-getting-your-user-token)
+   - [Registering Your Bot](#step-3-registering-your-bot-with-hangfm)
+   - [Getting the Bot UUID](#getting-the-bot-uuid)
    - [Setting Up Hangout Access](#setting-up-hangout-access)
    - [Configuring Command Prefix](#configuring-command-prefix)
 2. [Updating your data.json file](#updating-your-datajson-file)
@@ -79,7 +79,7 @@ This guide will walk you through setting up your environment for the bot. Expect
 
    * You will also need these details later when you fill out the information in the data.json file so don't lose them
 
-   * <a name="example-registration"></a>The request body should end up looking something like,
+   * <a id="example-registration"></a>The request body should end up looking something like,
       ```json
       {
          "botNickName": "Mr HangBot",
@@ -111,6 +111,9 @@ This guide will walk you through setting up your environment for the bot. Expect
 
    * You should probably have a cup of tea now! ;-)
 
+> ⚠️ **VERY IMPORTANT**  
+> **In the following sections, ensure you use the Bot token that you generated above and *NOT* your personal token**
+
 5. Next we're going to use the Bot token to get the COMETCHAT_AUTH_TOKEN to add to the .env file
    * Head to: https://gateway.prod.tt.fm/api/user-service/api/#/CometChat/getUserCometChatAuthToken
    * as above, click the light gray padlock and authosire yourself, but this time **use the Bot's token** rather than your personal one. If the padlock is already closed, click it and then click 'Logout' on the popup that appears
@@ -122,12 +125,15 @@ This guide will walk you through setting up your environment for the bot. Expect
       ```
    * Copy the value from this response, without the quotes, and paste it into your .env file replacing 'paste-your-comet-chat-auth-token-here'
 
+## Getting the Bot UUID
 
 6. Next up we need the Bot's UserID on the Hang.fm site. Head to: https://gateway.prod.tt.fm/api/user-service/api/#/User%20profile/getProfile
    * As before, authenticate using the padlock on the right side and the Bot Token
    * Click 'Try it out' and then 'Execute'
    * The Response body will contain all the details about the Bot User including, towards the bottom, the uuid (Universally unique identifier)
    * Copy the value for the uuid and paste it into the .env file replacing paste-your-bot-uuid-here
+
+## Setting Up Hangout Access
 
 7. Next we need to tell the Bot which Hangout it should appear in
    * Firstly log onto Hang.fm and go to the hangout you want the bot to appear in. Copy the URL of the hangout
@@ -151,6 +157,8 @@ This guide will walk you through setting up your environment for the bot. Expect
       ], 
       ```
    * Copy the uuid value and paste it into your .env file replacing paste-hangout-uuid-here
+
+## Configuring Command Prefix
 
 8. Finally, you need to decide how the bot will identify commands. The Bot will ignore everything in chat and Private messages unless it starts with this character
    * eg. hello would be ignored, but if you pick '/' as youd command switch then /hello would send a command to the Bot
@@ -182,10 +190,15 @@ The `data.json` file in the project root contains the Bot's "memory". This file 
 ```
 You should set these values to something appropriate before you first start, but then afterwards only change the values using the relevant comamnds
 
+## Welcome Message Configuration
+
 1. Firstly we update the value for "welcomeMessage"
    * this is use by the Bot to greet people when they arrive in the Hangout
    * the token {username} will be substituted by the BOt for the Nickname of the user joining the Hangout
    * the token {hangoutName} will be substituted for the name/title of the Hangout
+
+## Bot Data Configuration
+
 2. Next we have to update the botData section
    * this is data used with Hang.fm itself, as well as the Chat provider CometChat
    * the data in this section *MUST* mirror the data entered when the Bot was registered

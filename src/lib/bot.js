@@ -342,11 +342,11 @@ class Bot {
     const effectiveLastMessageId = serviceLastMessageId || localLastMessageId;
 
     // Debug logging to track synchronization
-    this.services.logger.debug( `[Bot] _fetchNewMessages:` );
-    this.services.logger.debug( `[Bot] - Service container lastMessageId: ${ serviceLastMessageId }` );
-    this.services.logger.debug( `[Bot] - Local lastMessageIDs.id: ${ localLastMessageId }` );
-    this.services.logger.debug( `[Bot] - Effective lastMessageId: ${ effectiveLastMessageId }` );
-    this.services.logger.debug( `[Bot] - fromTimestamp: ${ this.lastMessageIDs?.fromTimestamp }` );
+    // this.services.logger.debug( `[Bot] _fetchNewMessages:` );
+    // this.services.logger.debug( `[Bot] - Service container lastMessageId: ${ serviceLastMessageId }` );
+    // this.services.logger.debug( `[Bot] - Local lastMessageIDs.id: ${ localLastMessageId }` );
+    // this.services.logger.debug( `[Bot] - Effective lastMessageId: ${ effectiveLastMessageId }` );
+    // this.services.logger.debug( `[Bot] - fromTimestamp: ${ this.lastMessageIDs?.fromTimestamp }` );
 
     const messages = await this.services.messageService.fetchGroupMessages( this.services.config.HANGOUT_ID, {
       fromTimestamp: this.lastMessageIDs?.fromTimestamp,
@@ -356,18 +356,18 @@ class Bot {
     } );
 
     // Debug: Log what fetchGroupMessages returns
-    this.services.logger.debug( `fetchGroupMessages returned ${ messages?.length || 0 } messages:` );
-    if ( messages && messages.length > 0 ) {
-      messages.forEach( ( msg, index ) => {
-        try {
-          this.services.logger.debug( `Message ${ index } id: ${ msg?.id }` );
-          this.services.logger.debug( `Message ${ index } sender: ${ JSON.stringify( msg?.sender ) }` );
-          this.services.logger.debug( `Message ${ index } keys: ${ Object.keys( msg || {} ).join( ', ' ) }` );
-        } catch ( err ) {
-          this.services.logger.debug( `Could not log message ${ index }: ${ err.message }` );
-        }
-      } );
-    }
+    // this.services.logger.debug( `fetchGroupMessages returned ${ messages?.length || 0 } messages:` );
+    // if ( messages && messages.length > 0 ) {
+    //   messages.forEach( ( msg, index ) => {
+    //     try {
+    //       this.services.logger.debug( `Message ${ index } id: ${ msg?.id }` );
+    //       this.services.logger.debug( `Message ${ index } sender: ${ JSON.stringify( msg?.sender ) }` );
+    //       this.services.logger.debug( `Message ${ index } keys: ${ Object.keys( msg || {} ).join( ', ' ) }` );
+    //     } catch ( err ) {
+    //       this.services.logger.debug( `Could not log message ${ index }: ${ err.message }` );
+    //     }
+    //   } );
+    // }
 
     return messages;
   }
