@@ -351,7 +351,8 @@ class Bot {
     const messages = await this.services.messageService.fetchGroupMessages( this.services.config.HANGOUT_ID, {
       fromTimestamp: this.lastMessageIDs?.fromTimestamp,
       lastID: effectiveLastMessageId,
-      filterCommands: true // Get command messages for processing
+      filterCommands: true, // Get command messages for processing
+      services: this.services // Pass services for state management
     } );
 
     // Debug: Log what fetchGroupMessages returns

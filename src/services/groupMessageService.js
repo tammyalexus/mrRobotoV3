@@ -211,7 +211,7 @@ const groupMessageService = {
     fetchGroupMessages: async function ( roomId = null, options = {} ) {
         try {
             const targetRoomId = roomId || config.HANGOUT_ID;
-            const { lastID, limit = 50, filterCommands = true, fromTimestamp } = options;
+            const { lastID, limit = 50, filterCommands = true, fromTimestamp, services } = options;
 
             // Debug: Log input parameters
             logger.debug( `[GroupMessage] fetchGroupMessages called with:` );
@@ -248,7 +248,7 @@ const groupMessageService = {
             // Debug: Log final parameters
             logger.debug( `[GroupMessage] - Final params array:`, params );
 
-            const messages = await this.fetchGroupMessagesRaw( targetRoomId, params );
+            const messages = await this.fetchGroupMessagesRaw( targetRoomId, params, services );
 
             if ( !messages || messages.length === 0 ) {
                 logger.debug( 'No group messages found' );
@@ -316,9 +316,10 @@ const groupMessageService = {
      * Fetch raw group messages (unprocessed)
      * @param {string} roomId - Room ID
      * @param {Array} params - URL parameters
+     * @param {Object} services - Services container for state management
      * @returns {Promise<Array>} Raw message array
      */
-    fetchGroupMessagesRaw: async function ( roomId, params = [] ) {
+    fetchGroupMessagesRaw: async function ( roomId, params = [], services = null ) {
         const messageLimit = 50; // Default message limit
         const defaultParams = [
             [ 'per_page', messageLimit ],
@@ -341,7 +342,38 @@ const groupMessageService = {
             logger.debug( `[GroupMessageRaw] Response status: ${ response.status }` );
             logger.debug( `[GroupMessageRaw] Response data count: ${ response.data?.data?.length || 0 }` );
 
-            return response.data?.data || [];
+            const messages = response.data?.data || [];
+
+            // Debug: Log services parameter
+            logger.debug( `[GroupMessageRaw] Services parameter:`, {
+                hasServices: !!services,
+                hasUpdateMethod: !!(services && services.updateLastMessageId),
+                messagesCount: messages.length
+            });
+
+            // Update lastMessageId with the last message ID if we have messages and services
+            if ( messages.length > 0 && services && services.updateLastMessageId ) {
+                const lastMessage = messages[messages.length - 1];
+                if ( lastMessage && lastMessage.id ) {
+                    logger.debug( `[GroupMessageRaw] About to update lastMessageId from current value to: ${ lastMessage.id }` );
+                    services.updateLastMessageId( lastMessage.id );
+                    logger.debug( `[GroupMessageRaw] Updated lastMessageId to: ${ lastMessage.id }` );
+                    
+                    // Verify the update worked
+                    const verifyId = services.getState ? services.getState('lastMessageId') : 'getState not available';
+                    logger.debug( `[GroupMessageRaw] Verification - getState('lastMessageId'): ${ verifyId }` );
+                } else {
+                    logger.debug( `[GroupMessageRaw] No valid lastMessage.id found. lastMessage:`, lastMessage );
+                }
+            } else {
+                logger.debug( `[GroupMessageRaw] Not updating lastMessageId because:`, {
+                    hasMessages: messages.length > 0,
+                    hasServices: !!services,
+                    hasUpdateMethod: !!(services && services.updateLastMessageId)
+                });
+            }
+
+            return messages;
         } catch ( err ) {
             logger.error( `❌ Error in fetchGroupMessagesRaw: ${ JSON.stringify( {
                 message: err?.message || 'Unknown error',
