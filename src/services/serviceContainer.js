@@ -67,7 +67,7 @@ const services = {
     if (!this.hangoutState) {
       throw new Error('Cannot initialize StateService: hangoutState is not set');
     }
-    this.stateService = new StateService(this.hangoutState);
+    this.stateService = new StateService(this.hangoutState, this);
     this.logger.debug('StateService initialized');
   }
 };

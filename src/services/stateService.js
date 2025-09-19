@@ -2,8 +2,21 @@
  * Service to access hangout state information
  */
 class StateService {
-    constructor(hangoutState) {
+    constructor(hangoutState, services = null) {
+        // Store both for backwards compatibility and future access
         this.hangoutState = hangoutState;
+        this.services = services;
+    }
+
+    /**
+     * Get the current hangout state (prefer services reference if available)
+     * @returns {Object} Current hangout state
+     * @private
+     */
+    _getCurrentState() {
+        // Use services.hangoutState if available (for live updates), 
+        // otherwise fall back to constructor hangoutState
+        return (this.services?.hangoutState) || this.hangoutState;
     }
 
     /**
@@ -11,7 +24,8 @@ class StateService {
      * @returns {Object} Object containing likes, dislikes, and stars counts
      */
     getVoteCounts() {
-        return this.hangoutState.voteCounts || { likes: 0, dislikes: 0, stars: 0 };
+        const state = this._getCurrentState();
+        return state.voteCounts || { likes: 0, dislikes: 0, stars: 0 };
     }
 
     /**
@@ -34,7 +48,8 @@ class StateService {
      * @returns {string} The name of the hangout, or 'Our Hangout' if not set
      */
     getHangoutName() {
-        const settings = this._getSettings();
+        const state = this._getCurrentState();
+        const settings = state.settings || {};
         return settings.name || 'our Hangout';
     }
 
@@ -44,16 +59,18 @@ class StateService {
      * @private
      */
     _getAllUsers() {
-        return this.hangoutState.allUsers || [];
+        const state = this._getCurrentState();
+        return state.allUsers || [];
     }
 
     /**
-     * Returns information about all DJs in the room
-     * @returns {Array} Array of DJ objects including their next songs
+     * Returns information about current DJs
+     * @returns {Array} Array of DJ objects
      * @private
      */
     _getDjs() {
-        return this.hangoutState.djs || [];
+        const state = this._getCurrentState();
+        return state.djs || [];
     }
 
     /**
@@ -62,7 +79,8 @@ class StateService {
      * @private
      */
     _getNowPlaying() {
-        return this.hangoutState.nowPlaying || null;
+        const state = this._getCurrentState();
+        return state.nowPlaying || null;
     }
 
     /**
@@ -71,7 +89,8 @@ class StateService {
      * @private
      */
     _getSettings() {
-        return this.hangoutState.settings || {};
+        const state = this._getCurrentState();
+        return state.settings || {};
     }
 
     /**
@@ -80,7 +99,8 @@ class StateService {
      * @private
      */
     _getVibeMeter() {
-        return this.hangoutState.vibeMeter || 0;
+        const state = this._getCurrentState();
+        return state.vibeMeter || 0;
     }
 
     /**
@@ -89,7 +109,8 @@ class StateService {
      * @private
      */
     _getAllUserData() {
-        return this.hangoutState.allUserData || {};
+        const state = this._getCurrentState();
+        return state.allUserData || {};
     }
 }
 

@@ -8,6 +8,7 @@ const votedOnSong = require("./votedOnSong.js");
 const addedDj = require("./addedDj.js");
 const removedDj = require("./removedDj.js");
 const nothingPlaying = require("./nothingPlaying.js");
+const updatedRoomSettings = require("./updatedRoomSettings.js");
 
 const handlers = {
   message,
@@ -18,7 +19,8 @@ const handlers = {
   votedOnSong,
   addedDj,
   removedDj,
-  nothingPlaying
+  nothingPlaying,
+  updatedRoomSettings
 }
 
 module.exports = handlers;
