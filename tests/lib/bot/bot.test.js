@@ -9,50 +9,50 @@ jest.mock( 'fs', () => ( {
 } ) );
 
 // Mock Logger module
-jest.mock('../../../src/lib/logging', () => ({
-    logger: {
-        error: jest.fn(),
-        warn: jest.fn(),
-        info: jest.fn(),
-        debug: jest.fn()
-    }
-}));
+jest.mock( '../../../src/lib/logging', () => ( {
+  logger: {
+    error: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn(),
+    debug: jest.fn()
+  }
+} ) );
 
 // Mock CometChatApi
-jest.mock('../../../src/services/cometchatApi', () => {
-    return jest.fn().mockImplementation(() => ({
-        // Add any methods that CometChatApi uses
-    }));
-});
+jest.mock( '../../../src/services/cometchatApi', () => {
+  return jest.fn().mockImplementation( () => ( {
+    // Add any methods that CometChatApi uses
+  } ) );
+} );
 
 // Mock MessageService
-jest.mock('../../../src/services/messageService', () => {
-    return jest.fn().mockImplementation(() => ({
-        joinChat: jest.fn().mockResolvedValue(),
-        fetchGroupMessages: jest.fn().mockResolvedValue([]),
-        sendGroupMessage: jest.fn().mockResolvedValue()
-    }));
-});
+jest.mock( '../../../src/services/messageService', () => {
+  return jest.fn().mockImplementation( () => ( {
+    joinChat: jest.fn().mockResolvedValue(),
+    fetchGroupMessages: jest.fn().mockResolvedValue( [] ),
+    sendGroupMessage: jest.fn().mockResolvedValue()
+  } ) );
+} );
 
 // Mock parseCommands
-jest.mock('../../../src/services/parseCommands', () => ({
-    parseCommands: jest.fn()
-}));
+jest.mock( '../../../src/services/parseCommands', () => ( {
+  parseCommands: jest.fn()
+} ) );
 
 // Mock ttfm-socket
 const mockSocketInstance = {
-    joinRoom: jest.fn(),
-    on: jest.fn()
+  joinRoom: jest.fn(),
+  on: jest.fn()
 };
 
-const MockSocketClient = jest.fn().mockImplementation(() => mockSocketInstance);
+const MockSocketClient = jest.fn().mockImplementation( () => mockSocketInstance );
 
-jest.mock('ttfm-socket', () => ({
-    SocketClient: MockSocketClient,
-    ServerMessageName: {},
-    StatefulServerMessageName: {},
-    StatelessServerMessageName: {}
-}));
+jest.mock( 'ttfm-socket', () => ( {
+  SocketClient: MockSocketClient,
+  ServerMessageName: {},
+  StatefulServerMessageName: {},
+  StatelessServerMessageName: {}
+} ) );
 
 // Now import Bot after mocks are set up
 const { Bot } = require( '../../../src/lib/bot.js' );
@@ -72,17 +72,17 @@ describe( 'Bot', () => {
     mockSocketInstance.joinRoom.mockClear();
     mockSocketInstance.on.mockClear();
 
-    const ServiceContainer = require('../../../src/lib/serviceContainer');
-    
+    const ServiceContainer = require( '../../../src/lib/serviceContainer' );
+
     // Create a real ServiceContainer with mocked internal services
-    mockServices = new ServiceContainer({
+    mockServices = new ServiceContainer( {
       HANGOUT_ID: 'test-hangout-123',
       BOT_USER_TOKEN: 'test-bot-token-456',
       BOT_UID: 'test-bot-uid-789',
       COMMAND_SWITCH: '!',
       SOCKET_MESSAGE_LOG_LEVEL: 'ON'
-    });
-    
+    } );
+
     // Mock the logger methods
     mockServices.logger = {
       debug: jest.fn(),
@@ -90,14 +90,14 @@ describe( 'Bot', () => {
       warn: jest.fn(),
       info: jest.fn()
     };
-    
+
     // Mock the message service methods
     mockServices.messageService = {
       joinChat: jest.fn().mockResolvedValue(),
-      fetchGroupMessages: jest.fn().mockResolvedValue([]),
+      fetchGroupMessages: jest.fn().mockResolvedValue( [] ),
       sendGroupMessage: jest.fn().mockResolvedValue()
     };
-    
+
     // Mock other services
     mockServices.parseCommands = jest.fn();
     mockServices.commandService = jest.fn();
@@ -409,7 +409,7 @@ describe( 'Bot', () => {
 
       bot.configureListeners();
 
-      expect( mockServices.logger.debug ).toHaveBeenCalledWith( 'Setting up listeners' );
+      // The debug message was removed in the refactor since listeners are now set up individually
       expect( bot._setupStatefulMessageListener ).toHaveBeenCalled();
       expect( bot._setupStatelessMessageListener ).toHaveBeenCalled();
       expect( bot._setupServerMessageListener ).toHaveBeenCalled();
@@ -522,13 +522,13 @@ describe( 'Bot', () => {
 describe( 'Bot nickname usage in startup message', () => {
   let mockServices;
   beforeEach( () => {
-    const ServiceContainer = require('../../../src/lib/serviceContainer');
-    mockServices = new ServiceContainer({
+    const ServiceContainer = require( '../../../src/lib/serviceContainer' );
+    mockServices = new ServiceContainer( {
       HANGOUT_ID: 'test-hangout-123',
       BOT_USER_TOKEN: 'test-bot-token-456',
       BOT_UID: 'test-bot-uid-789',
       COMMAND_SWITCH: '!'
-    });
+    } );
     mockServices.getState = jest.fn();
   } );
 

@@ -71,8 +71,8 @@ class Bot {
       await this.services.dataService.loadData();
       // Add the loaded data to services for global access
       this.services.data = this.services.dataService.getAllData();
-    } catch (error) {
-      this.services.logger.error('Failed to load data.json:', error);
+    } catch ( error ) {
+      this.services.logger.error( 'Failed to load data.json:', error );
       // Continue with empty data object
       this.services.data = {};
     }
@@ -80,11 +80,18 @@ class Bot {
     // First create the socket connection
     await this._createSocketConnection();
 
-    // Set up all listeners before joining room
-    this.configureListeners();
+    // Set up only error listener initially (before joining room)
+    this.services.logger.debug( 'Setting up initial error listener...' );
+    this._setupErrorListener();
 
-    // Join room after listeners are configured
+    // Join room and wait for initial state to be available
     await this._joinSocketRoom();
+
+    // Now that we have initial state, set up the state-dependent listeners
+    this.services.logger.debug( 'Setting up state-dependent listeners...' );
+    this._setupStatefulMessageListener();
+    this._setupStatelessMessageListener();
+    this._setupServerMessageListener();
 
     // Join CometChat after socket connection is established
     await this._joinCometChat();
@@ -118,7 +125,7 @@ class Bot {
       this.services.logger.debug( '✅ Room joined successfully, setting up state...' );
       this.state = connection.state;
       this.services.hangoutState = connection.state;
-      
+
       // Initialize the state service
       this.services.initializeStateService();
 
@@ -164,8 +171,8 @@ class Bot {
         const { state } = await this.socket.joinRoom( this.services.config.BOT_USER_TOKEN, {
           roomUuid: this.services.config.HANGOUT_ID
         } );
-  this.state = state;
-  this.services.hangoutState = state;
+        this.state = state;
+        this.services.hangoutState = state;
         this.services.logger.debug( '🔄 Reconnected successfully' );
       } catch ( error ) {
         this.services.logger.error( `❌ Reconnection failed: ${ error }` );
@@ -178,8 +185,8 @@ class Bot {
   // ========================================================
 
   configureListeners () {
-    this.services.logger.debug( 'Setting up listeners' );
-
+    // This method is kept for backwards compatibility
+    // In the new flow, listeners are set up individually after state is available
     this._setupStatefulMessageListener();
     this._setupStatelessMessageListener();
     this._setupServerMessageListener();
@@ -225,18 +232,18 @@ class Bot {
 
       // Handler logic based on message.name
       try {
-        const handlers = require('../handlers');
-        const handlerFn = handlers[message.name];
-        if (typeof handlerFn === 'function') {
-          this.services.logger.debug(`Calling handler for statefulMessage: ${message.name}`);
-          await handlerFn(message, this.state, this.services);
+        const handlers = require( '../handlers' );
+        const handlerFn = handlers[ message.name ];
+        if ( typeof handlerFn === 'function' ) {
+          this.services.logger.debug( `Calling handler for statefulMessage: ${ message.name }` );
+          await handlerFn( message, this.state, this.services );
         } else {
-          this.services.logger.debug(`No handler found for statefulMessage: ${message.name}`);
+          this.services.logger.debug( `No handler found for statefulMessage: ${ message.name }` );
         }
-      } catch (err) {
-        this.services.logger.error(`Error calling handler for statefulMessage ${message.name}: ${err.message}`);
+      } catch ( err ) {
+        this.services.logger.error( `Error calling handler for statefulMessage ${ message.name }: ${ err.message }` );
       }
-    });
+    } );
   }
 
   _setupStatelessMessageListener () {
@@ -422,9 +429,9 @@ class Bot {
       this.socket = null;
     }
 
-  this.state = null;
-  this.services.hangoutState = null;
-  this.services.logger.debug( '✅ Bot disconnected' );
+    this.state = null;
+    this.services.hangoutState = null;
+    this.services.logger.debug( '✅ Bot disconnected' );
   }
 }
 
