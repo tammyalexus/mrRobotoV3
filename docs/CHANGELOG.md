@@ -12,6 +12,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Features may be incomplete or subject to breaking changes
 - API stability not guaranteed until 1.0.0 release
 
+## [0.4.6_alpha] - 2025-09-20
+### Fixed
+- **Startup sequence**: Changed startup order
+  - Change the order that sockets are connected and listeners are created to try and prevent issues where the Hangout state hasn't been loaded when state messages start arriving
+- **Room Name Updates**: Fixed StateService not reflecting live room name changes
+  - Welcome messages now automatically use updated room names for new users
+  - Resolves issue where room name changes weren't reflected in bot responses
+
+### Improved
+- **Documentation**: Enhanced setup guide with improved token extraction
+  - Added draggable bookmarklet button for easy token extraction
+  - Cleaner, more user-friendly setup experience
+  - Fixed anchor links in documentation for better navigation
+
+### Technical Details
+- Updated StateService to use dynamic state references via `_getCurrentState()` method
+- Modified serviceContainer initialization to pass services reference to StateService
+- Simplified bot startup logic by removing Chain/repeat dependency
+- Enhanced updatedRoomSettings handler with comprehensive state tracking
+
 ## [0.4.5_alpha] - 2025-09-02
 ### Added
 - New `sendGroupPictureMessage` function in messageService
