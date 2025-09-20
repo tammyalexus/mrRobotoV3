@@ -2,7 +2,7 @@
   "welcomeMessage": "Hi {username}, welcome to {hangoutName}",
   "botData": {
     "CHAT_AVATAR_ID": "bot-1",
-    "CHAT_NAME": "FartBot",
-    "CHAT_COLOUR": "ff9900"
+    "CHAT_NAME": "HangBot",
+    "CHAT_COLOUR": "00ccff"
   }
 }

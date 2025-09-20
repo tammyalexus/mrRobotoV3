@@ -2,26 +2,32 @@
 
 This guide will walk you through setting up your environment for the bot. Expected setup time: ~30 minutes.
 
+> ⚠️ **IMPORTANT**: Every user can have one, and only one, Bot registered to them.
+
 ## Prerequisites
-- A Hang.fm account
+- A personal Hang.fm account
 - Access to your browser's Developer Tools
 - A text editor
-- Basic understanding of JSON format
 
 ## Table of Contents
-1. [Creating your .env file](#creating-your-env-file)
-   - [Getting Your User Token](#getting-your-user-token)
-   - [Registering Your Bot](#registering-your-bot)
-   - [Getting Bot Tokens](#getting-bot-tokens)
-   - [Setting Up Hangout Access](#setting-up-hangout-access)
-   - [Configuring Command Prefix](#configuring-command-prefix)
-2. [Updating your data.json file](#updating-your-datajson-file)
-   - [Welcome Message Configuration](#welcome-message-configuration)
-   - [Bot Data Configuration](#bot-data-configuration)
+The .env file
+   - [Step 1: Setting up the Environment File](#step-1-setting-up-the-environment-file)
+   - [Step 2: Getting Your User Token](#step-2-getting-your-user-token)
+   - [Step 3: Registering Your Bot with Hang.fm](#step-3-registering-your-bot-with-hangfm)
+   - [Step 4: Getting Bot Tokens](#step-4-getting-bot-tokens)
+   - [Step 5: Obtaining a Chat Token](#step-5-obtaining-a-chat-token)
+   - [Step 6: Getting the Bot UUID](#step-6-getting-the-bot-uuid)
+   - [Step 7: Tell the bot which Hangout enter](#step-7-tell-the-bot-which-hangout-enter)
+   - [Step 8: Configuring the Command Prefix](#step-8-configuring-the-command-prefix)
+
+The data.json file
+   - [Step 1: Creating your data.json file](#step-1-creating-your-datajson-file)
+   - [Step 2: Welcome Message Configuration](#step-2-welcome-message-configuration)
+   - [Step 3: Bot Data Configuration](#step-3-bot-data-configuration)
 
 ---
 
-# 1. Creating your .env file
+# The .env file
 **Time Estimate: 20-25 minutes**
 
 ## Step 1: Setting up the Environment File
@@ -32,20 +38,41 @@ This guide will walk you through setting up your environment for the bot. Expect
 
 ## Step 2: Getting Your User Token
 **Time: ~5 minutes**
+In order to register a bot and get other details you first need your security token from Hang.fm
 
-> ⚠️ **IMPORTANT**: Every user can have one, and only one, Bot registered to them.
-> 
+To do this you can either use a bookmarklet, either by dragging it to your browser bar or manually creating it, or failing that you can get it using the Developer tools in your web browser
+
 > 🔒 **SECURITY WARNING**: Your user token gives full access to your account. Never share it with anyone!
 
-   Log into Hang.fm as your personal user and open the Developer Tools
+### Option 1: Using a Bookmarklet (Recommended)
+
+**Method A: Drag and Drop (Easiest)**
+Simply drag this button to your browser's bookmark bar, log into Hang.fm and click it. This will copy your token to your clipboard ready to be pasted into a note or directly into the next section
+
+<a href="javascript:(function()%7B%20var%20token%20=%20localStorage.getItem('token-storage');%20if(!token)%7Balert('No%20token%20found');return;%7D%20if(token.startsWith('%22')%20&&%20token.endsWith('%22'))%7Btoken=token.slice(1,-1);%7D%20token=token.trim();%20navigator.clipboard.writeText(token).then(function()%7B%20alert('Token%20copied%20to%20clipboard');%20%7D).catch(function(err)%7B%20alert('Clipboard%20copy%20failed:%20'+err);%20%7D);%20%7D)();" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">📋 Get User Token</a>
+
+**Method B: Manual Creation**
+If dragging doesn't work, create the bookmark manually:
+1. Create a new bookmark in your browser
+2. Title it 'Get User Token'
+3. For the URL/address, copy and paste the codebelow
+4. Log into Hang.fm and click the bookmark. This will copy your token to your clipboard ready to be pasted into a note or directly into the next section
+
+```javascript
+javascript:(function()%7B%20var%20token%20=%20localStorage.getItem('token-storage');%20if(!token)%7Balert('No%20token%20found');return;%7D%20if(token.startsWith('%22')%20&&%20token.endsWith('%22'))%7Btoken=token.slice(1,-1);%7D%20token=token.trim();%20navigator.clipboard.writeText(token).then(function()%7B%20alert('Token%20copied%20to%20clipboard');%20%7D).catch(function(err)%7B%20alert('Clipboard%20copy%20failed:%20'+err);%20%7D);%20%7D)();
+```
+
+### Option 2: Manual Method
+If the bookmarklet doesn't work, you can get your token manually:
+
+1. Log into Hang.fm as your personal user and open the Developer Tools
    * Chrome: https://developer.chrome.com/docs/devtools/storage/localstorage
    * Firefox: https://firefox-source-docs.mozilla.org/devtools-user/storage_inspector/
    * Safari: https://developer.apple.com/documentation/safari-developer-tools/enabling-developer-features
 
-### Finding Your Token:
-1. Open Developer Tools and navigate to Storage/Local Storage
-2. Look for a key called `token-storage`
-3. Copy its value (remember to remove the double quotes)
+2. Navigate to Storage/Local Storage
+3. Look for a key called `token-storage`
+4. Copy its value (remember to remove the double quotes if present)
 
 ## Step 3: Registering Your Bot with Hang.fm
 **Time: ~5 minutes**
@@ -93,6 +120,8 @@ This guide will walk you through setting up your environment for the bot. Expect
 
    * Now that it's registered we can get the Bot's user-token!
 
+## Step 4: Getting Bot Tokens
+**Time: ~5 minutes**
    * Head to: https://gateway.prod.tt.fm/api/user-service/api/#/Bot%20endpoints/getBotToken
    ![Screenshot showing /users/bot-token](/docs/assets/bot-token.png "/users/bot-token Screenshot")
 
@@ -111,7 +140,9 @@ This guide will walk you through setting up your environment for the bot. Expect
 
    * You should probably have a cup of tea now! ;-)
 
-5. Next we're going to use the Bot token to get the COMETCHAT_AUTH_TOKEN to add to the .env file
+## Step 5: Obtaining a Chat Token
+**Time: ~2 minutes**
+Next we're going to use the Bot token to get the COMETCHAT_AUTH_TOKEN to add to the .env file
    * Head to: https://gateway.prod.tt.fm/api/user-service/api/#/CometChat/getUserCometChatAuthToken
    * as above, click the light gray padlock and authosire yourself, but this time **use the Bot's token** rather than your personal one. If the padlock is already closed, click it and then click 'Logout' on the popup that appears
    * Click the 'Try it out' button underneath the padlock, and then the blue 'Execute' button. You should see a response returned containing a value for cometAuthToken
@@ -122,14 +153,17 @@ This guide will walk you through setting up your environment for the bot. Expect
       ```
    * Copy the value from this response, without the quotes, and paste it into your .env file replacing 'paste-your-comet-chat-auth-token-here'
 
-
-6. Next up we need the Bot's UserID on the Hang.fm site. Head to: https://gateway.prod.tt.fm/api/user-service/api/#/User%20profile/getProfile
+## Step 6: Getting the Bot UUID
+**Time: ~2 minutes**
+We now need to get the Bot's UserID on the Hang.fm site. Head to: https://gateway.prod.tt.fm/api/user-service/api/#/User%20profile/getProfile
    * As before, authenticate using the padlock on the right side and the Bot Token
    * Click 'Try it out' and then 'Execute'
    * The Response body will contain all the details about the Bot User including, towards the bottom, the uuid (Universally unique identifier)
    * Copy the value for the uuid and paste it into the .env file replacing paste-your-bot-uuid-here
 
-7. Next we need to tell the Bot which Hangout it should appear in
+## Step 7: Tell the bot which Hangout enter
+**Time: ~5 minutes**
+Next we need to tell the Bot which Hangout it should appear in
    * Firstly log onto Hang.fm and go to the hangout you want the bot to appear in. Copy the URL of the hangout
    * For the next step you need the 'slug' of the Hangout. It's the last part of the URL, eg. for https://hang.fm/da/i-love-the-80s the slug would be i-love-the-80s
    * Head to: https://gateway.prod.tt.fm/api/room-service/api/#/Rooms%20data/getRoom
@@ -152,17 +186,23 @@ This guide will walk you through setting up your environment for the bot. Expect
       ```
    * Copy the uuid value and paste it into your .env file replacing paste-hangout-uuid-here
 
-8. Finally, you need to decide how the bot will identify commands. The Bot will ignore everything in chat and Private messages unless it starts with this character
+## Step 8: Configuring the Command Prefix
+**Time: ~1 minutes**
+Finally, you need to decide how the bot will identify commands. The Bot will ignore everything in chat and Private messages unless it starts with this character
    * eg. hello would be ignored, but if you pick '/' as youd command switch then /hello would send a command to the Bot
    * the characters / or ! are typically used but you can choose anything that suits your Hangout
 
 ---
 
-# Updating your data.json file
 ## Understanding data.json
 **Time: ~5 minutes**
 
-The `data.json` file in the project root contains the Bot's "memory". This file serves two purposes:
+## Step 1: Creating your data.json file
+In the project root there is a file called `data.json_example`. 
+
+Create a copy of this file and name it `data.json`
+
+This file contains the Bot's "memory" and serves two purposes:
 1. Initial configuration when the Bot starts
 2. Persistent storage for settings that can be updated via commands while running
 
@@ -175,18 +215,20 @@ The `data.json` file in the project root contains the Bot's "memory". This file 
    "welcomeMessage": "Hi {username}, welcome to {hangoutName}",
    "botData": {
       "CHAT_AVATAR_ID": "bot-1",
-      "CHAT_NAME": "Mr HangBot",
+      "CHAT_NAME": "HangBot",
       "CHAT_COLOUR": "00ccff"
    }
 } 
 ```
-You should set these values to something appropriate before you first start, but then afterwards only change the values using the relevant comamnds
 
-1. Firstly we update the value for "welcomeMessage"
+## Step 2: Welcome Message Configuration
+Firstly we update the value for "welcomeMessage"
    * this is use by the Bot to greet people when they arrive in the Hangout
    * the token {username} will be substituted by the BOt for the Nickname of the user joining the Hangout
    * the token {hangoutName} will be substituted for the name/title of the Hangout
-2. Next we have to update the botData section
+
+## Step 3: Bot Data Configuration
+Next we have to update the botData section
    * this is data used with Hang.fm itself, as well as the Chat provider CometChat
    * the data in this section *MUST* mirror the data entered when the Bot was registered
    * if the data here (matching the [registration example above](#example-registration)) was used to register the Bot, then the data.json file should be as in the example above

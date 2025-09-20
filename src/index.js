@@ -1,6 +1,5 @@
 const services = require( './services/serviceContainer.js' );
 const { Bot } = require( './lib/bot.js' );
-const { Chain } = require( 'repeat' );
 
 process.on( 'unhandledRejection', ( reason, promise ) => {
   services.logger.error( `Unhandled Rejection at: ${ promise }, reason: ${ reason }` );
@@ -44,31 +43,16 @@ services.logger.info( '======================================= Application Start
     }
 
     const checkInterval = 1000 * 1; // 1 second
-    try {
-      const repeatedTasks = new Chain();
-      repeatedTasks
-        .add( async () => {
-          try {
-            await roomBot.processNewMessages();
-          } catch ( error ) {
-            services.logger.error( `Error in processNewMessages: ${ error?.message || error?.toString() || 'Unknown error' }` );
-          }
-        } )
-        .every( checkInterval ) // every 1 second
-
-      services.logger.debug( `Started message processing chain with ${ checkInterval }ms interval` );
-    } catch ( chainError ) {
-      services.logger.error( `Error starting message processing chain: ${ chainError }` );
-      // Fallback to setInterval if Chain fails
-      services.logger.info( 'Falling back to setInterval for message processing' );
-      setInterval( async () => {
-        try {
-          await roomBot.processNewMessages();
-        } catch ( error ) {
-          services.logger.error( `Error in processNewMessages (fallback): ${ error?.message || error?.toString() || 'Unknown error' }` );
-        }
-      }, checkInterval );
-    }
+    
+    // Start message processing with setInterval
+    services.logger.debug( `Starting message processing with ${ checkInterval }ms interval` );
+    setInterval( async () => {
+      try {
+        await roomBot.processNewMessages();
+      } catch ( error ) {
+        services.logger.error( `Error in processNewMessages: ${ error?.message || error?.toString() || 'Unknown error' }` );
+      }
+    }, checkInterval );
 
     services.logger.info( '======================================= Application Started Successfully =======================================' );
 
@@ -77,11 +61,11 @@ services.logger.info( '======================================= Application Start
       const botNickname = services.getState( 'botNickname' ) || 'Bot';
       // await services.messageService.sendGroupMessage( `${ botNickname } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do`, { services } );
 
-      await services.messageService.sendGroupPictureMessage(
-        `${ botNickname } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do`,
-        "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmprZG5yMDY1aDVndGo3cDI4eWN2cTJ1cHNrODlkcTgzbDhzc25obSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Cmr1OMJ2FN0B2/giphy.gif",
-        { services }
-      );
+      // await services.messageService.sendGroupPictureMessage(
+      //   `${ botNickname } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do`,
+      //   "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmprZG5yMDY1aDVndGo3cDI4eWN2cTJ1cHNrODlkcTgzbDhzc25obSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Cmr1OMJ2FN0B2/giphy.gif",
+      //   { services }
+      // );
 
       services.logger.info( "✅ Startup message sent to group" );
     } catch ( error ) {
