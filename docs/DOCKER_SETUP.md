@@ -81,17 +81,30 @@ The Docker setup automatically handles:
 ### Viewing Logs
 
 ```bash
-# View all logs
+# View Docker container logs (startup and basic output)
 docker-compose logs
 
-# Follow logs in real-time
+# Follow Docker container logs in real-time
 docker-compose logs -f
 
-# View only recent logs
+# View only recent Docker logs
 docker-compose logs --tail=50
 
-# View logs for specific time period
+# View Docker logs for specific time period
 docker-compose logs --since="2023-01-01T00:00:00"
+
+# View application logs (detailed bot activity)
+# Note: The bot writes detailed logs to files in the logs/ directory
+tail -f logs/$(date +%Y-%m-%d).log
+
+# View recent application log entries
+tail -50 logs/$(date +%Y-%m-%d).log
+
+# Search for specific events in application logs
+grep -i "error\|warn\|failed" logs/$(date +%Y-%m-%d).log
+
+# Follow all log files in real-time
+tail -f logs/*.log
 ```
 
 ### Restarting the Bot
