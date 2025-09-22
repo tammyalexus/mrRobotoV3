@@ -1,0 +1,80 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files (these should be mounted or passed via environment)
+.env
+.env.*
+!.env.example
+
+# Documentation
+README.md
+docs/
+*.md
+
+# Test files
+tests/
+test/
+**/*.test.js
+**/*.spec.js
+coverage/
+.nyc_output
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs (will be created in container)
+logs/
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Build artifacts
+build/
+dist/
+
+# Temporary files
+tmp/
+temp/
+
+# Docker files (don't include Docker files in the build context)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Development tools
+nodemon.json
+.eslintrc*
+.prettier*
+jest.config.js
+
+# Package manager lock files (we copy package*.json separately for caching)
+package-lock.json
+yarn.lock
+
+# Data file (should be mounted as volume)
+data.json

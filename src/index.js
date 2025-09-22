@@ -43,7 +43,7 @@ services.logger.info( '======================================= Application Start
     }
 
     const checkInterval = 1000 * 1; // 1 second
-    
+
     // Start message processing with setInterval
     services.logger.debug( `Starting message processing with ${ checkInterval }ms interval` );
     setInterval( async () => {
@@ -59,7 +59,7 @@ services.logger.info( '======================================= Application Start
     // Send startup message to group
     try {
       const botNickname = services.getState( 'botNickname' ) || 'Bot';
-      // await services.messageService.sendGroupMessage( `${ botNickname } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do`, { services } );
+      await services.messageService.sendGroupMessage( `${ botNickname } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do`, { services } );
 
       // await services.messageService.sendGroupPictureMessage(
       //   `${ botNickname } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do`,
