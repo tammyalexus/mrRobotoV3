@@ -1,7 +1,7 @@
 {
   "welcomeMessage": "Hi {username}, welcome to {hangoutName}",
   "botData": {
-    "CHAT_AVATAR_ID": "bot-1",
+    "CHAT_AVATAR_ID": "bot-01",
     "CHAT_NAME": "HangBot",
     "CHAT_COLOUR": "00ccff"
   }
