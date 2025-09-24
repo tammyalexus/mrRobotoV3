@@ -101,7 +101,7 @@ If the bookmarklet doesn't work, you can get your token manually:
 
    * Replace the 3 instances of string, leaving the quotes in place
       * botNickName: what you want your Bot to be called
-      * avatarId: this can be either bot-1 or bot-2. Both are grey robot avatars. bot-1 has blue eyes and detailing, bot-2 has green eyes and orange detailing
+      * avatarId: this can be either bot-01 or bot-2 (yes, there's an inconsistency in the names on the hang.fm site). Both are grey robot avatars. bot-01 has blue eyes and detailing, bot-2 has green eyes and orange detailing
       * color: this si the colour you want your Bot's name to appear as in the chat. The colour value needs to be a hex representation of a colour, without the leading `#` character, eg "ff9900" for orange. Look here if you need help finding a colour: https://www.w3schools.com/colors/colors_picker.asp
 
    * You will also need these details later when you fill out the information in the data.json file so don't lose them
