@@ -110,14 +110,14 @@ const messageService = {
 
       logger.debug( `Starting listGroupMembers` );
 
-      const url = buildUrl( 
+      const url = buildUrl(
         cometchatApi.BASE_URL,
-        ['v3.0', 'groups', config.HANGOUT_ID, 'members'],
+        [ 'v3.0', 'groups', config.HANGOUT_ID, 'members' ],
         [
-          ['perPage', 100],
-          ['uid', config.BOT_UID],
-          ['page', 1],
-          ['status', 'available']
+          [ 'perPage', 100 ],
+          [ 'uid', config.BOT_UID ],
+          [ 'page', 1 ],
+          [ 'status', 'available' ]
         ]
       );
 

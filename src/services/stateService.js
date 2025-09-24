@@ -2,8 +2,8 @@
  * Service to access hangout state information
  */
 class StateService {
-    constructor(hangoutState, services = null) {
-        // Store both for backwards compatibility and future access
+    constructor ( hangoutState, services ) {
+        // Store both the initial state and services reference
         this.hangoutState = hangoutState;
         this.services = services;
     }
@@ -13,17 +13,17 @@ class StateService {
      * @returns {Object} Current hangout state
      * @private
      */
-    _getCurrentState() {
+    _getCurrentState () {
         // Use services.hangoutState if available (for live updates), 
         // otherwise fall back to constructor hangoutState
-        return (this.services?.hangoutState) || this.hangoutState;
+        return ( this.services?.hangoutState ) || this.hangoutState;
     }
 
     /**
      * Returns current vote counts
      * @returns {Object} Object containing likes, dislikes, and stars counts
      */
-    getVoteCounts() {
+    getVoteCounts () {
         const state = this._getCurrentState();
         return state.voteCounts || { likes: 0, dislikes: 0, stars: 0 };
     }
@@ -34,11 +34,11 @@ class StateService {
      * @returns {string} One of "owner", "moderator", "coOwner", or "user"
      * @throws {Error} If the user is not found in the room
      */
-    getUserRole(uuid) {
+    getUserRole ( uuid ) {
         const allUsers = this._getAllUsers();
-        const user = allUsers.find(u => u.uuid === uuid);
-        if (!user) {
-            throw new Error(`User with UUID ${uuid} not found in the room`);
+        const user = allUsers.find( u => u.uuid === uuid );
+        if ( !user ) {
+            throw new Error( `User with UUID ${ uuid } not found in the room` );
         }
         return user.highestRole || "user";
     }
@@ -47,7 +47,7 @@ class StateService {
      * Returns the name of the hangout
      * @returns {string} The name of the hangout, or 'Our Hangout' if not set
      */
-    getHangoutName() {
+    getHangoutName () {
         const state = this._getCurrentState();
         const settings = state.settings || {};
         return settings.name || 'our Hangout';
@@ -58,7 +58,7 @@ class StateService {
      * @returns {Array} Array of user objects with uuid, tokenRole, canDj, and highestRole
      * @private
      */
-    _getAllUsers() {
+    _getAllUsers () {
         const state = this._getCurrentState();
         return state.allUsers || [];
     }
@@ -68,7 +68,7 @@ class StateService {
      * @returns {Array} Array of DJ objects
      * @private
      */
-    _getDjs() {
+    _getDjs () {
         const state = this._getCurrentState();
         return state.djs || [];
     }
@@ -78,7 +78,7 @@ class StateService {
      * @returns {Object} Object containing song details and timing information
      * @private
      */
-    _getNowPlaying() {
+    _getNowPlaying () {
         const state = this._getCurrentState();
         return state.nowPlaying || null;
     }
@@ -88,7 +88,7 @@ class StateService {
      * @returns {Object} Room settings including name, description, rules, etc.
      * @private
      */
-    _getSettings() {
+    _getSettings () {
         const state = this._getCurrentState();
         return state.settings || {};
     }
@@ -98,7 +98,7 @@ class StateService {
      * @returns {number} Current vibe meter value
      * @private
      */
-    _getVibeMeter() {
+    _getVibeMeter () {
         const state = this._getCurrentState();
         return state.vibeMeter || 0;
     }
@@ -108,7 +108,7 @@ class StateService {
      * @returns {Object} Object containing detailed user data
      * @private
      */
-    _getAllUserData() {
+    _getAllUserData () {
         const state = this._getCurrentState();
         return state.allUserData || {};
     }

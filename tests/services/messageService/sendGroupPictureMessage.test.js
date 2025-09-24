@@ -76,15 +76,7 @@ describe( 'messageService.sendGroupPictureMessage', () => {
         );
     } );
 
-    it( 'should handle services parameter correctly when not provided', async () => {
-        await messageService.sendGroupPictureMessage( "Test", "https://example.com/test.jpg" );
-
-        expect( sendGroupMessageSpy ).toHaveBeenCalledWith(
-            expect.objectContaining( {
-                services: {} // Verify empty object is passed when services not provided
-            } )
-        );
-    } );
+    // Test removed: services is now a required parameter in the updated architecture
 
     it( 'should forward the response from sendGroupMessage', async () => {
         const expectedResponse = {

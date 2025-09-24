@@ -187,7 +187,7 @@ const groupMessageService = {
      * @param {Object} services - Services container
      * @returns {Promise<Object>} Response object
      */
-    sendGroupPictureMessage: async function ( message, imageUrl, services = {} ) {
+    sendGroupPictureMessage: async function ( message, imageUrl, services ) {
         try {
             const response = await this.sendGroupMessage( {
                 message: message,
@@ -319,7 +319,7 @@ const groupMessageService = {
      * @param {Object} services - Services container for state management
      * @returns {Promise<Array>} Raw message array
      */
-    fetchGroupMessagesRaw: async function ( roomId, params = [], services = null ) {
+    fetchGroupMessagesRaw: async function ( roomId, params = [], services ) {
         const messageLimit = 50; // Default message limit
         const defaultParams = [
             [ 'per_page', messageLimit ],
@@ -351,8 +351,8 @@ const groupMessageService = {
             //     messagesCount: messages.length
             // } );
 
-            // Update lastMessageId with the last message ID if we have messages and services
-            if ( messages.length > 0 && services && services.updateLastMessageId ) {
+            // Update lastMessageId with the last message ID if we have messages
+            if ( messages.length > 0 && services.updateLastMessageId ) {
                 const lastMessage = messages[ messages.length - 1 ];
                 if ( lastMessage && lastMessage.id ) {
                     // logger.debug( `[GroupMessageRaw] About to update lastMessageId from current value to: ${ lastMessage.id }` );

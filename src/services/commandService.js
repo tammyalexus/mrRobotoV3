@@ -2,7 +2,7 @@ const { logger } = require( '../lib/logging.js' );
 const config = require( '../config.js' );
 const fs = require( 'fs' );
 const path = require( 'path' );
-const { hasPermission } = require('../lib/roleUtils');
+const { hasPermission } = require( '../lib/roleUtils' );
 
 // Dynamically load all command handlers from src/commands
 const commands = {};
@@ -26,21 +26,13 @@ fs.readdirSync( commandsDir ).forEach( file => {
  * Processes bot commands and generates appropriate responses
  * @param {string} command - The command name (without the command switch)
  * @param {string} messageRemainder - The rest of the message after the command
- * @param {Object} services - Services container with messageService, etc.
+ * @param {Object} services - Required services container with messageService, etc.
  * @param {Object} context - Additional context (sender, fullMessage, etc.)
  * @returns {Promise<Object>} Result object with success status and response
  */
-async function processCommand ( command, messageRemainder, services = {}, context = {} ) {
-  // Build a complete services container, falling back to direct imports for essential services
-  const serviceContainer = {
-    // Start with any provided services
-    ...services,
-    // Ensure essential services are available
-    messageService: services.messageService || require('./messageService.js').messageService,
-    hangUserService: services.hangUserService || require('./hangUserService.js'),
-    stateService: services.stateService || require('./stateService.js'),
-    dataService: services.dataService || require('./dataService.js')
-  };
+async function processCommand ( command, messageRemainder, services, context = {} ) {
+  // Use the provided services directly - they should be complete
+  const serviceContainer = services;
 
   try {
     const trimmedCommand = command.trim().toLowerCase();
@@ -62,12 +54,12 @@ async function processCommand ( command, messageRemainder, services = {}, contex
     }
 
     // Check user's role and command permissions
-    const userRole = await serviceContainer.stateService.getUserRole(context.sender);
-    const commandLevel = commands[trimmedCommand].requiredRole || 'USER';
-    
-    if (!hasPermission(userRole, commandLevel)) {
-      const response = `❌ You don't have permission to use the "${trimmedCommand}" command. Required role: ${commandLevel}`;
-      await serviceContainer.messageService.sendGroupMessage(response, { services: serviceContainer });
+    const userRole = await serviceContainer.stateService.getUserRole( context.sender );
+    const commandLevel = commands[ trimmedCommand ].requiredRole || 'USER';
+
+    if ( !hasPermission( userRole, commandLevel ) ) {
+      const response = `❌ You don't have permission to use the "${ trimmedCommand }" command. Required role: ${ commandLevel }`;
+      await serviceContainer.messageService.sendGroupMessage( response, { services: serviceContainer } );
       return {
         success: false,
         error: 'Insufficient permissions',
@@ -77,7 +69,7 @@ async function processCommand ( command, messageRemainder, services = {}, contex
     }
 
     // All commands now receive the same standardized parameters
-    return await commands[trimmedCommand](commandParams);
+    return await commands[ trimmedCommand ]( commandParams );
   } catch ( error ) {
     const errorMessage = error && typeof error === 'object'
       ? ( error.message || error.toString() || 'Unknown error object' )
@@ -88,7 +80,7 @@ async function processCommand ( command, messageRemainder, services = {}, contex
     const isUnknownCommand = ( errorMessage === 'Unknown command' ) || ( error && error.error === 'Unknown command' );
     if ( isUnknownCommand ) {
       const response = `❓ Unknown command: "${ command }". Type ${ config.COMMAND_SWITCH }help for available commands.`;
-      await serviceContainer.messageService.sendGroupMessage(response, { services: serviceContainer });
+      await serviceContainer.messageService.sendGroupMessage( response, { services: serviceContainer } );
       return {
         success: false,
         error: 'Unknown command',

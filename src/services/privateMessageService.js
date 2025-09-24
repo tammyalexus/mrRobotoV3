@@ -60,10 +60,10 @@ const privateMessageService = {
      * Send a private message to a user
      * @param {string} theMessage - The message text
      * @param {string} receiver - The receiver's user ID
-     * @param {Object} services - Services container
+     * @param {Object} services - Required services container
      * @returns {Promise<void>}
      */
-    sendPrivateMessage: async function ( theMessage, receiver, services = {} ) {
+    sendPrivateMessage: async function ( theMessage, receiver, services ) {
         try {
             const customData = await this.buildCustomData( theMessage, services );
             const payload = await this.buildPayload( receiver, RECEIVER_TYPE.USER, customData, theMessage );

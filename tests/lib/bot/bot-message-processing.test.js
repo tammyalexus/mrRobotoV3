@@ -127,7 +127,8 @@ describe( 'Bot - Message Processing', () => {
       expect( mockServices.messageService.fetchGroupMessages ).toHaveBeenCalledWith( 'test-hangout-123', {
         fromTimestamp: 1000,
         lastID: 'last-msg-id',
-        filterCommands: true
+        filterCommands: true,
+        services: mockServices
       } );
       expect( result ).toBe( mockMessages );
     } );
@@ -140,7 +141,8 @@ describe( 'Bot - Message Processing', () => {
       expect( mockServices.messageService.fetchGroupMessages ).toHaveBeenCalledWith( 'test-hangout-123', {
         fromTimestamp: undefined,
         lastID: undefined,
-        filterCommands: true
+        filterCommands: true,
+        services: mockServices
       } );
     } );
   } );
