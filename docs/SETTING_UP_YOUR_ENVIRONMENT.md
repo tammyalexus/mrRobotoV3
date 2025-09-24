@@ -10,7 +10,7 @@ This guide will walk you through setting up your environment for the bot. Expect
 - A text editor
 
 ## Table of Contents
-The .env file
+[The .env file](#the-env-file)
    - [Step 1: Setting up the Environment File](#step-1-setting-up-the-environment-file)
    - [Step 2: Getting Your User Token](#step-2-getting-your-user-token)
    - [Step 3: Registering Your Bot with Hang.fm](#step-3-registering-your-bot-with-hangfm)
@@ -20,7 +20,8 @@ The .env file
    - [Step 7: Tell the bot which Hangout enter](#step-7-tell-the-bot-which-hangout-enter)
    - [Step 8: Configuring the Command Prefix](#step-8-configuring-the-command-prefix)
 
-The data.json file
+
+[The data.json file](#understanding-datajson)
    - [Step 1: Creating your data.json file](#step-1-creating-your-datajson-file)
    - [Step 2: Welcome Message Configuration](#step-2-welcome-message-configuration)
    - [Step 3: Bot Data Configuration](#step-3-bot-data-configuration)
