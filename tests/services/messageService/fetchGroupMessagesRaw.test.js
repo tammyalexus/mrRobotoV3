@@ -20,8 +20,13 @@ const { buildUrl } = require( '../../../src/lib/buildUrl' );
 const { logger } = require( '../../../src/lib/logging.js' );
 
 describe( 'fetchGroupMessagesRaw', () => {
+  let mockServices;
+
   beforeEach( () => {
     buildUrl.mockImplementation( () => 'https://fakeurl.com/api/messages' );
+    mockServices = {
+      cometchatApi
+    };
   } );
 
   afterEach( () => {
@@ -32,7 +37,7 @@ describe( 'fetchGroupMessagesRaw', () => {
     const fakeMessages = [ { id: 1, data: { text: 'Hello' } } ];
     cometchatApi.fetchMessages.mockResolvedValue( { data: { data: fakeMessages } } );
 
-    const result = await messageService.fetchGroupMessagesRaw( 'test-room-id', [ [ 'per_page', 1 ] ] );
+    const result = await messageService.fetchGroupMessagesRaw( 'test-room-id', [ [ 'per_page', 1 ] ], mockServices );
 
     expect( result ).toEqual( fakeMessages );
     expect( cometchatApi.fetchMessages ).toHaveBeenCalled();
@@ -43,7 +48,7 @@ describe( 'fetchGroupMessagesRaw', () => {
     const error = new Error( 'Network error' );
     cometchatApi.fetchMessages.mockRejectedValue( error );
 
-    const result = await messageService.fetchGroupMessagesRaw( 'test-room-id', [ [ 'per_page', 1 ] ] );
+    const result = await messageService.fetchGroupMessagesRaw( 'test-room-id', [ [ 'per_page', 1 ] ], mockServices );
 
     expect( result ).toEqual( [] );
     expect( logger.error ).toHaveBeenCalledWith( expect.stringContaining( '❌ Error in fetchGroupMessagesRaw:' ) );
@@ -53,7 +58,7 @@ describe( 'fetchGroupMessagesRaw', () => {
     const error = new Error( 'Sync error' );
     cometchatApi.fetchMessages.mockImplementation( () => { throw error; } );
 
-    const result = await messageService.fetchGroupMessagesRaw( 'test-room-id', [ [ 'per_page', 1 ] ] );
+    const result = await messageService.fetchGroupMessagesRaw( 'test-room-id', [ [ 'per_page', 1 ] ], mockServices );
 
     expect( result ).toEqual( [] );
     expect( logger.error ).toHaveBeenCalledWith( expect.stringContaining( '❌ Error in fetchGroupMessagesRaw:' ) );
@@ -63,7 +68,7 @@ describe( 'fetchGroupMessagesRaw', () => {
     const error = new Error( 'buildUrl failed' );
     cometchatApi.fetchMessages.mockRejectedValue( error );
 
-    const result = await messageService.fetchGroupMessagesRaw( 'test-room-id', [ [ 'per_page', 1 ] ] );
+    const result = await messageService.fetchGroupMessagesRaw( 'test-room-id', [ [ 'per_page', 1 ] ], mockServices );
 
     expect( result ).toEqual( [] );
     expect( logger.error ).toHaveBeenCalledWith( expect.stringContaining( '❌ Error in fetchGroupMessagesRaw:' ) );
@@ -72,7 +77,7 @@ describe( 'fetchGroupMessagesRaw', () => {
   test( 'returns empty array if response data.data is missing', async () => {
     cometchatApi.fetchMessages.mockResolvedValue( { data: {} } );
 
-    const result = await messageService.fetchGroupMessagesRaw( 'test-room-id' );
+    const result = await messageService.fetchGroupMessagesRaw( 'test-room-id', [], mockServices );
 
     expect( result ).toEqual( [] );
     expect( logger.error ).not.toHaveBeenCalled();

@@ -16,8 +16,13 @@ const cometchatApi = require( '../../../src/services/cometchatApi' );
 const { logger } = require( '../../../src/lib/logging.js' );
 
 describe( 'fetchGroupMessages', () => {
+  let mockServices;
+
   beforeEach( () => {
     jest.clearAllMocks();
+    mockServices = {
+      cometchatApi
+    };
   } );
 
   afterEach( () => {
@@ -49,7 +54,7 @@ describe( 'fetchGroupMessages', () => {
 
     cometchatApi.fetchMessages = jest.fn().mockResolvedValue( { data: { data: mockMessages } } );
 
-    const result = await messageService.fetchGroupMessages();
+    const result = await messageService.fetchGroupMessages( null, { services: mockServices } );
 
     expect( result ).toEqual( [
       {
@@ -82,7 +87,7 @@ describe( 'fetchGroupMessages', () => {
     const error = new Error( 'Network failure' );
     cometchatApi.fetchMessages = jest.fn().mockRejectedValue( error );
 
-    await messageService.fetchGroupMessages();
+    await messageService.fetchGroupMessages( null, { services: mockServices } );
 
     expect( logger.error ).toHaveBeenCalledWith(
       expect.stringContaining( '❌ Error in fetchGroupMessagesRaw:' )
@@ -92,7 +97,7 @@ describe( 'fetchGroupMessages', () => {
   test( 'returns empty array if no group messages are found', async () => {
     cometchatApi.fetchMessages = jest.fn().mockResolvedValue( { data: { data: [] } } );
 
-    const result = await messageService.fetchGroupMessages();
+    const result = await messageService.fetchGroupMessages( null, { services: mockServices } );
     expect( result ).toEqual( [] );
   } );
 
@@ -108,7 +113,7 @@ describe( 'fetchGroupMessages', () => {
 
     cometchatApi.fetchMessages = jest.fn().mockResolvedValue( { data: { data: mockMessages } } );
 
-    const result = await messageService.fetchGroupMessages();
+    const result = await messageService.fetchGroupMessages( null, { services: mockServices } );
 
     expect( result ).toEqual( [] );
   } );
@@ -138,7 +143,7 @@ describe( 'fetchGroupMessages', () => {
 
     cometchatApi.fetchMessages = jest.fn().mockResolvedValue( { data: { data: mockMessages } } );
 
-    const result = await messageService.fetchGroupMessages( null, { filterCommands: false } );
+    const result = await messageService.fetchGroupMessages( null, { filterCommands: false, services: mockServices } );
 
     expect( result ).toEqual( [
       {
@@ -187,7 +192,7 @@ describe( 'fetchGroupMessages', () => {
 
     cometchatApi.fetchMessages = jest.fn().mockResolvedValue( { data: { data: mockMessages } } );
 
-    const result = await messageService.fetchGroupMessages();
+    const result = await messageService.fetchGroupMessages( null, { services: mockServices } );
 
     expect( result ).toEqual( [
       {
