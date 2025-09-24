@@ -30,10 +30,54 @@ This code is provided free of charge with the licensing above attached, however 
 
 ## 🚀 Setup
 
+### Option 1: Docker Setup (Recommended) 🐳
+
+For the most consistent experience across different systems:
+
+1. **Install Docker**: Download from [docker.com](https://www.docker.com/get-started)
+
+2. **Clone and configure**:
+   ```bash
+   git clone --branch v0.4.0_alpha https://github.com/jodrell2000/mrRobotoV3.git
+   cd mrRobotoV3
+   cp .env_example .env
+   # Edit .env with your bot configuration (see setup guide below)
+   ```
+
+3. **Start the bot**:
+   ```bash
+   # Recommended: Use our management script
+   ./docker.sh start
+
+   # Or if you have JWT token issues, create a clean .env file first:
+   ./create-clean-env.sh
+   docker-compose up -d
+
+   # Or use our smart startup script (handles environment issues)
+   ./docker-start-safe.sh
+
+   # Or use Docker Compose directly
+   docker-compose up -d
+   ```
+   
+   **Note**: If you encounter JWT token parsing issues, run `./create-clean-env.sh` first to create a properly formatted .env file.
+
+4. **Manage the bot**:
+   ```bash
+   ./docker.sh logs     # View logs
+   ./docker.sh status   # Check status
+   ./docker.sh stop     # Stop the bot
+   ./docker.sh help     # See all commands
+   ```
+
+📖 **Full Docker Guide**: [Docker Setup Documentation](docs/DOCKER_SETUP.md)
+
+### Option 2: Traditional Node.js Setup
+
 1. Clone the repository with the latest stable release:
    ```bash
-   # Latest release (v0.4.0_alpha)
-   git clone --branch v0.4.0_alpha https://github.com/jodrell2000/mrRobotoV3.git
+   # Latest release (0.4.6_alpha)
+   git clone --branch 0.4.6_alpha https://github.com/jodrell2000/mrRobotoV3.git
    cd mrRobotoV3
    ```
 2. Install dependencies:

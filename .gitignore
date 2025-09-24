@@ -70,6 +70,9 @@ web_modules/
 .env.*
 !.env.example
 
+# data file
+data.json
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
@@ -137,3 +140,11 @@ vite.config.ts.timestamp-*
 
 # MacOS stuff
 **/.DS_Store
+.DS_Store
+
+# Docker-related files
+docker-compose.override.yml
+.docker/
+
+# Backup files
+backups/
