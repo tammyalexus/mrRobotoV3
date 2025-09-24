@@ -49,18 +49,25 @@ To do this you can either use a bookmarklet, either by dragging it to your brows
 **Method A: Drag and Drop (Easiest)**
 Simply drag this button to your browser's bookmark bar, log into Hang.fm and click it. This will copy your token to your clipboard ready to be pasted into a note or directly into the next section
 
-<a href="javascript:(function()%7B%20var%20token%20=%20localStorage.getItem('token-storage');%20if(!token)%7Balert('No%20token%20found');return;%7D%20if(token.startsWith('%22')%20&&%20token.endsWith('%22'))%7Btoken=token.slice(1,-1);%7D%20token=token.trim();%20navigator.clipboard.writeText(token).then(function()%7B%20alert('Token%20copied%20to%20clipboard');%20%7D).catch(function(err)%7B%20alert('Clipboard%20copy%20failed:%20'+err);%20%7D);%20%7D)();" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">📋 Get User Token</a>
+> **📋 Get User Token**  
+> Right-click this text and select "Copy Link Address" or "Copy Link" to get the bookmarklet code, then:
+> 1. Create a new bookmark in your browser
+> 2. Name it "Get User Token" 
+> 3. Paste the copied code as the URL
+> 4. Log into Hang.fm and click the bookmark
+> 
+> Bookmarklet code:
+> ```
+> javascript:(function()%7B%20var%20token%20=%20localStorage.getItem('token-storage');%20if(!token)%7Balert('No%20token%20found');return;%7D%20if(token.startsWith('%22')%20&&%20token.endsWith('%22'))%7Btoken=token.slice(1,-1);%7D%20token=token.trim();%20navigator.clipboard.writeText(token).then(function()%7B%20alert('Token%20copied%20to%20clipboard');%20%7D).catch(function(err)%7B%20alert('Clipboard%20copy%20failed:%20'+err);%20%7D);%20%7D)();
+> ```
 
-**Method B: Manual Creation**
-If dragging doesn't work, create the bookmark manually:
-1. Create a new bookmark in your browser
-2. Title it 'Get User Token'
-3. For the URL/address, copy and paste the codebelow
-4. Log into Hang.fm and click the bookmark. This will copy your token to your clipboard ready to be pasted into a note or directly into the next section
-
-```javascript
-javascript:(function()%7B%20var%20token%20=%20localStorage.getItem('token-storage');%20if(!token)%7Balert('No%20token%20found');return;%7D%20if(token.startsWith('%22')%20&&%20token.endsWith('%22'))%7Btoken=token.slice(1,-1);%7D%20token=token.trim();%20navigator.clipboard.writeText(token).then(function()%7B%20alert('Token%20copied%20to%20clipboard');%20%7D).catch(function(err)%7B%20alert('Clipboard%20copy%20failed:%20'+err);%20%7D);%20%7D)();
-```
+**Method B: Alternative Instructions**
+If the above method doesn't work for you:
+1. Use the bookmarklet code provided above
+2. Create a new bookmark in your browser  
+3. Title it 'Get User Token'
+4. Paste the bookmarklet code as the URL/address
+5. Log into Hang.fm and click the bookmark to copy your token to clipboard
 
 ### Option 2: Manual Method
 If the bookmarklet doesn't work, you can get your token manually:
