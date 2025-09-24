@@ -102,12 +102,44 @@ const messageService = {
    * @returns {Promise<Object|null>} Object with data array and totalCount, or null on error
    */
   listGroupMembers: async function () {
-    // logger.debug( `Starting listGroupMembers` );
+    try {
+      const config = require( '../config.js' );
+      const { logger } = require( '../lib/logging.js' );
+      const { buildUrl, makeRequest } = require( '../lib/buildUrl' );
+      const cometchatApi = require( './cometchatApi.js' );
 
-    const config = require( '../config.js' );
-    const allMembers = [];
-    let currentPage = 1;
-    const perPage = 100; // Max per page allowed by CometChat
+      logger.debug( `Starting listGroupMembers` );
+
+      const url = buildUrl( 
+        cometchatApi.BASE_URL,
+        ['v3.0', 'groups', config.HANGOUT_ID, 'members'],
+        [
+          ['perPage', 100],
+          ['uid', config.BOT_UID],
+          ['page', 1],
+          ['status', 'available']
+        ]
+      );
+
+      const response = await makeRequest( url, {
+        headers: cometchatApi.headers
+      } );
+
+      const data = response.data || [];
+      const totalCount = response.totalCount || 0;
+
+      logger.debug( `✅ Retrieved ${ data.length } group members` );
+
+      return {
+        data: data,
+        totalCount: totalCount
+      };
+
+    } catch ( error ) {
+      const { logger } = require( '../lib/logging.js' );
+      logger.error( `❌ Error fetching group members: ${ error.message }` );
+      return null;
+    }
   }
 }
 
