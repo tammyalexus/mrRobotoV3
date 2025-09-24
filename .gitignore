@@ -140,3 +140,10 @@ vite.config.ts.timestamp-*
 
 # MacOS stuff
 .DS_Store
+
+# Docker-related files
+docker-compose.override.yml
+.docker/
+
+# Backup files
+backups/

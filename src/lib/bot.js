@@ -203,19 +203,53 @@ class Bot {
       // Apply state patch to update current state
       if ( message.statePatch && this.state ) {
         try {
-          const patchResult = applyPatch(
-            this.state,
-            message.statePatch,
-            true,  // validate operation
-            false  // mutate document
-          );
+          // Validate each operation before applying
+          const validOperations = message.statePatch.filter( operation => {
+            try {
+              // For remove operations, check if the path exists
+              if ( operation.op === 'remove' ) {
+                const pathParts = operation.path.split( '/' ).slice( 1 ); // Remove empty first element
+                let current = this.state;
 
-          // Update the bot's state with the patched state
-          this.state = patchResult.newDocument;
-          this.services.hangoutState = patchResult.newDocument;
+                // Traverse the path to see if it exists
+                for ( const part of pathParts ) {
+                  if ( current && typeof current === 'object' && part in current ) {
+                    current = current[ part ];
+                  } else {
+                    this.services.logger.debug( `Skipping remove operation - path does not exist: ${ operation.path }` );
+                    return false; // Skip this operation
+                  }
+                }
+              }
+              return true; // Operation is valid
+            } catch ( validateError ) {
+              this.services.logger.debug( `Skipping invalid operation: ${ JSON.stringify( operation ) } - ${ validateError.message }` );
+              return false;
+            }
+          } );
 
-          this.services.logger.debug( `State updated via patch for message: ${ message.name }` );
-          this.services.logger.debug( `Applied ${ message.statePatch.length } patch operations` );
+          // Only apply if we have valid operations
+          if ( validOperations.length > 0 ) {
+            const patchResult = applyPatch(
+              this.state,
+              validOperations,
+              true,  // validate operation
+              false  // mutate document
+            );
+
+            // Update the bot's state with the patched state
+            this.state = patchResult.newDocument;
+            this.services.hangoutState = patchResult.newDocument;
+
+            this.services.logger.debug( `State updated via patch for message: ${ message.name }` );
+            this.services.logger.debug( `Applied ${ validOperations.length } patch operations` );
+
+            if ( validOperations.length < message.statePatch.length ) {
+              this.services.logger.debug( `Skipped ${ message.statePatch.length - validOperations.length } invalid operations` );
+            }
+          } else {
+            this.services.logger.debug( `No valid operations to apply for message: ${ message.name }` );
+          }
         } catch ( error ) {
           // Format the error message to include important details but exclude the tree
           let errorMsg = error.message;

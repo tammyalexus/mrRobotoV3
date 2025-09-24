@@ -1,0 +1,105 @@
+#!/bin/bash
+
+# Docker startup script with environment variable handling
+# This script handles complex JWT tokens that cause Docker Compose parsing issues
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}🐳 MrRoboto Docker Startup Script${NC}"
+echo "================================="
+
+# Check if Docker is running
+if ! docker info > /dev/null 2>&1; then
+    echo -e "${RED}❌ Docker is not running. Please start Docker first.${NC}"
+    exit 1
+fi
+
+# Check if .env file exists
+if [ ! -f ".env" ]; then
+    echo -e "${RED}❌ .env file not found. Please copy .env_example to .env and configure it.${NC}"
+    exit 1
+fi
+
+# Test Docker Compose configuration
+echo -e "${YELLOW}🔧 Testing Docker Compose configuration...${NC}"
+
+if docker-compose config --quiet > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ Docker Compose configuration is valid${NC}"
+    USE_ENV_FILE=true
+else
+    echo -e "${YELLOW}⚠️  .env file has parsing issues (likely due to JWT tokens with special characters)${NC}"
+    echo -e "${YELLOW}🔄 Using environment variable method instead...${NC}"
+    USE_ENV_FILE=false
+    
+    # Load .env file and export variables
+    echo -e "${BLUE}📋 Loading environment variables from .env file...${NC}"
+    set -a  # automatically export all variables
+    source .env
+    set +a  # stop automatically exporting
+    
+    echo -e "${GREEN}✅ Environment variables loaded${NC}"
+fi
+
+# Check if containers are already running
+if [ "$(docker-compose ps -q)" ]; then
+    echo -e "${YELLOW}⚠️  Containers are already running${NC}"
+    echo -e "${BLUE}📊 Current status:${NC}"
+    docker-compose ps
+    
+    read -p "Do you want to restart the containers? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${BLUE}🔄 Stopping containers...${NC}"
+        docker-compose down
+    else
+        echo -e "${GREEN}✅ Keeping existing containers running${NC}"
+        exit 0
+    fi
+fi
+
+# Build and start containers
+echo -e "${BLUE}🔨 Building and starting containers...${NC}"
+
+if [ "$USE_ENV_FILE" = true ]; then
+    docker-compose up -d --build
+else
+    # Use environment variables directly
+    docker-compose up -d --build
+fi
+
+# Wait for containers to be ready
+echo -e "${BLUE}⏳ Waiting for containers to be ready...${NC}"
+sleep 5
+
+# Check container status
+echo -e "${BLUE}📊 Container Status:${NC}"
+docker-compose ps
+
+# Show logs
+echo -e "${BLUE}📋 Recent logs:${NC}"
+docker-compose logs --tail=20
+
+# Health check
+echo -e "${BLUE}🏥 Health check:${NC}"
+if docker-compose exec -T mrroboto-bot node -e "console.log('✅ Container is healthy')" 2>/dev/null; then
+    echo -e "${GREEN}✅ Container is responding${NC}"
+else
+    echo -e "${YELLOW}⚠️  Container may still be starting up${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}🎉 Docker setup complete!${NC}"
+echo ""
+echo -e "${BLUE}Useful commands:${NC}"
+echo "  View logs:     docker-compose logs -f"
+echo "  Stop:          docker-compose down"
+echo "  Restart:       docker-compose restart"
+echo "  Shell access:  docker-compose exec mrroboto-bot sh"
+echo ""
