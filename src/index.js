@@ -55,6 +55,27 @@ services.logger.info( '======================================= Application Start
     }, checkInterval );
 
     services.logger.debug( `Started message processing with ${ checkInterval }ms interval` );
+
+    // Validate that we have initial state data before declaring success
+    try {
+      const allUserData = services.hangoutState?.allUserData || {};
+      const userCount = Object.keys( allUserData ).length;
+
+      if ( userCount === 0 ) {
+        services.logger.error( '❌ CRITICAL ERROR: allUserData is empty - no initial state loaded' );
+        services.logger.error( '❌ This indicates the stateful message processing failed to apply initial state patches' );
+        services.logger.error( '❌ The bot cannot operate without proper state initialization' );
+        services.logger.error( '❌ Check logs for JSON Patch application errors and ensure stateful messages are being processed correctly' );
+        process.exit( 1 );
+      }
+
+      services.logger.info( `✅ State validation passed: ${ userCount } users loaded in allUserData` );
+    } catch ( stateError ) {
+      services.logger.error( `❌ CRITICAL ERROR: Failed to validate initial state: ${ stateError.message }` );
+      services.logger.error( '❌ Cannot proceed without valid state - exiting application' );
+      process.exit( 1 );
+    }
+
     services.logger.info( '======================================= Application Started Successfully =======================================' );
 
     // Send startup message to group

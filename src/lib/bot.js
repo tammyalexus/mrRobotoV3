@@ -66,32 +66,19 @@ class Bot {
   // ========================================================
 
   async connect () {
-    // Load data from data.json first
-    try {
-      await this.services.dataService.loadData();
-      // Add the loaded data to services for global access
-      this.services.data = this.services.dataService.getAllData();
-    } catch ( error ) {
-      this.services.logger.error( 'Failed to load data.json:', error );
-      // Continue with empty data object
-      this.services.data = {};
-    }
+    // Data is already loaded and available in serviceContainer as services.data
+    this.services.logger.debug( 'Using data loaded in serviceContainer' );
 
     // First create the socket connection
     await this._createSocketConnection();
-
-    // Set up only error listener initially (before joining room)
-    this.services.logger.debug( 'Setting up initial error listener...' );
+    this.services.logger.debug( 'Setting up listeners...' );
     this._setupErrorListener();
-
-    // Join room and wait for initial state to be available
-    await this._joinSocketRoom();
-
-    // Now that we have initial state, set up the state-dependent listeners
-    this.services.logger.debug( 'Setting up state-dependent listeners...' );
     this._setupStatefulMessageListener();
     this._setupStatelessMessageListener();
     this._setupServerMessageListener();
+
+    // Join room and wait for initial state to be available
+    await this._joinSocketRoom();
 
     // Join CometChat after socket connection is established
     await this._joinCometChat();
