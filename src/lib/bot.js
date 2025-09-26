@@ -8,6 +8,7 @@ class Bot {
     this.services = services;
     this.lastMessageIDs = {}
     this.socketLogCounter = 0; // Counter for debug mode logging
+    this.deferredPatches = []; // Store patches that arrive before state is available
   }
 
   // ========================================================
@@ -71,11 +72,20 @@ class Bot {
 
     // First create the socket connection
     await this._createSocketConnection();
+
+    // CRITICAL: Add a small delay to ensure socket is fully initialized
+    this.services.logger.debug( 'Allowing socket initialization to complete...' );
+    await new Promise( resolve => setTimeout( resolve, 250 ) );
+
     this.services.logger.debug( 'Setting up listeners...' );
     this._setupErrorListener();
     this._setupStatefulMessageListener();
     this._setupStatelessMessageListener();
     this._setupServerMessageListener();
+
+    // CRITICAL: Add another delay to ensure all listeners are registered
+    this.services.logger.debug( 'Ensuring all listeners are registered...' );
+    await new Promise( resolve => setTimeout( resolve, 250 ) );
 
     // Join room and wait for initial state to be available
     await this._joinSocketRoom();
@@ -88,6 +98,84 @@ class Bot {
 
     // Finally set up reconnect handler
     this._setupReconnectHandler();
+  }
+
+  // ========================================================
+  // Deferred Patch Handling
+  // ========================================================
+
+  async _applyDeferredPatches () {
+    if ( this.deferredPatches.length === 0 ) {
+      return;
+    }
+
+    this.services.logger.debug( `Applying ${ this.deferredPatches.length } deferred patches...` );
+
+    for ( const deferredPatch of this.deferredPatches ) {
+      try {
+        await this._applyStatePatch( deferredPatch.message, deferredPatch.statePatch );
+      } catch ( error ) {
+        this.services.logger.error( `Failed to apply deferred patch for ${ deferredPatch.message.name }: ${ error.message }` );
+      }
+    }
+
+    // Clear deferred patches after applying
+    this.deferredPatches = [];
+    this.services.logger.debug( 'All deferred patches applied and cleared' );
+  }
+
+  async _applyStatePatch ( message, statePatch ) {
+    // Validate that we have state before applying patches
+    if ( !this.state ) {
+      throw new Error( 'Cannot apply patch - state not available' );
+    }
+
+    const validOperations = statePatch.filter( operation => {
+      try {
+        // For remove operations, check if the path exists
+        if ( operation.op === 'remove' ) {
+          const pathParts = operation.path.split( '/' ).slice( 1 ); // Remove empty first element
+          let current = this.state;
+
+          // Traverse the path to see if it exists
+          for ( const part of pathParts ) {
+            if ( current && typeof current === 'object' && part in current ) {
+              current = current[ part ];
+            } else {
+              this.services.logger.debug( `Skipping remove operation - path does not exist: ${ operation.path }` );
+              return false; // Skip this operation
+            }
+          }
+        }
+        return true; // Operation is valid
+      } catch ( validateError ) {
+        this.services.logger.debug( `Skipping invalid operation: ${ JSON.stringify( operation ) } - ${ validateError.message }` );
+        return false;
+      }
+    } );
+
+    // Only apply if we have valid operations
+    if ( validOperations.length > 0 ) {
+      const patchResult = applyPatch(
+        this.state,
+        validOperations,
+        true,  // validate operation
+        false  // mutate document
+      );
+
+      // Update the bot's state with the patched state
+      this.state = patchResult.newDocument;
+      this.services.hangoutState = patchResult.newDocument;
+
+      this.services.logger.debug( `State updated via patch for message: ${ message.name }` );
+      this.services.logger.debug( `Applied ${ validOperations.length } patch operations` );
+
+      if ( validOperations.length < statePatch.length ) {
+        this.services.logger.debug( `Skipped ${ statePatch.length - validOperations.length } invalid operations` );
+      }
+    } else {
+      this.services.logger.debug( `No valid operations to apply for message: ${ message.name }` );
+    }
   }
 
   // ========================================================
@@ -164,13 +252,26 @@ class Bot {
     this.services.logger.debug( 'Joining room...' );
 
     try {
+      // Set a flag to indicate we're in the middle of initial connection
+      this._isInitialConnection = true;
+
       const connection = await this._joinRoomWithTimeout();
       this.services.logger.debug( '✅ Room joined successfully, setting up state...' );
+
+      // CRITICAL: Set state immediately to prevent race conditions
       this.state = connection.state;
       this.services.hangoutState = connection.state;
 
-      // Add a small delay to ensure the state is fully propagated
-      await new Promise( resolve => setTimeout( resolve, 100 ) );
+      // Apply any deferred patches that arrived during room join
+      await this._applyDeferredPatches();
+
+      // Clear the initial connection flag
+      this._isInitialConnection = false;
+
+      // Add a delay to ensure the state is fully propagated and any immediate
+      // stateful messages during connection are processed
+      this.services.logger.debug( 'Allowing state propagation and initial message processing...' );
+      await new Promise( resolve => setTimeout( resolve, 500 ) );
 
       // Initialize the state service with validation
       try {
@@ -195,6 +296,8 @@ class Bot {
         }
       }
     } catch ( joinError ) {
+      // Clear the initial connection flag on error
+      this._isInitialConnection = false;
       this.services.logger.error( `❌ Failed to join room: ${ joinError }` );
       throw joinError;
     }
@@ -254,69 +357,22 @@ class Bot {
       // Apply state patch to update current state
       if ( message.statePatch ) {
         // During initial connection, we might not have state yet
-        // In that case, we'll defer patch application until state is available
-        if ( this.state ) {
+        if ( this.state && !this._isInitialConnection ) {
+          // State is available and we're not in initial connection - apply immediately
           try {
-            // Normal patch application when state exists
-            const validOperations = message.statePatch.filter( operation => {
-              try {
-                // For remove operations, check if the path exists
-                if ( operation.op === 'remove' ) {
-                  const pathParts = operation.path.split( '/' ).slice( 1 ); // Remove empty first element
-                  let current = this.state;
-
-                  // Traverse the path to see if it exists
-                  for ( const part of pathParts ) {
-                    if ( current && typeof current === 'object' && part in current ) {
-                      current = current[ part ];
-                    } else {
-                      this.services.logger.debug( `Skipping remove operation - path does not exist: ${ operation.path }` );
-                      return false; // Skip this operation
-                    }
-                  }
-                }
-                return true; // Operation is valid
-              } catch ( validateError ) {
-                this.services.logger.debug( `Skipping invalid operation: ${ JSON.stringify( operation ) } - ${ validateError.message }` );
-                return false;
-              }
-            } );
-
-            // Only apply if we have valid operations
-            if ( validOperations.length > 0 ) {
-              const patchResult = applyPatch(
-                this.state,
-                validOperations,
-                true,  // validate operation
-                false  // mutate document
-              );
-
-              // Update the bot's state with the patched state
-              this.state = patchResult.newDocument;
-              this.services.hangoutState = patchResult.newDocument;
-
-              this.services.logger.debug( `State updated via patch for message: ${ message.name }` );
-              this.services.logger.debug( `Applied ${ validOperations.length } patch operations` );
-
-              if ( validOperations.length < message.statePatch.length ) {
-                this.services.logger.debug( `Skipped ${ message.statePatch.length - validOperations.length } invalid operations` );
-              }
-            } else {
-              this.services.logger.debug( `No valid operations to apply for message: ${ message.name }` );
-            }
+            await this._applyStatePatch( message, message.statePatch );
           } catch ( error ) {
             // Format the error message to include important details but exclude the tree
             let errorMsg = error.message;
-
             const messageParts = error.message.split( '\ntree:' );
             errorMsg = messageParts[ 0 ];  // Take everything before 'tree:'
-
             this.services.logger.error( `Failed to apply state patch for ${ message.name }: ${ errorMsg }` );
             // Continue execution even if patch fails to avoid breaking the bot
           }
         } else {
-          // State not available yet - this is expected during initial connection
-          this.services.logger.debug( `Received state patch for ${ message.name } during initial connection - state will be set from joinRoom result` );
+          // State not available yet or during initial connection - defer the patch
+          this.services.logger.debug( `Deferring state patch for ${ message.name } until state is available` );
+          this.deferredPatches.push( { message, statePatch: message.statePatch } );
         }
       } else {
         this.services.logger.debug( `No state patch provided for message: ${ message.name }` );

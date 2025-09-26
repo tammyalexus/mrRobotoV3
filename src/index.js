@@ -61,6 +61,10 @@ services.logger.info( '======================================= Application Start
 
     services.logger.debug( `Started message processing with ${ checkInterval }ms interval` );
 
+    // Small delay to allow state to settle after room join and initial patches
+    services.logger.debug( '⏳ Waiting 2 seconds for state to settle...' );
+    await new Promise( resolve => setTimeout( resolve, 2000 ) );
+
     // Validate that we have initial state data before declaring success
     services.logger.debug( '🔍 Starting state validation...' );
     try {
