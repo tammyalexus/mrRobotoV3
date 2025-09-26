@@ -94,6 +94,28 @@ class Bot {
   // Connection Helper Functions
   // ========================================================
 
+  async _initializeStateServiceSafely () {
+    // Validate that state is properly set up before initializing StateService
+    if ( !this.services.hangoutState ) {
+      throw new Error( 'hangoutState is not set - state initialization failed' );
+    }
+
+    // Additional validation to ensure state contains expected structure
+    const stateKeys = Object.keys( this.services.hangoutState );
+    this.services.logger.debug( `State keys available: ${ stateKeys.join( ', ' ) }` );
+
+    if ( stateKeys.length === 0 ) {
+      throw new Error( 'hangoutState is empty - no state data received from socket' );
+    }
+
+    // Log state structure for debugging
+    this.services.logger.debug( `State structure: allUserData=${ !!this.services.hangoutState.allUserData }, allUsers=${ !!this.services.hangoutState.allUsers }` );
+
+    // Now initialize the state service
+    this.services.initializeStateService();
+    this.services.logger.debug( 'StateService initialized successfully with validated state' );
+  }
+
   async _initializeMessageTracking () {
     // Initialize lastMessageIDs from service container state
     const lastMessageId = this.services.getState( 'lastMessageId' );
@@ -147,8 +169,16 @@ class Bot {
       this.state = connection.state;
       this.services.hangoutState = connection.state;
 
-      // Initialize the state service
-      this.services.initializeStateService();
+      // Add a small delay to ensure the state is fully propagated
+      await new Promise( resolve => setTimeout( resolve, 100 ) );
+
+      // Initialize the state service with validation
+      try {
+        await this._initializeStateServiceSafely();
+      } catch ( stateError ) {
+        this.services.logger.error( `❌ Failed to initialize state service: ${ stateError.message }` );
+        throw stateError;
+      }
 
       // Log initial state if DEBUG logging is enabled
       if ( this.services.config.SOCKET_MESSAGE_LOG_LEVEL === 'DEBUG' ) {
@@ -222,67 +252,74 @@ class Bot {
       await this._writeSocketMessagesToLogFile( 'statefulMessage.log', message );
 
       // Apply state patch to update current state
-      if ( message.statePatch && this.state ) {
-        try {
-          // Validate each operation before applying
-          const validOperations = message.statePatch.filter( operation => {
-            try {
-              // For remove operations, check if the path exists
-              if ( operation.op === 'remove' ) {
-                const pathParts = operation.path.split( '/' ).slice( 1 ); // Remove empty first element
-                let current = this.state;
+      if ( message.statePatch ) {
+        // During initial connection, we might not have state yet
+        // In that case, we'll defer patch application until state is available
+        if ( this.state ) {
+          try {
+            // Normal patch application when state exists
+            const validOperations = message.statePatch.filter( operation => {
+              try {
+                // For remove operations, check if the path exists
+                if ( operation.op === 'remove' ) {
+                  const pathParts = operation.path.split( '/' ).slice( 1 ); // Remove empty first element
+                  let current = this.state;
 
-                // Traverse the path to see if it exists
-                for ( const part of pathParts ) {
-                  if ( current && typeof current === 'object' && part in current ) {
-                    current = current[ part ];
-                  } else {
-                    this.services.logger.debug( `Skipping remove operation - path does not exist: ${ operation.path }` );
-                    return false; // Skip this operation
+                  // Traverse the path to see if it exists
+                  for ( const part of pathParts ) {
+                    if ( current && typeof current === 'object' && part in current ) {
+                      current = current[ part ];
+                    } else {
+                      this.services.logger.debug( `Skipping remove operation - path does not exist: ${ operation.path }` );
+                      return false; // Skip this operation
+                    }
                   }
                 }
+                return true; // Operation is valid
+              } catch ( validateError ) {
+                this.services.logger.debug( `Skipping invalid operation: ${ JSON.stringify( operation ) } - ${ validateError.message }` );
+                return false;
               }
-              return true; // Operation is valid
-            } catch ( validateError ) {
-              this.services.logger.debug( `Skipping invalid operation: ${ JSON.stringify( operation ) } - ${ validateError.message }` );
-              return false;
+            } );
+
+            // Only apply if we have valid operations
+            if ( validOperations.length > 0 ) {
+              const patchResult = applyPatch(
+                this.state,
+                validOperations,
+                true,  // validate operation
+                false  // mutate document
+              );
+
+              // Update the bot's state with the patched state
+              this.state = patchResult.newDocument;
+              this.services.hangoutState = patchResult.newDocument;
+
+              this.services.logger.debug( `State updated via patch for message: ${ message.name }` );
+              this.services.logger.debug( `Applied ${ validOperations.length } patch operations` );
+
+              if ( validOperations.length < message.statePatch.length ) {
+                this.services.logger.debug( `Skipped ${ message.statePatch.length - validOperations.length } invalid operations` );
+              }
+            } else {
+              this.services.logger.debug( `No valid operations to apply for message: ${ message.name }` );
             }
-          } );
+          } catch ( error ) {
+            // Format the error message to include important details but exclude the tree
+            let errorMsg = error.message;
 
-          // Only apply if we have valid operations
-          if ( validOperations.length > 0 ) {
-            const patchResult = applyPatch(
-              this.state,
-              validOperations,
-              true,  // validate operation
-              false  // mutate document
-            );
+            const messageParts = error.message.split( '\ntree:' );
+            errorMsg = messageParts[ 0 ];  // Take everything before 'tree:'
 
-            // Update the bot's state with the patched state
-            this.state = patchResult.newDocument;
-            this.services.hangoutState = patchResult.newDocument;
-
-            this.services.logger.debug( `State updated via patch for message: ${ message.name }` );
-            this.services.logger.debug( `Applied ${ validOperations.length } patch operations` );
-
-            if ( validOperations.length < message.statePatch.length ) {
-              this.services.logger.debug( `Skipped ${ message.statePatch.length - validOperations.length } invalid operations` );
-            }
-          } else {
-            this.services.logger.debug( `No valid operations to apply for message: ${ message.name }` );
+            this.services.logger.error( `Failed to apply state patch for ${ message.name }: ${ errorMsg }` );
+            // Continue execution even if patch fails to avoid breaking the bot
           }
-        } catch ( error ) {
-          // Format the error message to include important details but exclude the tree
-          let errorMsg = error.message;
-
-          const messageParts = error.message.split( '\ntree:' );
-          errorMsg = messageParts[ 0 ];  // Take everything before 'tree:'
-
-          this.services.logger.error( `Failed to apply state patch for ${ message.name }: ${ errorMsg }` );
-          // Continue execution even if patch fails to avoid breaking the bot
+        } else {
+          // State not available yet - this is expected during initial connection
+          this.services.logger.debug( `Received state patch for ${ message.name } during initial connection - state will be set from joinRoom result` );
         }
-      } else if ( message.statePatch && !this.state ) {
-        this.services.logger.warn( `Received state patch but no current state available for message: ${ message.name }` );
+      } else {
+        this.services.logger.debug( `No state patch provided for message: ${ message.name }` );
       }
 
       // Handler logic based on message.name
@@ -455,7 +492,9 @@ class Bot {
   }
 
   _extractChatMessage ( message ) {
-    return message?.data?.metadata?.chatMessage?.message ?? '';
+    const messageText = message?.data?.metadata?.chatMessage?.message ?? ''
+    this.services.logger.debug( `Chat: ${ messageText }` );
+    return messageText
   }
 
   _shouldIgnoreMessage ( sender ) {
@@ -468,6 +507,7 @@ class Bot {
   }
 
   async _handleMessage ( chatMessage, sender, fullMessage ) {
+    this.services.logger.debug( `Chat: ${ chatMessage }` );
     try {
       // Check if parseCommands exists and is a function
       if ( typeof this.services.parseCommands === 'function' ) {

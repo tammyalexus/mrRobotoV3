@@ -78,8 +78,27 @@ const services = {
     if ( !this.hangoutState ) {
       throw new Error( 'Cannot initialize StateService: hangoutState is not set' );
     }
+
+    // Check if hangoutState is empty (just an empty object)
+    const stateKeys = Object.keys( this.hangoutState );
+    if ( stateKeys.length === 0 ) {
+      throw new Error( 'Cannot initialize StateService: hangoutState is empty - socket room may not be joined yet' );
+    }
+
+    // Check if hangoutState has essential properties that indicate it's properly loaded
+    const hasAllUserData = this.hangoutState.hasOwnProperty( 'allUserData' );
+    const hasAllUsers = this.hangoutState.hasOwnProperty( 'allUsers' );
+
+    if ( !hasAllUserData || !hasAllUsers ) {
+      const missingProps = [];
+      if ( !hasAllUserData ) missingProps.push( 'allUserData' );
+      if ( !hasAllUsers ) missingProps.push( 'allUsers' );
+
+      throw new Error( `Cannot initialize StateService: hangoutState is missing essential properties: ${ missingProps.join( ', ' ) } - initial state may not be fully loaded` );
+    }
+
     this.stateService = new StateService( this.hangoutState, this );
-    this.logger.debug( 'StateService initialized' );
+    this.logger.debug( 'StateService initialized with valid hangout state' );
   }
 };
 
