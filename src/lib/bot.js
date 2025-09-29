@@ -369,10 +369,13 @@ class Bot {
             this.services.logger.error( `Failed to apply state patch for ${ message.name }: ${ errorMsg }` );
             // Continue execution even if patch fails to avoid breaking the bot
           }
-        } else {
-          // State not available yet or during initial connection - defer the patch
+        } else if ( this._isInitialConnection ) {
+          // State not available yet during initial connection - defer the patch
           this.services.logger.debug( `Deferring state patch for ${ message.name } until state is available` );
           this.deferredPatches.push( { message, statePatch: message.statePatch } );
+        } else {
+          // Not in initial connection but no state available - this is unusual, warn about it
+          this.services.logger.warn( `Received state patch but no current state available for message: ${ message.name }` );
         }
       } else {
         this.services.logger.debug( `No state patch provided for message: ${ message.name }` );

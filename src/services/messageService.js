@@ -35,7 +35,6 @@ const messageService = {
   markAllPrivateUserMessagesAsRead: privateMessageService.markAllPrivateUserMessagesAsRead,
   markMessageAsInterracted: privateMessageService.markMessageAsInterracted,
   fetchAllPrivateUserMessages: privateMessageService.fetchAllPrivateUserMessages,
-  fetchPrivateMessagesForPresentUsers: privateMessageService.fetchPrivateMessagesForPresentUsers,
   fetchPrivateMessagesForUUID: privateMessageService.fetchPrivateMessagesForUUID,
 
   // ===============

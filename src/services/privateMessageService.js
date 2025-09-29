@@ -183,67 +183,6 @@ const privateMessageService = {
     },
 
     /**
-     * Fetch private messages from all present users (excluding bot)
-     * @param {Object} services - Services container
-     * @returns {Promise<Array>} Array of messages
-     */
-    fetchPrivateMessagesForPresentUsers: async function ( services ) {
-        try {
-            // Use hangUserService from the service container
-            const hangUserService = services?.hangUserService;
-
-            if ( !hangUserService || typeof hangUserService.getAllPresentUsers !== 'function' ) {
-                logger.error( 'fetchPrivateMessagesForPresentUsers: hangUserService not available in services container' );
-                return [];
-            }
-
-            // Get all users currently in the hangout
-            const allUserUUIDs = hangUserService.getAllPresentUsers( services );
-
-            if ( !Array.isArray( allUserUUIDs ) || allUserUUIDs.length === 0 ) {
-                logger.debug( 'fetchPrivateMessagesForPresentUsers: No users found in hangout' );
-                return [];
-            }
-
-            // Filter out the bot's own UUID
-            const otherUserUUIDs = allUserUUIDs.filter( uuid => uuid !== config.BOT_UID );
-
-            if ( otherUserUUIDs.length === 0 ) {
-                logger.debug( 'fetchPrivateMessagesForPresentUsers: No other users found (only bot in hangout)' );
-                return [];
-            }
-
-            logger.debug( `fetchPrivateMessagesForPresentUsers: Fetching messages for ${ otherUserUUIDs.length } users` );
-
-            // Fetch private messages from all present users (excluding the bot)
-            const allMessages = [];
-            for ( const userUUID of otherUserUUIDs ) {
-                try {
-                    const userMessages = await this.fetchAllPrivateUserMessages( userUUID );
-                    if ( Array.isArray( userMessages ) && userMessages.length > 0 ) {
-                        // Add user UUID to each message for context
-                        const messagesWithUser = userMessages.map( msg => ( {
-                            ...msg,
-                            userUUID: userUUID
-                        } ) );
-                        allMessages.push( ...messagesWithUser );
-                    }
-                } catch ( err ) {
-                    logger.error( `fetchPrivateMessagesForPresentUsers: Error fetching messages for user ${ userUUID }: ${ err.message }` );
-                    // Continue with other users even if one fails
-                }
-            }
-
-            logger.debug( `fetchPrivateMessagesForPresentUsers: Found ${ allMessages.length } total private messages from ${ otherUserUUIDs.length } users` );
-            return allMessages;
-
-        } catch ( err ) {
-            logger.error( `❌ Error in fetchPrivateMessagesForPresentUsers: ${ err.message }` );
-            return [];
-        }
-    },
-
-    /**
      * Fetch private messages for a specific UUID and log last message details
      * @param {string} userUUID - The user UUID
      * @returns {Promise<void|Array>} Undefined normally, array if command message
