@@ -94,52 +94,6 @@ const messageService = {
 
     logger.warn( '⚠️ No messages found in lookback window' );
     return null;
-  },
-
-  /**
-   * List all group members (simplified)
-   * @param {string} roomId - Room ID (optional)
-   * @returns {Promise<Object|null>} Object with data array and totalCount, or null on error
-   */
-  listGroupMembers: async function () {
-    try {
-      const config = require( '../config.js' );
-      const { logger } = require( '../lib/logging.js' );
-      const { buildUrl, makeRequest } = require( '../lib/buildUrl' );
-      const cometchatApi = require( './cometchatApi.js' );
-
-      logger.debug( `Starting listGroupMembers` );
-
-      const url = buildUrl(
-        cometchatApi.BASE_URL,
-        [ 'v3.0', 'groups', config.HANGOUT_ID, 'members' ],
-        [
-          [ 'perPage', 100 ],
-          [ 'uid', config.BOT_UID ],
-          [ 'page', 1 ],
-          [ 'status', 'available' ]
-        ]
-      );
-
-      const response = await makeRequest( url, {
-        headers: cometchatApi.headers
-      } );
-
-      const data = response.data || [];
-      const totalCount = response.totalCount || 0;
-
-      logger.debug( `✅ Retrieved ${ data.length } group members` );
-
-      return {
-        data: data,
-        totalCount: totalCount
-      };
-
-    } catch ( error ) {
-      const { logger } = require( '../lib/logging.js' );
-      logger.error( `❌ Error fetching group members: ${ error.message }` );
-      return null;
-    }
   }
 }
 
