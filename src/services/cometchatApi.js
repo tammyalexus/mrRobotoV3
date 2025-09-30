@@ -123,6 +123,10 @@ async function joinChatGroup ( roomId ) {
  */
 async function fetchMessages ( endpoint, params = {} ) {
   try {
+    logger.debug( `🔍 [CometChat API] fetchMessages - Starting request` );
+    logger.debug( `🔍 [CometChat API] fetchMessages - Endpoint: ${ endpoint }` );
+    logger.debug( `🔍 [CometChat API] fetchMessages - Raw params: ${JSON.stringify(params)}` );
+    
     // Handle both object and array formats for params
     let queryParams;
     if ( Array.isArray( params ) ) {
@@ -131,33 +135,53 @@ async function fetchMessages ( endpoint, params = {} ) {
       queryParams = Object.entries( params );
     }
 
-    const url = buildUrl( BASE_URL, [ endpoint ], queryParams );
+    logger.debug( `🔍 [CometChat API] fetchMessages - Query params: ${JSON.stringify(queryParams)}` );
 
-    // Debug logging for request details
-    // logger.debug( `[CometChat API] fetchMessages - Endpoint: ${ endpoint }` );
-    // logger.debug( `[CometChat API] fetchMessages - Raw params:`, params );
-    // logger.debug( `[CometChat API] fetchMessages - Query params:`, queryParams );
-    // logger.debug( `[CometChat API] fetchMessages - Final URL: ${ url }` );
+    // Parse endpoint to separate path and query parameters
+    let endpointPath = endpoint;
+    let endpointParams = [];
+    
+    if ( endpoint.includes( '?' ) ) {
+      const [ path, queryString ] = endpoint.split( '?' );
+      endpointPath = path;
+      
+      // Parse query string into array of tuples
+      const urlParams = new URLSearchParams( queryString );
+      endpointParams = Array.from( urlParams.entries() );
+      
+      logger.debug( `🔍 [CometChat API] fetchMessages - Parsed endpoint path: ${ endpointPath }` );
+      logger.debug( `🔍 [CometChat API] fetchMessages - Parsed endpoint params: ${JSON.stringify(endpointParams)}` );
+    }
+    
+    // Combine endpoint params with additional params
+    const allParams = [ ...endpointParams, ...queryParams ];
+    logger.debug( `🔍 [CometChat API] fetchMessages - All combined params: ${JSON.stringify(allParams)}` );
+
+    const url = buildUrl( BASE_URL, [ endpointPath ], allParams );
+
+    logger.debug( `🔍 [CometChat API] fetchMessages - BASE_URL: ${ BASE_URL }` );
+    logger.debug( `🔍 [CometChat API] fetchMessages - Final URL: ${ url }` );
+    logger.debug( `🔍 [CometChat API] fetchMessages - Headers: ${JSON.stringify(headers, null, 2)}` );
 
     const response = await apiClient.get( url );
 
-    // Debug logging for response details
-    // logger.debug( `[CometChat API] fetchMessages - Response status: ${ response.status }` );
-    // logger.debug( `[CometChat API] fetchMessages - Response data count: ${ response.data?.data?.length || 0 }` );
-
+    logger.debug( `🔍 [CometChat API] fetchMessages - Response status: ${ response.status }` );
+    logger.debug( `🔍 [CometChat API] fetchMessages - Response data count: ${ response.data?.data?.length || 0 }` );
+    
     if ( response.data?.data?.length > 0 ) {
       const messages = response.data.data;
-      // logger.debug( `[CometChat API] fetchMessages - First message ID: ${ messages[ 0 ]?.id }` );
-      // logger.debug( `[CometChat API] fetchMessages - Last message ID: ${ messages[ messages.length - 1 ]?.id }` );
-      // logger.debug( `[CometChat API] fetchMessages - Message IDs: ${ messages.map( m => m.id ).join( ', ' ) }` );
+      logger.debug( `🔍 [CometChat API] fetchMessages - First message ID: ${ messages[ 0 ]?.id }` );
+      logger.debug( `🔍 [CometChat API] fetchMessages - Last message ID: ${ messages[ messages.length - 1 ]?.id }` );
     } else {
-      // logger.debug( `[CometChat API] fetchMessages - No messages returned` );
+      logger.debug( `🔍 [CometChat API] fetchMessages - No messages returned` );
     }
 
     return response;
   } catch ( error ) {
-    console.error( `[CometChat API] fetchMessages - Error: ${ error.message }` );
-    console.error( `[CometChat API] fetchMessages - Error details:`, error.response?.data || error );
+    logger.error( `❌ [CometChat API] fetchMessages - Error: ${ error.message }` );
+    logger.error( `❌ [CometChat API] fetchMessages - Error status: ${ error.response?.status }` );
+    logger.error( `❌ [CometChat API] fetchMessages - Error response: ${JSON.stringify(error.response?.data, null, 2)}` );
+    logger.error( `❌ [CometChat API] fetchMessages - Error stack: ${ error.stack }` );
     throw error;
   }
 }

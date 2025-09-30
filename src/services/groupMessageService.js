@@ -80,12 +80,15 @@ const groupMessageService = {
         try {
             let message, room, images, mentions, receiverType;
 
-            if ( typeof theMessage === 'object' && theMessage.message ) {
+            if ( typeof theMessage === 'object' && theMessage.hasOwnProperty('message') ) {
                 message = theMessage.message;
                 room = theMessage.room || config.HANGOUT_ID;
                 images = theMessage.images || null;
                 mentions = theMessage.mentions || null;
                 receiverType = theMessage.receiverType || RECEIVER_TYPE.GROUP;
+            } else if ( typeof theMessage === 'object' ) {
+                // Object without message property is invalid
+                throw new Error( 'Message content is required' );
             } else {
                 message = theMessage;
                 room = options.room || config.HANGOUT_ID;

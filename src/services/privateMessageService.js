@@ -49,20 +49,35 @@ const privateMessageService = {
      * @returns {Promise<string|null>} Message ID or null
      */
     returnLastUserMessage: async function ( userID ) {
+        logger.debug( `🔍 [returnLastUserMessage] Starting fetch for user: ${userID}` );
+        
         try {
-            const endpoint = `v3/users/${ config.BOT_UID }/conversations/${ userID }/messages`;
-            const params = [ [ 'unread', 'true' ] ];
+            // Use the correct CometChat REST API endpoint for fetching messages
+            const endpoint = `v3/messages?receiverType=user&sender=${userID}&limit=1`;
+            logger.debug( `🔍 [returnLastUserMessage] Calling endpoint: ${endpoint}` );
 
-            const response = await cometchatApi.fetchMessages( endpoint, params );
+            const response = await cometchatApi.fetchMessages( endpoint );
+            
+            logger.debug( `🔍 [returnLastUserMessage] Response received - status: ${response?.status}` );
+            logger.debug( `🔍 [returnLastUserMessage] - Response.data.data length: ${Array.isArray(response?.data?.data) ? response.data.data.length : 'not an array'}` );
 
-            if ( response?.data?.length > 0 ) {
-                const lastMessage = response.data[ 0 ];
+            if ( !response?.data?.data || !Array.isArray( response.data.data ) ) {
+                logger.debug( `🔍 [returnLastUserMessage] Malformed response data, returning null` );
+                return null;
+            }
+
+            if ( response.data.data.length > 0 ) {
+                const lastMessage = response.data.data[ 0 ];
+                logger.debug( `🔍 [returnLastUserMessage] Found last message: ${JSON.stringify(lastMessage, null, 2)}` );
+                logger.debug( `🔍 [returnLastUserMessage] Returning message ID: ${lastMessage.id}` );
                 return lastMessage.id;
             }
 
+            logger.debug( `🔍 [returnLastUserMessage] No messages found, returning null` );
             return null;
         } catch ( err ) {
-            logger.error( `❌ Error getting last user message: ${ err.message }` );
+            logger.error( `❌ [returnLastUserMessage] Error getting last user message: ${ err.message }` );
+            logger.error( `❌ [returnLastUserMessage] Error stack: ${ err.stack }` );
             return null;
         }
     },
@@ -122,18 +137,31 @@ const privateMessageService = {
     fetchAllPrivateUserMessages: async function ( userUUID, options = {} ) {
         const { logLastMessage = false, returnData = true } = options;
         
+        logger.debug( `🔍 [fetchAllPrivateUserMessages] Starting fetch for user: ${userUUID}` );
+        logger.debug( `🔍 [fetchAllPrivateUserMessages] Options: ${JSON.stringify(options)}` );
+        
         try {
-            const endpoint = `v3/users/${ config.BOT_UID }/conversations/${ userUUID }/messages`;
+            // Use the correct CometChat REST API endpoint for fetching messages
+            // This fetches messages where the sender is the specified user and receiver type is 'user'
+            const endpoint = `v3/messages?receiverType=user&sender=${userUUID}&limit=100`;
+            logger.debug( `🔍 [fetchAllPrivateUserMessages] Calling endpoint: ${endpoint}` );
+            
             const response = await cometchatApi.fetchMessages( endpoint );
+            
+            logger.debug( `🔍 [fetchAllPrivateUserMessages] Response received - status: ${response?.status}` );
+            logger.debug( `🔍 [fetchAllPrivateUserMessages] - Response.data type: ${typeof response?.data}` );
+            logger.debug( `🔍 [fetchAllPrivateUserMessages] - Response.data.data length: ${Array.isArray(response?.data?.data) ? response.data.data.length : 'not an array'}` );
 
-            if ( !response?.data || !Array.isArray( response.data ) ) {
+            if ( !response?.data || !Array.isArray( response.data.data ) ) {
+                logger.debug( `🔍 [fetchAllPrivateUserMessages] No valid data array found in response` );
                 if ( logLastMessage ) {
                     logger.debug( '📥 No private messages found.' );
                 }
                 return [];
             }
 
-            const messages = response.data;
+            const messages = response.data.data;
+            logger.debug( `🔍 [fetchAllPrivateUserMessages] Found ${messages.length} messages` );
             
             // Log the last message if requested
             if ( logLastMessage ) {
@@ -149,10 +177,13 @@ const privateMessageService = {
 
             // Return data if requested
             if ( !returnData ) {
+                logger.debug( `🔍 [fetchAllPrivateUserMessages] returnData=false, returning empty array` );
                 return [];
             }
 
-            const simplifiedMessages = messages.map( msg => {
+            const simplifiedMessages = messages.map( (msg, index) => {
+                logger.debug( `🔍 [fetchAllPrivateUserMessages] Processing message ${index}: ${JSON.stringify(msg, null, 2)}` );
+                
                 const customData = msg.data?.metadata?.chatMessage;
 
                 // Extract sender UUID from nested structure (same as groupMessageService)
@@ -161,18 +192,23 @@ const privateMessageService = {
                 const senderFromCustomData = msg.data?.metadata?.message?.customData?.userUuid;
                 const extractedSender = msg.sender?.uid || senderFromData || senderFromChatMessage || senderFromCustomData || 'Unknown';
 
-                return {
+                const simplified = {
                     id: msg.id,
                     text: msg.data?.text || '[No content]',
                     sender: extractedSender,
                     sentAt: msg.sentAt,
                     customData: customData || null
                 };
+                
+                logger.debug( `🔍 [fetchAllPrivateUserMessages] Simplified message ${index}: ${JSON.stringify(simplified, null, 2)}` );
+                return simplified;
             } );
 
+            logger.debug( `🔍 [fetchAllPrivateUserMessages] Returning ${simplifiedMessages.length} simplified messages` );
             return simplifiedMessages;
         } catch ( err ) {
-            logger.error( `❌ Error fetching private messages: ${ err.message }` );
+            logger.error( `❌ [fetchAllPrivateUserMessages] Error fetching private messages: ${ err.message }` );
+            logger.error( `❌ [fetchAllPrivateUserMessages] Error stack: ${ err.stack }` );
             return [];
         }
     }

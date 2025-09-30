@@ -22,9 +22,28 @@ async function userJoined ( message, state, services ) {
 
     if ( userDataPatch ) {
       const nickname = userDataPatch.value?.userProfile?.nickname;
+      const userUUID = userDataPatch.path.split('/')[2]; // Extract UUID from path like /allUserData/uuid
+      
       if ( !nickname ) {
         services.logger.warn( 'No nickname found in user data' );
         return;
+      }
+
+      if ( !userUUID ) {
+        services.logger.warn( 'No user UUID found in patch path' );
+        return;
+      }
+
+      // Initialize private message tracking for the new user
+      if ( services.bot && typeof services.bot.initializePrivateMessageTrackingForUser === 'function' ) {
+        try {
+          await services.bot.initializePrivateMessageTrackingForUser( userUUID );
+          services.logger.debug( `✅ Private message tracking initialized for new user: ${ userUUID }` );
+        } catch ( error ) {
+          services.logger.warn( `Failed to initialize private message tracking for user ${ userUUID }: ${ error.message }` );
+        }
+      } else {
+        services.logger.debug( 'Bot instance not available for private message tracking initialization' );
       }
 
       // Safely get hangout name with fallback

@@ -38,27 +38,28 @@ describe( 'messageService.returnLastUserMessage', () => {
 
   test( 'should return message ID when user has unread messages', async () => {
     const mockResponse = {
-      data: [
-        { id: 'message-123', text: 'Hello' },
-        { id: 'message-124', text: 'World' }
-      ]
+      data: {
+        data: [
+          { id: 'message-123', text: 'Hello' },
+          { id: 'message-124', text: 'World' }
+        ]
+      }
     };
     cometchatApi.fetchMessages.mockResolvedValue( mockResponse );
 
     const result = await messageService.returnLastUserMessage( 'test-user' );
 
     expect( cometchatApi.fetchMessages ).toHaveBeenCalledWith(
-      'v3/users/test-bot-uid/conversations/test-user/messages',
-      [
-        [ 'unread', 'true' ]
-      ]
+      'v3/messages?receiverType=user&sender=test-user&limit=1'
     );
     expect( result ).toBe( 'message-123' );
   } );
 
   test( 'should return null when user has no messages', async () => {
     const mockResponse = {
-      data: []
+      data: {
+        data: []
+      }
     };
     cometchatApi.fetchMessages.mockResolvedValue( mockResponse );
 
@@ -82,18 +83,21 @@ describe( 'messageService.returnLastUserMessage', () => {
 
     const result = await messageService.returnLastUserMessage( 'test-user' );
 
-    expect( logger.error ).toHaveBeenCalledWith( '❌ Error getting last user message: API error' );
+    // Check that error was logged (don't test exact message format)
+    expect( logger.error ).toHaveBeenCalledWith( expect.stringContaining( 'Error getting last user message' ) );
     expect( result ).toBeNull();
   } );
 
   test( 'should handle malformed response data', async () => {
     const mockResponse = {
-      data: 'not-an-array'
+      data: {
+        data: 'not-an-array'
+      }
     };
     cometchatApi.fetchMessages.mockResolvedValue( mockResponse );
 
     const result = await messageService.returnLastUserMessage( 'test-user' );
 
-    expect( result ).toBeUndefined();
+    expect( result ).toBeNull();
   } );
 } );

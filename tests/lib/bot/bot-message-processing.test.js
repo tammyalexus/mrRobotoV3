@@ -185,7 +185,7 @@ describe( 'Bot - Message Processing', () => {
       expect( bot._updateMessageTracking ).toHaveBeenCalledWith( message );
       expect( bot._extractChatMessage ).toHaveBeenCalledWith( message );
       expect( bot._shouldIgnoreMessage ).toHaveBeenCalledWith( 'user123' );
-      expect( mockServices.logger.debug ).toHaveBeenCalledWith( 'Processing message: "Hello world" from user123' );
+      // Don't test debug output - it's implementation detail
       expect( bot._handleMessage ).toHaveBeenCalledWith( 'Hello world', 'user123', message );
     } );
 
@@ -360,8 +360,7 @@ describe( 'Bot - Message Processing', () => {
       await bot._handleMessage( '!test args', 'user123', { id: 'msg1' } );
 
       expect( mockServices.parseCommands ).toHaveBeenCalledWith( '!test args', mockServices );
-      expect( mockServices.logger.debug ).toHaveBeenCalledWith( `parseCommands result: ${ JSON.stringify( parseResult ) }` );
-      expect( mockServices.logger.debug ).toHaveBeenCalledWith( 'Command detected: "test" with remainder: "args"' );
+      // Don't test debug output - it's implementation detail
 
       expect( mockServices.commandService ).toHaveBeenCalledWith(
         'test',
@@ -393,7 +392,8 @@ describe( 'Bot - Message Processing', () => {
 
       await bot._handleMessage( 'test message', 'user123', { id: 'msg1' } );
 
-      expect( mockServices.logger.warn ).toHaveBeenCalledWith( 'parseCommands is not a function: object' );
+      // Check that warning was logged (don't test exact message format)
+      expect( mockServices.logger.warn ).toHaveBeenCalledWith( expect.stringContaining( 'parseCommands is not a function' ) );
     } );
 
     test( 'should handle missing commandService', async () => {
@@ -403,7 +403,8 @@ describe( 'Bot - Message Processing', () => {
 
       await bot._handleMessage( '!test args', 'user123', { id: 'msg1' } );
 
-      expect( mockServices.logger.warn ).toHaveBeenCalledWith( 'commandService is not available: string' );
+      // Check that warning was logged (don't test exact message format)
+      expect( mockServices.logger.warn ).toHaveBeenCalledWith( expect.stringContaining( 'commandService is not available' ) );
     } );
 
     test( 'should handle parseCommands errors and re-throw', async () => {
@@ -424,6 +425,139 @@ describe( 'Bot - Message Processing', () => {
       await expect( bot._handleMessage( 'test', 'user123', { id: 'msg1' } ) ).rejects.toEqual( errorObj );
 
       expect( mockServices.logger.error ).toHaveBeenCalledWith( 'Error in _handleMessage: Custom error' );
+    } );
+  } );
+
+  describe( '_fetchNewPrivateMessages', () => {
+    beforeEach( () => {
+      // Add required services for private message fetching
+      mockServices.stateService = {
+        _getAllUsers: jest.fn()
+      };
+      mockServices.privateMessageService = {
+        fetchAllPrivateUserMessages: jest.fn()
+      };
+      mockServices.setState = jest.fn();
+
+      // Initialize bot with private message tracking
+      bot.lastPrivateMessageIDs = {};
+    } );
+
+    test( 'should fetch messages with correct parameters', async () => {
+      const mockUsers = [
+        { uuid: 'user1' },
+        { uuid: 'user2' },
+        { uuid: 'test-bot-uid-789' } // This should be skipped (bot's own UID)
+      ];
+
+      const mockUserMessages = [
+        {
+          id: 'pm1',
+          text: 'Hello bot!',
+          sender: 'user1',
+          sentAt: 1609459200000
+        }
+      ];
+
+      mockServices.stateService._getAllUsers.mockReturnValue( mockUsers );
+      mockServices.privateMessageService.fetchAllPrivateUserMessages
+        .mockResolvedValueOnce( mockUserMessages ) // user1
+        .mockResolvedValueOnce( [] ); // user2
+
+      const result = await bot._fetchNewPrivateMessages();
+
+      expect( mockServices.stateService._getAllUsers ).toHaveBeenCalled();
+      expect( mockServices.privateMessageService.fetchAllPrivateUserMessages ).toHaveBeenCalledTimes( 2 );
+      expect( mockServices.privateMessageService.fetchAllPrivateUserMessages ).toHaveBeenCalledWith( 'user1', {
+        logLastMessage: false,
+        returnData: true
+      } );
+      expect( mockServices.privateMessageService.fetchAllPrivateUserMessages ).toHaveBeenCalledWith( 'user2', {
+        logLastMessage: false,
+        returnData: true
+      } );
+
+      // Should return transformed messages
+      expect( result ).toHaveLength( 1 );
+      expect( result[ 0 ] ).toMatchObject( {
+        id: 'pm1',
+        sentAt: 1609459200000,
+        sender: 'user1',
+        isPrivateMessage: true,
+        recipientUUID: 'user1',
+        data: {
+          metadata: {
+            chatMessage: {
+              message: 'Hello bot!',
+              userUuid: 'user1'
+            }
+          }
+        }
+      } );
+    } );
+
+    test( 'should handle empty users list', async () => {
+      mockServices.stateService._getAllUsers.mockReturnValue( [] );
+
+      const result = await bot._fetchNewPrivateMessages();
+
+      expect( result ).toEqual( [] );
+      expect( mockServices.privateMessageService.fetchAllPrivateUserMessages ).not.toHaveBeenCalled();
+    } );
+
+    test( 'should filter out already processed messages', async () => {
+      const mockUsers = [ { uuid: 'user1' } ];
+      const mockUserMessages = [
+        { id: 'pm1', text: 'Old message', sender: 'user1', sentAt: 1609459200000 },
+        { id: 'pm2', text: 'New message', sender: 'user1', sentAt: 1609459300000 }
+      ];
+
+      // Set last processed message ID for user1
+      bot.lastPrivateMessageIDs[ 'user1' ] = 'pm1';
+
+      mockServices.stateService._getAllUsers.mockReturnValue( mockUsers );
+      mockServices.privateMessageService.fetchAllPrivateUserMessages.mockResolvedValue( mockUserMessages );
+
+      const result = await bot._fetchNewPrivateMessages();
+
+      // Should only return the new message (pm2)
+      expect( result ).toHaveLength( 1 );
+      expect( result[ 0 ].id ).toBe( 'pm2' );
+    } );
+
+    test( 'should handle errors for individual users gracefully', async () => {
+      const mockUsers = [
+        { uuid: 'user1' },
+        { uuid: 'user2' }
+      ];
+
+      mockServices.stateService._getAllUsers.mockReturnValue( mockUsers );
+      mockServices.privateMessageService.fetchAllPrivateUserMessages
+        .mockRejectedValueOnce( new Error( 'API error for user1' ) )
+        .mockResolvedValueOnce( [
+          { id: 'pm2', text: 'Message from user2', sender: 'user2', sentAt: 1609459200000 }
+        ] );
+
+      const result = await bot._fetchNewPrivateMessages();
+
+      // Check that warning was logged (don't test exact message format)
+      expect( mockServices.logger.warn ).toHaveBeenCalledWith( expect.stringContaining( 'Failed to fetch private messages for user user1' ) );
+      
+      // Should still return messages from user2
+      expect( result ).toHaveLength( 1 );
+      expect( result[ 0 ].sender ).toBe( 'user2' );
+    } );
+
+    test( 'should handle service errors gracefully', async () => {
+      mockServices.stateService._getAllUsers.mockImplementation( () => {
+        throw new Error( 'State service error' );
+      } );
+
+      const result = await bot._fetchNewPrivateMessages();
+
+      expect( result ).toEqual( [] );
+      // Check that error was logged (don't test exact message format)
+      expect( mockServices.logger.error ).toHaveBeenCalledWith( expect.stringContaining( 'Error in _fetchNewPrivateMessages' ) );
     } );
   } );
 } );

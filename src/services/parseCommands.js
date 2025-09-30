@@ -19,7 +19,7 @@ async function parseCommand ( commandText, services ) {
 
   try {
     const trimmedCommand = commandText.trim();
-    logger.debug( `Processing message: ${ trimmedCommand }` );
+    logger.debug( `[parseCommand] Processing message: ${ trimmedCommand }` );
 
     // Check if the command starts with the command switch
     if ( !trimmedCommand.startsWith( config.COMMAND_SWITCH ) ) {
@@ -41,7 +41,7 @@ async function parseCommand ( commandText, services ) {
       remainder = commandPart.substring( spaceIndex + 1 );
     }
 
-    logger.debug( `Command detected: "${ command }", remainder: "${ remainder }"` );
+    logger.debug( `[parseCommand] Command detected: "${ command }", remainder: "${ remainder }"` );
 
     return Promise.resolve( {
       isCommand: true,

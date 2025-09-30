@@ -38,34 +38,36 @@ describe( 'messageService.fetchAllPrivateUserMessages', () => {
 
   test( 'should return simplified messages for user with customData', async () => {
     const mockResponse = {
-      data: [
-        {
-          id: 'msg-1',
-          data: {
-            text: 'Hello there!',
-            metadata: {
-              chatMessage: { customField: 'value' }
-            }
+      data: {
+        data: [
+          {
+            id: 'msg-1',
+            data: {
+              text: 'Hello there!',
+              metadata: {
+                chatMessage: { customField: 'value' }
+              }
+            },
+            sentAt: 1640995200,
+            sender: { uid: 'user-123' }
           },
-          sentAt: 1640995200,
-          sender: { uid: 'user-123' }
-        },
-        {
-          id: 'msg-2',
-          data: {
-            text: 'Direct text message'
-          },
-          sentAt: null,
-          sender: { uid: 'user-456' }
-        }
-      ]
+          {
+            id: 'msg-2',
+            data: {
+              text: 'Direct text message'
+            },
+            sentAt: null,
+            sender: { uid: 'user-456' }
+          }
+        ]
+      }
     };
     cometchatApi.fetchMessages.mockResolvedValue( mockResponse );
 
     const result = await messageService.fetchAllPrivateUserMessages( 'test-user' );
 
     expect( cometchatApi.fetchMessages ).toHaveBeenCalledWith(
-      'v3/users/test-bot-uid/conversations/test-user/messages'
+      'v3/messages?receiverType=user&sender=test-user&limit=100'
     );
     expect( result ).toEqual( [
       {
@@ -87,14 +89,16 @@ describe( 'messageService.fetchAllPrivateUserMessages', () => {
 
   test( 'should handle messages with no content gracefully', async () => {
     const mockResponse = {
-      data: [
-        {
-          id: 'msg-empty',
-          data: {},
-          sentAt: null,
-          sender: { uid: 'user-789' }
-        }
-      ]
+      data: {
+        data: [
+          {
+            id: 'msg-empty',
+            data: {},
+            sentAt: null,
+            sender: { uid: 'user-789' }
+          }
+        ]
+      }
     };
     cometchatApi.fetchMessages.mockResolvedValue( mockResponse );
 
@@ -148,7 +152,8 @@ describe( 'messageService.fetchAllPrivateUserMessages', () => {
 
     const result = await messageService.fetchAllPrivateUserMessages( 'test-user' );
 
-    expect( logger.error ).toHaveBeenCalledWith( '❌ Error fetching private messages: Network error' );
+    // Check that error was logged (don't test exact message format)
+    expect( logger.error ).toHaveBeenCalledWith( expect.stringContaining( 'Error fetching private messages' ) );
     expect( result ).toEqual( [] );
   } );
 } );

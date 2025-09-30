@@ -38,7 +38,7 @@ async function processCommand ( command, messageRemainder, services, context = {
     const trimmedCommand = command.trim().toLowerCase();
     const args = messageRemainder.trim();
 
-    logger.debug( `Processing command: "${ trimmedCommand }" with args: "${ args }"` );
+    logger.debug( `[commandService] Processing command: "${ trimmedCommand }" with args: "${ args }"` );
 
     // Create standardized commandParams object that all commands will receive
     const commandParams = {

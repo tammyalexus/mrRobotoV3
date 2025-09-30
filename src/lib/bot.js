@@ -7,6 +7,7 @@ class Bot {
   constructor ( slug, services ) {
     this.services = services;
     this.lastMessageIDs = {}
+    this.lastPrivateMessageIDs = {}; // Track last message ID per user for private messages
     this.socketLogCounter = 0; // Counter for debug mode logging
     this.deferredPatches = []; // Store patches that arrive before state is available
   }
@@ -233,6 +234,95 @@ class Bot {
         this.lastMessageIDs.fromTimestamp = Date.now();
       }
     }
+
+    // Initialize private message tracking per user
+    this.lastPrivateMessageIDs = this.services.getState( 'lastPrivateMessageIDs' ) || {};
+
+    // Initialize lastPrivateMessageIDs for all current users in the hangout
+    await this._initializePrivateMessageTrackingForAllUsers();
+  }
+
+  async _initializePrivateMessageTrackingForAllUsers () {
+    try {
+      // Get all users currently in the hangout
+      const allUsers = this.services.stateService._getAllUsers();
+      this.services.logger.debug( `Initializing private message tracking for ${ allUsers.length } users in hangout` );
+
+      for ( const user of allUsers ) {
+        const userUUID = user.uuid;
+        
+        // Skip bot's own messages
+        if ( userUUID === this.services.config.BOT_UID ) {
+          continue;
+        }
+
+        // Only initialize if we don't already have tracking for this user
+        if ( !this.lastPrivateMessageIDs[userUUID] ) {
+          try {
+            const lastMessageId = await this.services.privateMessageService.returnLastUserMessage( userUUID );
+            if ( lastMessageId ) {
+              this.lastPrivateMessageIDs[userUUID] = lastMessageId;
+              this.services.logger.debug( `Initialized private message tracking for user ${ userUUID }: ${ lastMessageId }` );
+            } else {
+              // Set to 0 or null to indicate we've checked but found no messages
+              this.lastPrivateMessageIDs[userUUID] = null;
+              this.services.logger.debug( `No previous private messages found for user ${ userUUID }` );
+            }
+          } catch ( error ) {
+            this.services.logger.warn( `Failed to initialize private message tracking for user ${ userUUID }: ${ error.message }` );
+            // Set to null to indicate initialization was attempted
+            this.lastPrivateMessageIDs[userUUID] = null;
+          }
+        } else {
+          this.services.logger.debug( `Private message tracking already exists for user ${ userUUID }: ${ this.lastPrivateMessageIDs[userUUID] }` );
+        }
+      }
+
+      // Persist the updated tracking state
+      this.services.setState( 'lastPrivateMessageIDs', this.lastPrivateMessageIDs );
+      this.services.logger.debug( `Private message tracking initialized for ${ Object.keys( this.lastPrivateMessageIDs ).length } users` );
+
+    } catch ( error ) {
+      this.services.logger.error( `Error initializing private message tracking for all users: ${ error.message }` );
+    }
+  }
+
+  async _initializePrivateMessageTrackingForUser ( userUUID ) {
+    try {
+      // Skip bot's own messages
+      if ( userUUID === this.services.config.BOT_UID ) {
+        return;
+      }
+
+      // Only initialize if we don't already have tracking for this user
+      if ( !this.lastPrivateMessageIDs[userUUID] ) {
+        try {
+          const lastMessageId = await this.services.privateMessageService.returnLastUserMessage( userUUID );
+          if ( lastMessageId ) {
+            this.lastPrivateMessageIDs[userUUID] = lastMessageId;
+            this.services.logger.debug( `Initialized private message tracking for new user ${ userUUID }: ${ lastMessageId }` );
+          } else {
+            // Set to null to indicate we've checked but found no messages
+            this.lastPrivateMessageIDs[userUUID] = null;
+            this.services.logger.debug( `No previous private messages found for new user ${ userUUID }` );
+          }
+
+          // Persist the updated tracking state
+          this.services.setState( 'lastPrivateMessageIDs', this.lastPrivateMessageIDs );
+
+        } catch ( error ) {
+          this.services.logger.warn( `Failed to initialize private message tracking for new user ${ userUUID }: ${ error.message }` );
+          // Set to null to indicate initialization was attempted
+          this.lastPrivateMessageIDs[userUUID] = null;
+          this.services.setState( 'lastPrivateMessageIDs', this.lastPrivateMessageIDs );
+        }
+      } else {
+        this.services.logger.debug( `Private message tracking already exists for user ${ userUUID }: ${ this.lastPrivateMessageIDs[userUUID] }` );
+      }
+
+    } catch ( error ) {
+      this.services.logger.error( `Error initializing private message tracking for user ${ userUUID }: ${ error.message }` );
+    }
   }
 
   async _joinCometChat () {
@@ -457,6 +547,29 @@ class Bot {
     }
   }
 
+  async processNewPrivateMessages () {
+    try {
+      const messages = await this._fetchNewPrivateMessages();
+
+      if ( !messages?.length ) {
+        return; // No new messages to process
+      }
+
+      await this._processMessageBatch( messages );
+    } catch ( error ) {
+      // More defensive error handling
+      const errorMessage = error && typeof error === 'object'
+        ? ( error.message || error.toString() || 'Unknown error object' )
+        : ( error || 'Unknown error' );
+
+      this.services.logger.error( `Error in processNewPrivateMessages: ${ errorMessage }` );
+
+      if ( error && error.stack ) {
+        this.services.logger.error( `Error stack: ${ error.stack }` );
+      }
+    }
+  }
+
   async _fetchNewMessages () {
     // Get the most current lastMessageId from service container state
     const serviceLastMessageId = this.services.getState( 'lastMessageId' );
@@ -496,6 +609,106 @@ class Bot {
     return messages;
   }
 
+  async _fetchNewPrivateMessages () {
+    try {
+      this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Starting private message fetch` );
+      
+      // Get all users currently in the hangout
+      const allUsers = this.services.stateService._getAllUsers();
+      this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Found ${ allUsers.length } users in hangout` );
+      this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Users: ${JSON.stringify(allUsers.map(u => ({ uuid: u.uuid, nickname: u.nickname })), null, 2)}` );
+
+      const allPrivateMessages = [];
+
+      for ( const user of allUsers ) {
+        const userUUID = user.uuid;
+        this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Processing user: ${userUUID} (${user.nickname || 'No nickname'})` );
+        
+        // Skip bot's own messages
+        if ( userUUID === this.services.config.BOT_UID ) {
+          this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Skipping bot's own messages (BOT_UID: ${this.services.config.BOT_UID})` );
+          continue;
+        }
+
+        try {
+          // Get the last processed message ID for this user
+          const lastMessageId = this.lastPrivateMessageIDs[userUUID];
+          this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Last processed message ID for user ${userUUID}: ${lastMessageId}` );
+
+          // Build options for fetchAllPrivateUserMessages
+          const options = {
+            logLastMessage: false,
+            returnData: true
+          };
+          this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Calling fetchAllPrivateUserMessages with options: ${JSON.stringify(options)}` );
+
+          // If we have a last message ID for this user, we could add filtering logic here
+          // Note: The current fetchAllPrivateUserMessages doesn't support lastID filtering
+          // but we can filter the results afterwards
+
+          const userMessages = await this.services.privateMessageService.fetchAllPrivateUserMessages( userUUID, options );
+          this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] fetchAllPrivateUserMessages returned ${userMessages ? userMessages.length : 'null'} messages for user ${userUUID}` );
+
+          if ( userMessages && userMessages.length > 0 ) {
+            // this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Raw messages from user ${userUUID}: ${JSON.stringify(userMessages, null, 2)}` );
+            
+            // Filter out messages we've already processed
+            const newMessages = lastMessageId 
+              ? userMessages.filter( msg => msg.id > lastMessageId )
+              : userMessages;
+
+            this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] After filtering, ${newMessages.length} new messages from user ${userUUID}` );
+
+            // Transform messages to match the structure expected by _processMessageBatch
+            const transformedMessages = newMessages.map( (msg, index) => {
+              const transformed = {
+                id: msg.id,
+                sentAt: msg.sentAt,
+                sender: msg.sender,
+                data: {
+                  metadata: {
+                    chatMessage: {
+                      message: msg.text,
+                      userUuid: msg.sender
+                    }
+                  }
+                },
+                // Add metadata to distinguish private messages
+                isPrivateMessage: true,
+                recipientUUID: userUUID
+              };
+              
+              this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Transformed message ${index} from user ${userUUID}: ${JSON.stringify(transformed, null, 2)}` );
+              return transformed;
+            });
+
+            allPrivateMessages.push( ...transformedMessages );
+
+            this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Added ${transformedMessages.length} transformed messages from user ${userUUID}` );
+          } else {
+            this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] No messages found for user ${userUUID}` );
+          }
+        } catch ( userError ) {
+          this.services.logger.warn( `❌ [_fetchNewPrivateMessages] Failed to fetch private messages for user ${ userUUID }: ${ userError.message }` );
+          this.services.logger.warn( `❌ [_fetchNewPrivateMessages] Error stack: ${ userError.stack }` );
+          // Continue with other users even if one fails
+        }
+      }
+
+      // Sort all messages by sentAt timestamp to process them in chronological order
+      allPrivateMessages.sort( ( a, b ) => a.sentAt - b.sentAt );
+
+      this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Total new private messages found: ${ allPrivateMessages.length }` );
+      this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] All private messages: ${JSON.stringify(allPrivateMessages, null, 2)}` );
+      return allPrivateMessages;
+
+    } catch ( error ) {
+      this.services.logger.error( `❌ [_fetchNewPrivateMessages] Error in _fetchNewPrivateMessages: ${ error.message }` );
+      this.services.logger.error( `❌ [_fetchNewPrivateMessages] Error stack: ${ error.stack }` );
+      return [];
+    }
+  }
+
   async _processMessageBatch ( messages ) {
     for ( const message of messages ) {
       await this._processSingleMessage( message );
@@ -507,30 +720,30 @@ class Bot {
 
     // Debug: Log the message structure safely
     try {
-      this.services.logger.debug( `Raw message id: ${ message?.id }` );
-      this.services.logger.debug( `Raw message keys: ${ Object.keys( message || {} ).join( ', ' ) }` );
-      this.services.logger.debug( `Raw message structure: ${ JSON.stringify( message, null, 2 ) }` );
+      this.services.logger.debug( `[_processSingleMessage] Raw message id: ${ message?.id }` );
+      this.services.logger.debug( `[_processSingleMessage] Raw message keys: ${ Object.keys( message || {} ).join( ', ' ) }` );
+      this.services.logger.debug( `[_processSingleMessage] Raw message structure: ${ JSON.stringify( message, null, 2 ) }` );
     } catch ( err ) {
-      this.services.logger.debug( `Could not stringify message: ${ err.message }` );
-      this.services.logger.debug( `Message type: ${ typeof message }, id: ${ message?.id }` );
+      this.services.logger.debug( `[_processSingleMessage] Could not stringify message: ${ err.message }` );
+      this.services.logger.debug( `[_processSingleMessage] Message type: ${ typeof message }, id: ${ message?.id }` );
     }
 
     const chatMessage = this._extractChatMessage( message );
     if ( !chatMessage ) return;
 
     // Debug: Log sender extraction step by step
-    this.services.logger.debug( `message?.sender: ${ JSON.stringify( message?.sender ) }` );
-    this.services.logger.debug( `message?.sender?.uid: ${ JSON.stringify( message?.sender?.uid ) }` );
-    this.services.logger.debug( `typeof message?.sender: ${ typeof message?.sender }` );
+    this.services.logger.debug( `[_processSingleMessage] message?.sender: ${ JSON.stringify( message?.sender ) }` );
+    this.services.logger.debug( `[_processSingleMessage] message?.sender?.uid: ${ JSON.stringify( message?.sender?.uid ) }` );
+    this.services.logger.debug( `[_processSingleMessage] typeof message?.sender: ${ typeof message?.sender }` );
 
     // Extract sender UUID - handle both direct string and object with uid property
     const sender = message?.sender?.uid || message?.sender || '';
 
-    this.services.logger.debug( `Final extracted sender: "${ sender }"` );
+    this.services.logger.debug( `[_processSingleMessage] Final extracted sender: "${ sender }"` );
 
     if ( this._shouldIgnoreMessage( sender ) ) return;
 
-    this.services.logger.debug( `Processing message: "${ chatMessage }" from ${ sender }` );
+    this.services.logger.debug( `[_processSingleMessage] Processing message: "${ chatMessage }" from ${ sender }` );
 
     await this._handleMessage( chatMessage, sender, message );
   }
@@ -539,20 +752,35 @@ class Bot {
     const previousId = this.lastMessageIDs.id;
     const previousTimestamp = this.lastMessageIDs.fromTimestamp;
 
-    this.services.updateLastMessageId( message.id );
-    this.lastMessageIDs.fromTimestamp = message.sentAt + 1;
-    this.lastMessageIDs.id = message.id;
+    // Handle private message tracking
+    if ( message.isPrivateMessage ) {
+      // Update private message tracking for the sender
+      const sender = message.sender?.uid || message.sender || '';
+      if ( sender ) {
+        this.lastPrivateMessageIDs[sender] = message.id;
+        
+        // Persist private message tracking to service container
+        this.services.setState( 'lastPrivateMessageIDs', this.lastPrivateMessageIDs );
+        
+        this.services.logger.debug( `[Bot] Private message tracking updated for user ${ sender }: ${ message.id }` );
+      }
+    } else {
+      // Handle public message tracking (existing logic)
+      this.services.updateLastMessageId( message.id );
+      this.lastMessageIDs.fromTimestamp = message.sentAt + 1;
+      this.lastMessageIDs.id = message.id;
 
-    // Debug: Log tracking updates
-    this.services.logger.debug( `[Bot] Message tracking updated:` );
-    this.services.logger.debug( `[Bot] - Previous ID: ${ previousId } -> New ID: ${ message.id }` );
-    this.services.logger.debug( `[Bot] - Previous timestamp: ${ previousTimestamp } -> New timestamp: ${ message.sentAt + 1 }` );
-    this.services.logger.debug( `[Bot] - Message sentAt: ${ message.sentAt }` );
+      // Debug: Log tracking updates
+      this.services.logger.debug( `[Bot] Message tracking updated:` );
+      this.services.logger.debug( `[Bot] - Previous ID: ${ previousId } -> New ID: ${ message.id }` );
+      this.services.logger.debug( `[Bot] - Previous timestamp: ${ previousTimestamp } -> New timestamp: ${ message.sentAt + 1 }` );
+      this.services.logger.debug( `[Bot] - Message sentAt: ${ message.sentAt }` );
+    }
   }
 
   _extractChatMessage ( message ) {
     const messageText = message?.data?.metadata?.chatMessage?.message ?? ''
-    this.services.logger.debug( `Chat: ${ messageText }` );
+    this.services.logger.debug( `[_extractChatMessage] Chat: ${ messageText }` );
     return messageText
   }
 
@@ -566,16 +794,16 @@ class Bot {
   }
 
   async _handleMessage ( chatMessage, sender, fullMessage ) {
-    this.services.logger.debug( `Chat: ${ chatMessage }` );
+    this.services.logger.debug( `[_handleMessage] Chat: ${ chatMessage }` );
     try {
       // Check if parseCommands exists and is a function
       if ( typeof this.services.parseCommands === 'function' ) {
         const parseResult = await this.services.parseCommands( chatMessage, this.services );
-        this.services.logger.debug( `parseCommands result: ${ JSON.stringify( parseResult ) }` );
+        this.services.logger.debug( `[_handleMessage] parseCommands result: ${ JSON.stringify( parseResult ) }` );
 
         // If it's a command, process it with commandService
         if ( parseResult && parseResult.isCommand ) {
-          this.services.logger.debug( `Command detected: "${ parseResult.command }" with remainder: "${ parseResult.remainder }"` );
+          this.services.logger.debug( `[_handleMessage] Command detected: "${ parseResult.command }" with remainder: "${ parseResult.remainder }"` );
 
           // Check if commandService exists and is a function
           if ( typeof this.services.commandService === 'function' ) {
@@ -592,13 +820,13 @@ class Bot {
               context
             );
 
-            this.services.logger.debug( `Command processed: ${ JSON.stringify( commandResult ) }` );
+            this.services.logger.debug( `[_handleMessage] Command processed: ${ JSON.stringify( commandResult ) }` );
           } else {
-            this.services.logger.warn( `commandService is not available: ${ typeof this.services.commandService }` );
+            this.services.logger.warn( `[_handleMessage] commandService is not available: ${ typeof this.services.commandService }` );
           }
         }
       } else {
-        this.services.logger.warn( `parseCommands is not a function: ${ typeof this.services.parseCommands }` );
+        this.services.logger.warn( `[_handleMessage] parseCommands is not a function: ${ typeof this.services.parseCommands }` );
       }
 
       // TODO: Add additional message handling logic here
@@ -621,6 +849,14 @@ class Bot {
   }
 
   // ========================================================
+  // Public Methods for Handler Access
+  // ========================================================
+
+  async initializePrivateMessageTrackingForUser ( userUUID ) {
+    return await this._initializePrivateMessageTrackingForUser( userUUID );
+  }
+
+  // ========================================================
   // Utility Methods
   // ========================================================
 
@@ -635,6 +871,12 @@ class Bot {
 
   async disconnect () {
     this.services.logger.debug( 'Disconnecting bot...' );
+
+    // Save private message tracking state before disconnecting
+    if ( this.lastPrivateMessageIDs && Object.keys( this.lastPrivateMessageIDs ).length > 0 ) {
+      this.services.setState( 'lastPrivateMessageIDs', this.lastPrivateMessageIDs );
+      this.services.logger.debug( 'Saved private message tracking state' );
+    }
 
     if ( this.socket ) {
       // TODO: Add proper socket cleanup

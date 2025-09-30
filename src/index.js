@@ -27,6 +27,10 @@ services.logger.info( '======================================= Application Start
     const roomBot = new Bot( services.config.HANGOUT_ID, services );
     services.logger.debug( '🤖 Bot instance created' );
 
+    // Register bot instance in services so handlers can access it
+    services.bot = roomBot;
+    services.logger.debug( '🤖 Bot instance registered in services container' );
+
     services.logger.debug( '🔗 About to connect bot' );
     try {
       await roomBot.connect();
@@ -47,7 +51,7 @@ services.logger.info( '======================================= Application Start
       services.logger.warn( '⚠️ Continuing without group membership - some features may not work' );
     }
 
-    const checkInterval = 1000 * 1; // 1 second
+    const checkInterval = 5000 * 1; // 1 second
 
     // Start message processing with setInterval
     services.logger.debug( `Starting message processing with ${ checkInterval }ms interval` );
@@ -56,6 +60,12 @@ services.logger.info( '======================================= Application Start
         await roomBot.processNewPublicMessages();
       } catch ( error ) {
         services.logger.error( `Error in processNewPublicMessages: ${ error?.message || error?.toString() || 'Unknown error' }` );
+      }
+
+      try {
+        await roomBot.processNewPrivateMessages();
+      } catch ( error ) {
+        services.logger.error( `Error in processNewPrivateMessages: ${ error?.message || error?.toString() || 'Unknown error' }` );
       }
     }, checkInterval );
 

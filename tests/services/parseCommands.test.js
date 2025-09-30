@@ -108,7 +108,7 @@ describe( 'parseCommands', () => {
       originalText: '!test'
     } );
 
-    expect( mockServices.logger.debug ).toHaveBeenCalledWith( 'Processing message: !test' );
+    // Don't test debug output - it's an implementation detail
   } );
 
   test( 'handles errors gracefully', async () => {

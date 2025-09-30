@@ -25,6 +25,14 @@ jest.mock('../../src/services/messageService', () => ({
     }
 }));
 
+// Mock the PrivateMessageService module
+jest.mock('../../src/services/privateMessageService', () => ({
+    fetchAllPrivateUserMessages: jest.fn(),
+    sendPrivateMessage: jest.fn(),
+    markAllPrivateUserMessagesAsRead: jest.fn(),
+    // Add other methods as needed
+}));
+
 // Mock parseCommands
 jest.mock('../../src/services/parseCommands', () => ({
     parseCommands: jest.fn()
@@ -85,6 +93,7 @@ describe('ServiceContainer', () => {
         expect(container.logger).toBeDefined();
         expect(container.parseCommands).toBeDefined();
         expect(container.messageService).toBeDefined();
+        expect(container.privateMessageService).toBeDefined();
         expect(container.commandService).toBeDefined();
         expect(container.hangUserService).toBeDefined();
         expect(container.dataService).toBeDefined();
