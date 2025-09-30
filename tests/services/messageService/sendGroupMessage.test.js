@@ -9,10 +9,22 @@ jest.mock('../../../src/lib/logging.js', () => ({
 }));
 
 jest.mock('axios');
+jest.mock('../../../src/services/cometchatApi', () => ({
+  buildCustomData: jest.fn(),
+  buildPayload: jest.fn(),
+  sendMessage: jest.fn(),
+  joinChatGroup: jest.fn(),
+  fetchMessages: jest.fn(),
+  markConversationAsRead: jest.fn(),
+  BASE_URL: 'https://test.cometchat.io',
+  headers: {},
+  apiClient: {}
+}));
 
 // Now import the modules that use the mocked dependencies
 const axios = require('axios');
 const { messageService } = require('../../../src/services/messageService.js');
+const cometchatApi = require('../../../src/services/cometchatApi');
 const { logger } = require('../../../src/lib/logging.js');
 
 describe('messageService', () => {
@@ -21,6 +33,39 @@ describe('messageService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Set up mock implementations for cometchatApi functions
+    cometchatApi.buildCustomData.mockImplementation(async (message, services) => ({
+      message: message,
+      avatarId: services.dataService?.getValue('botData.CHAT_AVATAR_ID'),
+      userName: services.dataService?.getValue('botData.CHAT_NAME'),
+      color: `#${services.dataService?.getValue('botData.CHAT_COLOUR')}`,
+      mentions: [],
+      userUuid: 'test-bot-uid',
+      badges: ['VERIFIED', 'STAFF'],
+      id: 'mock-uuid'
+    }));
+
+    cometchatApi.buildPayload.mockImplementation(async (receiver, receiverType, customData, message) => ({
+      receiver: receiver,
+      receiverType: receiverType,
+      category: 'message',
+      type: 'text',
+      data: {
+        text: message,
+        metadata: {
+          chatMessage: customData
+        }
+      }
+    }));
+
+    cometchatApi.sendMessage.mockResolvedValue({
+      data: { success: true, id: 'msg-123' }
+    });
+
+    // Set up spies for the tests that expect them
+    buildCustomDataSpy = jest.spyOn(cometchatApi, 'buildCustomData');
+    buildPayloadSpy = jest.spyOn(cometchatApi, 'buildPayload');
 
     // Mock services object for tests
     const mockServices = {
@@ -38,31 +83,6 @@ describe('messageService', () => {
         })
       }
     };
-
-    // Spy and mock before each test runs
-    buildCustomDataSpy = jest.spyOn(messageService, 'buildCustomData').mockResolvedValue({
-      message: "Test message",
-      avatarId: 'avatar123',
-      userName: 'TestBot',
-      color: '#ff0000',
-      mentions: [],
-      userUuid: 'bot-uid',
-      badges: ['VERIFIED', 'STAFF'],
-      id: 'uuid-123'
-    });
-
-    buildPayloadSpy = jest.spyOn(messageService, 'buildPayload').mockResolvedValue({
-      receiver: 'test-group-id',
-      receiverType: 'group',
-      category: 'message',
-      type: 'text',
-      data: {
-        text: "Test message",
-        metadata: {
-          chatMessage: { custom: 'data' }
-        }
-      }
-    });
   });
 
   afterEach(() => {
@@ -91,8 +111,8 @@ describe('messageService', () => {
       "Test message"       // message text
     );
 
-    // Verify axios post was called
-    expect(axios.post).toHaveBeenCalledTimes(1);
+    // Verify cometchatApi.sendMessage was called (not axios.post)
+    expect(cometchatApi.sendMessage).toHaveBeenCalledTimes(1);
   });
 
   test('sendGroupMessage calls API and completes successfully', async () => {
@@ -100,13 +120,13 @@ describe('messageService', () => {
 
     await messageService.sendGroupMessage('Group hello');
 
-    expect(axios.post).toHaveBeenCalledTimes(1);
+    expect(cometchatApi.sendMessage).toHaveBeenCalledTimes(1);
     expect(logger.error).not.toHaveBeenCalled();
   });
 
   test('sendGroupMessage handles API errors and logs error', async () => {
     const error = new Error('Group failed');
-    axios.post.mockRejectedValue(error);
+    cometchatApi.sendMessage.mockRejectedValue(error);
 
     await messageService.sendGroupMessage('Offline');
 
@@ -116,18 +136,18 @@ describe('messageService', () => {
   });
 
   test('does not use logger.error on successful API call', async () => {
-    axios.post.mockResolvedValue({ data: { success: true } });
+    cometchatApi.sendMessage.mockResolvedValue({ data: { success: true } });
 
     await messageService.sendGroupMessage('Group Hello');
 
-    expect(axios.post).toHaveBeenCalled();
+    expect(cometchatApi.sendMessage).toHaveBeenCalled();
     expect(logger.error).not.toHaveBeenCalled();
   });
 
   test('calls logger.error on API failure', async () => {
     const error = new Error('API failure');
 
-    axios.post.mockRejectedValue(error);
+    cometchatApi.sendMessage.mockRejectedValue(error);
     await messageService.sendGroupMessage('Oops');
 
     // Check for the error message split into parts

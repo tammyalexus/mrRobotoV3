@@ -44,7 +44,7 @@ fi
 # Test Docker Compose configuration
 echo -e "${YELLOW}🔧 Testing Docker Compose configuration...${NC}"
 
-if $DOCKER_COMPOSE_CMD config --quiet > /dev/null 2>&1; then
+if docker-compose config --quiet > /dev/null 2>&1; then
     echo -e "${GREEN}✅ Docker Compose configuration is valid${NC}"
     USE_ENV_FILE=true
 else
@@ -62,16 +62,16 @@ else
 fi
 
 # Check if containers are already running
-if [ "$($DOCKER_COMPOSE_CMD ps -q)" ]; then
+if [ "$(docker-compose ps -q)" ]; then
     echo -e "${YELLOW}⚠️  Containers are already running${NC}"
     echo -e "${BLUE}📊 Current status:${NC}"
-    $DOCKER_COMPOSE_CMD ps
+    docker-compose ps
     
     read -p "Do you want to restart the containers? (y/N): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo -e "${BLUE}🔄 Stopping containers...${NC}"
-        $DOCKER_COMPOSE_CMD down
+        docker-compose down
     else
         echo -e "${GREEN}✅ Keeping existing containers running${NC}"
         exit 0
@@ -82,10 +82,10 @@ fi
 echo -e "${BLUE}🔨 Building and starting containers...${NC}"
 
 if [ "$USE_ENV_FILE" = true ]; then
-    $DOCKER_COMPOSE_CMD up -d --build
+    docker-compose up -d --build
 else
     # Use environment variables directly
-    $DOCKER_COMPOSE_CMD up -d --build
+    docker-compose up -d --build
 fi
 
 # Wait for containers to be ready
@@ -94,15 +94,15 @@ sleep 5
 
 # Check container status
 echo -e "${BLUE}📊 Container Status:${NC}"
-$DOCKER_COMPOSE_CMD ps
+docker-compose ps
 
 # Show logs
 echo -e "${BLUE}📋 Recent logs:${NC}"
-$DOCKER_COMPOSE_CMD logs --tail=20
+docker-compose logs --tail=20
 
 # Health check
 echo -e "${BLUE}🏥 Health check:${NC}"
-if $DOCKER_COMPOSE_CMD exec -T mrroboto-bot node -e "console.log('✅ Container is healthy')" 2>/dev/null; then
+if docker-compose exec -T mrroboto-bot node -e "console.log('✅ Container is healthy')" 2>/dev/null; then
     echo -e "${GREEN}✅ Container is responding${NC}"
 else
     echo -e "${YELLOW}⚠️  Container may still be starting up${NC}"
@@ -112,8 +112,8 @@ echo ""
 echo -e "${GREEN}🎉 Docker setup complete!${NC}"
 echo ""
 echo -e "${BLUE}Useful commands:${NC}"
-echo "  View logs:     $DOCKER_COMPOSE_CMD logs -f"
-echo "  Stop:          $DOCKER_COMPOSE_CMD down"
-echo "  Restart:       $DOCKER_COMPOSE_CMD restart"
-echo "  Shell access:  $DOCKER_COMPOSE_CMD exec mrroboto-bot sh"
+echo "  View logs:     docker-compose logs -f"
+echo "  Stop:          docker-compose down"
+echo "  Restart:       docker-compose restart"
+echo "  Shell access:  docker-compose exec mrroboto-bot sh"
 echo ""

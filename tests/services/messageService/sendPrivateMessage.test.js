@@ -8,7 +8,17 @@ jest.mock( '../../../src/lib/logging.js', () => ( {
   }
 } ) );
 
-jest.mock( '../../../src/services/cometchatApi' );
+jest.mock( '../../../src/services/cometchatApi', () => ({
+  buildCustomData: jest.fn(),
+  buildPayload: jest.fn(),
+  sendMessage: jest.fn(),
+  joinChatGroup: jest.fn(),
+  fetchMessages: jest.fn(),
+  markConversationAsRead: jest.fn(),
+  BASE_URL: 'https://test.cometchat.io',
+  headers: {},
+  apiClient: {}
+}));
 
 // Now import the modules that use the mocked dependencies
 const { messageService } = require( '../../../src/services/messageService.js' );
@@ -20,6 +30,32 @@ describe( 'messageService', () => {
 
   beforeEach( () => {
     jest.clearAllMocks();
+    
+    // Set up mock implementations for cometchatApi functions
+    cometchatApi.buildCustomData.mockImplementation(async (message, services) => ({
+      message: message,
+      avatarId: services.dataService?.getValue('botData.CHAT_AVATAR_ID'),
+      userName: services.dataService?.getValue('botData.CHAT_NAME'),
+      color: `#${services.dataService?.getValue('botData.CHAT_COLOUR')}`,
+      mentions: [],
+      userUuid: 'test-bot-uid',
+      badges: ['VERIFIED', 'STAFF'],
+      id: 'mock-uuid'
+    }));
+
+    cometchatApi.buildPayload.mockImplementation(async (receiver, receiverType, customData, message) => ({
+      receiver: receiver,
+      receiverType: receiverType,
+      category: 'message',
+      type: 'text',
+      data: {
+        text: message,
+        metadata: {
+          chatMessage: customData
+        }
+      }
+    }));
+    
     mockServices = {
       dataService: {
         getAllData: jest.fn().mockReturnValue( {} ),

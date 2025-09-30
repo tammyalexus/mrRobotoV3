@@ -14,47 +14,16 @@ const RECEIVER_TYPE = {
 // Helper functions
 // ===============
 
-async function buildCustomData ( theMessage, services ) {
-    if ( services.dataService ) {
-        if ( services.dataService.getAllData ) {
-            const data = services.dataService.getAllData();
-        }
-    }
-    return {
-        message: theMessage,
-        avatarId: services.dataService?.getValue( 'botData.CHAT_AVATAR_ID' ),
-        userName: services.dataService?.getValue( 'botData.CHAT_NAME' ),
-        color: `#${ services.dataService?.getValue( 'botData.CHAT_COLOUR' ) }`,
-        mentions: [],
-        userUuid: config.BOT_UID,
-        badges: [ 'VERIFIED', 'STAFF' ],
-        id: uuidv4()
-    };
-}
-
-async function buildPayload ( receiver, receiverType, customData, theMessage ) {
-    return {
-        receiver: receiver,
-        receiverType: receiverType,
-        category: 'message',
-        type: 'text',
-        data: {
-            text: theMessage,
-            metadata: {
-                chatMessage: customData
-            }
-        }
-    };
-}
+// buildCustomData and buildPayload are now imported from cometchatApi
 
 // ===============
 // Private Message Service
 // ===============
 
 const privateMessageService = {
-    // Helper functions (exported for testing)
-    buildCustomData,
-    buildPayload,
+    // Helper functions (exported for testing) - now from cometchatApi
+    buildCustomData: cometchatApi.buildCustomData,
+    buildPayload: cometchatApi.buildPayload,
 
     /**
      * Send a private message to a user
@@ -65,8 +34,8 @@ const privateMessageService = {
      */
     sendPrivateMessage: async function ( theMessage, receiver, services ) {
         try {
-            const customData = await this.buildCustomData( theMessage, services );
-            const payload = await this.buildPayload( receiver, RECEIVER_TYPE.USER, customData, theMessage );
+            const customData = await cometchatApi.buildCustomData( theMessage, services );
+            const payload = await cometchatApi.buildPayload( receiver, RECEIVER_TYPE.USER, customData, theMessage );
             const response = await cometchatApi.sendMessage( payload );
             logger.debug( `✅ Private message sent: ${ JSON.stringify( response.data, null, 2 ) }` );
         } catch ( err ) {
@@ -143,20 +112,46 @@ const privateMessageService = {
     },
 
     /**
-     * Fetch all private messages from a specific user
+     * Fetch all private messages from a specific user with optional logging
      * @param {string} userUUID - The user UUID
-     * @returns {Promise<Array>} Array of simplified messages
+     * @param {Object} [options] - Optional configuration
+     * @param {boolean} [options.logLastMessage=false] - Whether to log the last message details
+     * @param {boolean} [options.returnData=true] - Whether to return the message data array
+     * @returns {Promise<Array>} Array of simplified messages (empty if returnData=false)
      */
-    fetchAllPrivateUserMessages: async function ( userUUID ) {
+    fetchAllPrivateUserMessages: async function ( userUUID, options = {} ) {
+        const { logLastMessage = false, returnData = true } = options;
+        
         try {
             const endpoint = `v3/users/${ config.BOT_UID }/conversations/${ userUUID }/messages`;
             const response = await cometchatApi.fetchMessages( endpoint );
 
             if ( !response?.data || !Array.isArray( response.data ) ) {
+                if ( logLastMessage ) {
+                    logger.debug( '📥 No private messages found.' );
+                }
                 return [];
             }
 
             const messages = response.data;
+            
+            // Log the last message if requested
+            if ( logLastMessage ) {
+                if ( messages.length > 0 ) {
+                    const lastMessage = messages[0]; // Messages are typically in reverse chronological order
+                    const text = lastMessage.data?.text || '[No Text]';
+                    const sender = lastMessage.sender?.uid || lastMessage.sender || 'Unknown';
+                    logger.debug( `📥 Private message from ${ sender }: ${ text }` );
+                } else {
+                    logger.debug( '📥 No private messages found.' );
+                }
+            }
+
+            // Return data if requested
+            if ( !returnData ) {
+                return [];
+            }
+
             const simplifiedMessages = messages.map( msg => {
                 const customData = msg.data?.metadata?.chatMessage;
 
@@ -179,43 +174,6 @@ const privateMessageService = {
         } catch ( err ) {
             logger.error( `❌ Error fetching private messages: ${ err.message }` );
             return [];
-        }
-    },
-
-    /**
-     * Fetch private messages for a specific UUID and log last message details
-     * @param {string} userUUID - The user UUID
-     * @returns {Promise<void|Array>} Undefined normally, array if command message
-     */
-    fetchPrivateMessagesForUUID: async function ( userUUID ) {
-        try {
-            const { buildUrl } = require( '../lib/buildUrl' );
-            const url = buildUrl( cometchatApi.BASE_URL, [
-                'v3',
-                'users',
-                userUUID,
-                'conversation'
-            ], [
-                [ 'conversationType', 'user' ],
-                [ 'limit', 50 ],
-                [ 'uid', config.BOT_UID ]
-            ] );
-
-            const res = await cometchatApi.apiClient.get( url );
-            const msg = res.data.data.lastMessage;
-            if ( msg ) {
-                const text = msg.data?.text || '[No Text]';
-                logger.debug( '📥 Private message from ' + msg.sender + ': ' + text );
-
-                // Commented out return functionality as per old implementation
-                // if (msg.data?.text?.startsWith(config.COMMAND_SWITCH)) {
-                //   return [msg]; // Return an array for consistency
-                // }
-            } else {
-                logger.debug( '📥 No private messages found.' );
-            }
-        } catch ( err ) {
-            logger.error( `❌ Error fetching private messages: ${ err.message }` );
         }
     }
 };

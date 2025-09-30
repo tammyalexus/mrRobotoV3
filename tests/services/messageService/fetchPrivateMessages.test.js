@@ -15,38 +15,38 @@ const { messageService } = require('../../../src/services/messageService.js');
 const cometchatApi = require('../../../src/services/cometchatApi');
 const { logger } = require('../../../src/lib/logging.js');
 
-describe('fetchPrivateMessagesForUUID', () => {
+describe('fetchAllPrivateUserMessages with logging options', () => {
   beforeEach(() => {
     jest.resetModules();
     jest.clearAllMocks();
+    
+    // Mock the fetchMessages method
+    cometchatApi.fetchMessages = jest.fn();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  test('logs the sender and message when lastMessage exists', async () => {
-    const mockLastMessage = {
-      id: '25812293',
-      sender: 'abcdef-ccd3-4c1b-9846-5336fbd3b415',
-      data: {
-        text: 'Hello Mr. Roboto version 3!',
-        metadata: {},
-        entities: {}
-      }
-    };
-
-    cometchatApi.apiClient = {
-      get: jest.fn().mockResolvedValue({
+  test('logs the sender and message when logLastMessage is true and messages exist', async () => {
+    const mockMessages = [
+      {
+        id: '25812293',
+        sender: { uid: 'abcdef-ccd3-4c1b-9846-5336fbd3b415' },
         data: {
-          data: {
-            lastMessage: mockLastMessage
-          }
-        }
-      })
-    };
+          text: 'Hello Mr. Roboto version 3!',
+          metadata: {},
+          entities: {}
+        },
+        sentAt: 1640995200
+      }
+    ];
 
-    await messageService.fetchPrivateMessagesForUUID('test-user-uuid');
+    cometchatApi.fetchMessages.mockResolvedValue({
+      data: mockMessages
+    });
+
+    await messageService.fetchAllPrivateUserMessages('test-user-uuid', { logLastMessage: true, returnData: false });
 
     expect(logger.debug).toHaveBeenCalledWith(
       expect.stringContaining('📥 Private message from abcdef-ccd3-4c1b-9846-5336fbd3b415: Hello Mr. Roboto version 3!')
@@ -54,91 +54,131 @@ describe('fetchPrivateMessagesForUUID', () => {
   });
 
   test('logs a fallback message if text is missing', async () => {
-    const mockLastMessage = {
-      sender: 'user-123',
-      data: {}
-    };
-
-    cometchatApi.apiClient = {
-      get: jest.fn().mockResolvedValue({
+    const mockMessages = [
+      {
+        id: '25812294',
+        sender: { uid: 'user-123' },
         data: {
-          data: {
-            lastMessage: mockLastMessage
-          }
-        }
-      })
-    };
+          metadata: {},
+          entities: {}
+        },
+        sentAt: 1640995200
+      }
+    ];
 
-    await messageService.fetchPrivateMessagesForUUID('test-user-uuid');
+    cometchatApi.fetchMessages.mockResolvedValue({
+      data: mockMessages
+    });
+
+    await messageService.fetchAllPrivateUserMessages('test-user-uuid', { logLastMessage: true, returnData: false });
 
     expect(logger.debug).toHaveBeenCalledWith(
       expect.stringContaining('📥 Private message from user-123: [No Text]')
     );
   });
 
-  test('logs when no lastMessage exists', async () => {
-    cometchatApi.apiClient = {
-      get: jest.fn().mockResolvedValue({
-        data: {
-          data: {
-            lastMessage: null
-          }
-        }
-      })
-    };
+  test('logs when no messages exist', async () => {
+    cometchatApi.fetchMessages.mockResolvedValue({
+      data: []
+    });
 
-    await messageService.fetchPrivateMessagesForUUID('test-user-uuid');
+    await messageService.fetchAllPrivateUserMessages('test-user-uuid', { logLastMessage: true, returnData: false });
 
     expect(logger.debug).toHaveBeenCalledWith('📥 No private messages found.');
   });
 
   test('logs an error when the API call fails', async () => {
-    cometchatApi.apiClient = {
-      get: jest.fn().mockRejectedValue(new Error('Request failed'))
-    };
+    cometchatApi.fetchMessages.mockRejectedValue(new Error('Request failed'));
 
-    await messageService.fetchPrivateMessagesForUUID('test-user-uuid');
+    await messageService.fetchAllPrivateUserMessages('test-user-uuid', { logLastMessage: true, returnData: false });
 
     expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining('❌ Error fetching private messages:')
     );
   });
 
-  test('returns array with message if it starts with command switch', async () => {
-    const { COMMAND_SWITCH } = process.env;
-    const commandText = `${COMMAND_SWITCH}do-something`;
-
-    const mockLastMessage = {
-      sender: 'test-user',
-      data: {
-        text: commandText
-      }
-    };
-
-    cometchatApi.apiClient = {
-      get: jest.fn().mockResolvedValue({
+  test('returns empty array when returnData is false', async () => {
+    const mockMessages = [
+      {
+        id: '25812293',
+        sender: { uid: 'test-user' },
         data: {
-          data: {
-            lastMessage: mockLastMessage
-          }
-        }
-      })
-    };
+          text: 'Test message'
+        },
+        sentAt: 1640995200
+      }
+    ];
 
-    const result = await messageService.fetchPrivateMessagesForUUID('test-user-uuid');
+    cometchatApi.fetchMessages.mockResolvedValue({
+      data: mockMessages
+    });
 
-    // Function currently doesn't return anything (return statement is commented out)
-    expect(result).toBeUndefined();
+    const result = await messageService.fetchAllPrivateUserMessages('test-user-uuid', { returnData: false });
+
+    expect(result).toEqual([]);
   });
 
-  test('fetchPrivateMessagesForUUID does not return array if message does not start with switch', async () => {
-    cometchatApi.apiClient = {
-      get: jest.fn().mockResolvedValue({
-        data: { data: { lastMessage: { sender: 'u1', data: { text: 'hello world' } } } }
-      })
-    };
+  test('returns message data when returnData is true (default)', async () => {
+    const mockMessages = [
+      {
+        id: '25812293',
+        sender: { uid: 'test-user' },
+        data: {
+          text: 'Test message'
+        },
+        sentAt: 1640995200
+      }
+    ];
 
-    const result = await messageService.fetchPrivateMessagesForUUID('test-user-uuid');
-    expect(result).toBeUndefined(); // no return
+    cometchatApi.fetchMessages.mockResolvedValue({
+      data: mockMessages
+    });
+
+    const result = await messageService.fetchAllPrivateUserMessages('test-user-uuid');
+
+    expect(result).toEqual([
+      {
+        id: '25812293',
+        text: 'Test message',
+        sender: 'test-user',
+        sentAt: 1640995200,
+        customData: null
+      }
+    ]);
+  });
+
+  test('handles both logging and data return when both options are true', async () => {
+    const mockMessages = [
+      {
+        id: '25812293',
+        sender: { uid: 'test-user' },
+        data: {
+          text: 'Test message'
+        },
+        sentAt: 1640995200
+      }
+    ];
+
+    cometchatApi.fetchMessages.mockResolvedValue({
+      data: mockMessages
+    });
+
+    const result = await messageService.fetchAllPrivateUserMessages('test-user-uuid', { 
+      logLastMessage: true, 
+      returnData: true 
+    });
+
+    expect(logger.debug).toHaveBeenCalledWith(
+      expect.stringContaining('📥 Private message from test-user: Test message')
+    );
+    expect(result).toEqual([
+      {
+        id: '25812293',
+        text: 'Test message',
+        sender: 'test-user',
+        sentAt: 1640995200,
+        customData: null
+      }
+    ]);
   });
 });

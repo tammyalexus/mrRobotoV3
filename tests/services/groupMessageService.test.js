@@ -14,7 +14,17 @@ jest.mock( '../../src/config.js', () => ( {
   COMMAND_SWITCH: '!'
 } ) );
 
-jest.mock( '../../src/services/cometchatApi.js' );
+jest.mock( '../../src/services/cometchatApi.js', () => ({
+  buildCustomData: jest.fn(),
+  buildPayload: jest.fn(),
+  sendMessage: jest.fn(),
+  joinChatGroup: jest.fn(),
+  fetchMessages: jest.fn(),
+  markConversationAsRead: jest.fn(),
+  BASE_URL: 'https://test.cometchat.io',
+  headers: {},
+  apiClient: {}
+}));
 jest.mock( 'uuid', () => ( {
   v4: jest.fn( () => 'mock-uuid-123' )
 } ) );
@@ -31,6 +41,44 @@ describe( 'groupMessageService', () => {
     jest.clearAllMocks();
     // Reset the latest message ID
     groupMessageService.setLatestGroupMessageId( null );
+
+    // Set up mock implementations for cometchatApi functions
+    cometchatApi.buildCustomData.mockImplementation(async (message, services) => {
+      // Call the actual dataService methods to match test expectations
+      if (services.dataService) {
+        if (services.dataService.getAllData) {
+          services.dataService.getAllData();
+        }
+      }
+      
+      return {
+        message: message,
+        avatarId: services.dataService?.getValue('botData.CHAT_AVATAR_ID'),
+        userName: services.dataService?.getValue('botData.CHAT_NAME'),
+        color: `#${services.dataService?.getValue('botData.CHAT_COLOUR')}`,
+        mentions: [],
+        userUuid: 'bot-uid-456',
+        badges: ['VERIFIED', 'STAFF'],
+        id: 'mock-uuid-123'
+      };
+    });
+
+    cometchatApi.buildPayload.mockImplementation(async (receiver, receiverType, customData, message) => ({
+      receiver: receiver,
+      receiverType: receiverType,
+      category: 'message',
+      type: 'text',
+      data: {
+        text: message,
+        metadata: {
+          chatMessage: customData
+        }
+      }
+    }));
+
+    cometchatApi.sendMessage.mockResolvedValue({
+      data: { success: true, id: 'msg-123' }
+    });
 
     // Create mock services for tests that need them
     mockServices = {

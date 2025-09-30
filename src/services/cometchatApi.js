@@ -2,6 +2,7 @@ const { logger } = require( '../lib/logging.js' );
 const axios = require( 'axios' );
 const config = require( '../config.js' );
 const { buildUrl, makeRequest } = require( '../lib/buildUrl' );
+const { v4: uuidv4 } = require( 'uuid' );
 
 const BASE_URL = `https://${ config.COMETCHAT_API_KEY }.apiclient-us.cometchat.io`;
 
@@ -20,6 +21,57 @@ const apiClient = axios.create( {
   baseURL: BASE_URL,
   headers
 } );
+
+// ===============
+// Shared Message Utilities
+// ===============
+
+/**
+ * Build custom data for CometChat messages
+ * @param {string} theMessage - The message text
+ * @param {Object} services - Services container
+ * @returns {Promise<Object>} Custom data object
+ */
+async function buildCustomData ( theMessage, services ) {
+    if ( services.dataService ) {
+        if ( services.dataService.getAllData ) {
+            const data = services.dataService.getAllData();
+        }
+    }
+    return {
+        message: theMessage,
+        avatarId: services.dataService?.getValue( 'botData.CHAT_AVATAR_ID' ),
+        userName: services.dataService?.getValue( 'botData.CHAT_NAME' ),
+        color: `#${ services.dataService?.getValue( 'botData.CHAT_COLOUR' ) }`,
+        mentions: [],
+        userUuid: config.BOT_UID,
+        badges: [ 'VERIFIED', 'STAFF' ],
+        id: uuidv4()
+    };
+}
+
+/**
+ * Build message payload for CometChat API
+ * @param {string} receiver - The receiver ID
+ * @param {string} receiverType - The receiver type (user/group)
+ * @param {Object} customData - Custom data object
+ * @param {string} theMessage - The message text
+ * @returns {Promise<Object>} Message payload
+ */
+async function buildPayload ( receiver, receiverType, customData, theMessage ) {
+    return {
+        receiver: receiver,
+        receiverType: receiverType,
+        category: 'message',
+        type: 'text',
+        data: {
+            text: theMessage,
+            metadata: {
+                chatMessage: customData
+            }
+        }
+    };
+}
 
 /**
  * Send a message via CometChat API
@@ -128,6 +180,8 @@ module.exports = {
   BASE_URL,
   headers,
   apiClient,
+  buildCustomData,
+  buildPayload,
   sendMessage,
   joinChatGroup,
   fetchMessages,

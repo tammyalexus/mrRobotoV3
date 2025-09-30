@@ -16,6 +16,8 @@ let latestGroupMessageId = null;
 // Helper functions
 // ===============
 
+// buildCustomData and buildPayload are now imported from cometchatApi
+
 function setLatestGroupMessageId ( id ) {
     latestGroupMessageId = id;
 }
@@ -36,47 +38,14 @@ function filterMessagesForCommands ( messages ) {
     } );
 }
 
-async function buildCustomData ( theMessage, services ) {
-    if ( services.dataService ) {
-        if ( services.dataService.getAllData ) {
-            const data = services.dataService.getAllData();
-        }
-    }
-    return {
-        message: theMessage,
-        avatarId: services.dataService?.getValue( 'botData.CHAT_AVATAR_ID' ),
-        userName: services.dataService?.getValue( 'botData.CHAT_NAME' ),
-        color: `#${ services.dataService?.getValue( 'botData.CHAT_COLOUR' ) }`,
-        mentions: [],
-        userUuid: config.BOT_UID,
-        badges: [ 'VERIFIED', 'STAFF' ],
-        id: uuidv4()
-    };
-}
-
-async function buildPayload ( receiver, receiverType, customData, theMessage ) {
-    return {
-        receiver: receiver,
-        receiverType: receiverType,
-        category: 'message',
-        type: 'text',
-        data: {
-            text: theMessage,
-            metadata: {
-                chatMessage: customData
-            }
-        }
-    };
-}
-
 // ===============
 // Group Message Service
 // ===============
 
 const groupMessageService = {
-    // Helper functions (exported for testing)
-    buildCustomData,
-    buildPayload,
+    // Helper functions (exported for testing) - now from cometchatApi
+    buildCustomData: cometchatApi.buildCustomData,
+    buildPayload: cometchatApi.buildPayload,
     getLatestGroupMessageId,
     setLatestGroupMessageId,
     filterMessagesForCommands,
@@ -129,7 +98,7 @@ const groupMessageService = {
                 throw new Error( 'Message content is required' );
             }
 
-            const customData = await this.buildCustomData( message, options.services || {} );
+            const customData = await cometchatApi.buildCustomData( message, options.services || {} );
 
             if ( images ) {
                 customData.imageUrls = images;
@@ -143,7 +112,7 @@ const groupMessageService = {
                 } ) );
             }
 
-            const payload = await this.buildPayload( room, receiverType, customData, message );
+            const payload = await cometchatApi.buildPayload( room, receiverType, customData, message );
 
             const response = await cometchatApi.sendMessage( payload );
 
