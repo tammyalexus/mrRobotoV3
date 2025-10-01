@@ -1,7 +1,8 @@
 // Mock the entire messageService module to prevent real API calls
 jest.mock( '../../src/services/messageService.js', () => ( {
   messageService: {
-    sendGroupMessage: jest.fn().mockResolvedValue( { success: true } )
+    sendGroupMessage: jest.fn().mockResolvedValue( { success: true } ),
+    sendResponse: jest.fn().mockResolvedValue( { success: true } )
   }
 } ) );
 
@@ -32,7 +33,8 @@ const commandService = require( '../../src/services/commandService.js' );
 
 // Mock messageService
 const mockMessageService = {
-  sendGroupMessage: jest.fn().mockResolvedValue( { success: true } )
+  sendGroupMessage: jest.fn().mockResolvedValue( { success: true } ),
+  sendResponse: jest.fn().mockResolvedValue( { success: true } )
 };
 
 // Mock stateService
@@ -102,9 +104,10 @@ describe( 'commandService', () => {
       expect( result.success ).toBe( true );
       expect( result.shouldRespond ).toBe( true );
       expect( result.response ).toContain( 'Available Commands' );
-      expect( mockMessageService.sendGroupMessage ).toHaveBeenCalledWith(
+      expect( mockMessageService.sendResponse ).toHaveBeenCalledWith(
         expect.stringContaining( 'Available Commands' ),
         expect.objectContaining( {
+          responseChannel: 'request',
           services: expect.any( Object )
         } )
       );
@@ -116,9 +119,10 @@ describe( 'commandService', () => {
       expect( result.success ).toBe( true );
       expect( result.shouldRespond ).toBe( true );
       expect( result.response ).toContain( 'Pong' );
-      expect( mockMessageService.sendGroupMessage ).toHaveBeenCalledWith(
+      expect( mockMessageService.sendResponse ).toHaveBeenCalledWith(
         expect.stringContaining( 'Pong' ),
         expect.objectContaining( {
+          responseChannel: 'request',
           services: expect.any( Object )
         } )
       );
@@ -130,9 +134,10 @@ describe( 'commandService', () => {
       expect( result.success ).toBe( true );
       expect( result.shouldRespond ).toBe( true );
       expect( result.response ).toContain( 'Bot Status' );
-      expect( mockMessageService.sendGroupMessage ).toHaveBeenCalledWith(
+      expect( mockMessageService.sendResponse ).toHaveBeenCalledWith(
         expect.stringContaining( 'Bot Status' ),
         expect.objectContaining( {
+          responseChannel: 'request',
           services: expect.any( Object )
         } )
       );
@@ -146,9 +151,10 @@ describe( 'commandService', () => {
       expect( result.shouldRespond ).toBe( true );
       expect( result.response ).toContain( testMessage );
       expect( result.response ).toContain( 'from Nick-From-UUID' );
-      expect( mockMessageService.sendGroupMessage ).toHaveBeenCalledWith(
+      expect( mockMessageService.sendResponse ).toHaveBeenCalledWith(
         expect.stringContaining( 'from Nick-From-UUID' ),
         expect.objectContaining( {
+          responseChannel: 'request',
           services: expect.any( Object )
         } )
       );
@@ -181,7 +187,7 @@ describe( 'commandService', () => {
 
     test( 'should handle errors gracefully', async () => {
       // Mock messageService to throw an error
-      mockMessageService.sendGroupMessage.mockRejectedValueOnce( new Error( 'Network error' ) );
+      mockMessageService.sendResponse.mockRejectedValueOnce( new Error( 'Network error' ) );
 
       const result = await commandService( 'ping', '', mockServices, mockContext );
 
@@ -222,21 +228,21 @@ describe( 'commandService', () => {
 
     test( 'should handle different error types', async () => {
       // Test with string error
-      mockMessageService.sendGroupMessage.mockRejectedValueOnce( 'String error' );
+      mockMessageService.sendResponse.mockRejectedValueOnce( 'String error' );
 
       const result1 = await commandService( 'ping', '', mockServices, mockContext );
       expect( result1.success ).toBe( false );
       expect( result1.error ).toBe( 'String error' );
 
       // Test with null error
-      mockMessageService.sendGroupMessage.mockRejectedValueOnce( null );
+      mockMessageService.sendResponse.mockRejectedValueOnce( null );
 
       const result2 = await commandService( 'ping', '', mockServices, mockContext );
       expect( result2.success ).toBe( false );
       expect( result2.error ).toBe( 'Unknown error' );
 
       // Test with object error (no message property)
-      mockMessageService.sendGroupMessage.mockRejectedValueOnce( {} );
+      mockMessageService.sendResponse.mockRejectedValueOnce( {} );
 
       const result3 = await commandService( 'ping', '', mockServices, mockContext );
       expect( result3.success ).toBe( false );

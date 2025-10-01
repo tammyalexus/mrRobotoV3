@@ -45,7 +45,8 @@ async function processCommand ( command, messageRemainder, services, context = {
       command: trimmedCommand,      // The command name
       args: args,                   // Command arguments (everything after the command)
       services: serviceContainer,   // Pass the complete services container
-      context                      // Context object with sender info etc.
+      context,                      // Context object with sender info etc.
+      responseChannel: 'request'    // Default response channel
     };
 
     // Always treat 'unknown' command as an unknown command
@@ -59,7 +60,12 @@ async function processCommand ( command, messageRemainder, services, context = {
 
     if ( !hasPermission( userRole, commandLevel ) ) {
       const response = `❌ You don't have permission to use the "${ trimmedCommand }" command. Required role: ${ commandLevel }`;
-      await serviceContainer.messageService.sendGroupMessage( response, { services: serviceContainer } );
+      await serviceContainer.messageService.sendResponse( response, {
+        responseChannel: 'request',
+        isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+        sender: context?.sender,
+        services: serviceContainer
+      } );
       return {
         success: false,
         error: 'Insufficient permissions',
@@ -80,7 +86,12 @@ async function processCommand ( command, messageRemainder, services, context = {
     const isUnknownCommand = ( errorMessage === 'Unknown command' ) || ( error && error.error === 'Unknown command' );
     if ( isUnknownCommand ) {
       const response = `❓ Unknown command: "${ command }". Type ${ config.COMMAND_SWITCH }help for available commands.`;
-      await serviceContainer.messageService.sendGroupMessage( response, { services: serviceContainer } );
+      await serviceContainer.messageService.sendResponse( response, {
+        responseChannel: 'request',
+        isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+        sender: context?.sender,
+        services: serviceContainer
+      } );
       return {
         success: false,
         error: 'Unknown command',

@@ -49,6 +49,39 @@ const messageService = {
   // ===============
 
   /**
+   * Send a response message based on responseChannel setting
+   * @param {string} message - The message to send
+   * @param {Object} options - Response options
+   * @param {string} options.responseChannel - Either 'public' or 'request'
+   * @param {boolean} options.isPrivateMessage - Whether the original message was private
+   * @param {string} options.sender - The sender UUID for private responses
+   * @param {Object} options.services - Service container
+   * @returns {Promise<Object>} Response result
+   */
+  sendResponse: async function (message, options = {}) {
+    const { responseChannel = 'request', isPrivateMessage = false, sender, services } = options;
+    
+    // If responseChannel is 'public', always send to group chat
+    if (responseChannel === 'public') {
+      return await this.sendGroupMessage(message, { services });
+    }
+    
+    // If responseChannel is 'request', send back to the same channel as the request
+    if (responseChannel === 'request') {
+      if (isPrivateMessage && sender) {
+        // Original was private, send private response
+        return await this.sendPrivateMessage(message, sender, services);
+      } else {
+        // Original was public, send public response
+        return await this.sendGroupMessage(message, { services });
+      }
+    }
+    
+    // Default fallback to group message
+    return await this.sendGroupMessage(message, { services });
+  },
+
+  /**
    * Get the latest group message ID with lookback functionality
    * @returns {Promise<string|null>} Latest message ID
    */

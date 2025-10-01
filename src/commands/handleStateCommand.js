@@ -11,15 +11,21 @@ const requiredRole = 'OWNER';
  * @param {string} commandParams.args - Command arguments
  * @param {Object} commandParams.services - Service container
  * @param {Object} commandParams.context - Command context
+ * @param {string} commandParams.responseChannel - Response channel ('public' or 'request')
  * @returns {Promise<Object>} Command result
  */
 async function handleStateCommand(commandParams) {
-  const { services } = commandParams;
+  const { services, context, responseChannel = 'request' } = commandParams;
   try {
     const state = services?.hangoutState || null;
     if (!state) {
       const response = '⚠️ No hangout state available to save.';
-      await services.messageService.sendGroupMessage(response, { services });
+      await services.messageService.sendResponse(response, {
+        responseChannel,
+        isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+        sender: context?.sender,
+        services
+      });
       return {
         success: false,
         response,
@@ -33,7 +39,12 @@ async function handleStateCommand(commandParams) {
     const logEntry = `${datetime}: ${JSON.stringify(state, null, 2)}\n`;
     await fs.appendFile(filePath, logEntry);
     const response = `✅ Current hangout state saved to ${filename}`;
-    await services.messageService.sendGroupMessage(response);
+    await services.messageService.sendResponse(response, {
+      responseChannel,
+      isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+      sender: context?.sender,
+      services
+    });
     return {
       success: true,
       response,
@@ -41,7 +52,12 @@ async function handleStateCommand(commandParams) {
     };
   } catch (error) {
     const response = `❌ Failed to save hangout state: ${error.message}`;
-    await services.messageService.sendGroupMessage(response);
+    await services.messageService.sendResponse(response, {
+      responseChannel,
+      isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+      sender: context?.sender,
+      services
+    });
     return {
       success: false,
       response,
