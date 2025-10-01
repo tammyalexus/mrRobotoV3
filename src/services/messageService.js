@@ -35,6 +35,8 @@ const messageService = {
   markAllPrivateUserMessagesAsRead: privateMessageService.markAllPrivateUserMessagesAsRead,
   markMessageAsInterracted: privateMessageService.markMessageAsInterracted,
   fetchAllPrivateUserMessages: privateMessageService.fetchAllPrivateUserMessages,
+  fetchNewPrivateUserMessages: privateMessageService.fetchNewPrivateUserMessages,
+  returnLastUserMessageTracking: privateMessageService.returnLastUserMessageTracking,
 
   // ===============
   // Helper Functions (for backward compatibility)

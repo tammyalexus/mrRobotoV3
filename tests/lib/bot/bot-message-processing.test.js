@@ -435,12 +435,12 @@ describe( 'Bot - Message Processing', () => {
         _getAllUsers: jest.fn()
       };
       mockServices.privateMessageService = {
-        fetchAllPrivateUserMessages: jest.fn()
+        fetchNewPrivateUserMessages: jest.fn()
       };
       mockServices.setState = jest.fn();
 
       // Initialize bot with private message tracking
-      bot.lastPrivateMessageIDs = {};
+      bot.lastPrivateMessageTracking = {};
     } );
 
     test( 'should fetch messages with correct parameters', async () => {
@@ -460,19 +460,23 @@ describe( 'Bot - Message Processing', () => {
       ];
 
       mockServices.stateService._getAllUsers.mockReturnValue( mockUsers );
-      mockServices.privateMessageService.fetchAllPrivateUserMessages
+      mockServices.privateMessageService.fetchNewPrivateUserMessages
         .mockResolvedValueOnce( mockUserMessages ) // user1
         .mockResolvedValueOnce( [] ); // user2
 
       const result = await bot._fetchNewPrivateMessages();
 
       expect( mockServices.stateService._getAllUsers ).toHaveBeenCalled();
-      expect( mockServices.privateMessageService.fetchAllPrivateUserMessages ).toHaveBeenCalledTimes( 2 );
-      expect( mockServices.privateMessageService.fetchAllPrivateUserMessages ).toHaveBeenCalledWith( 'user1', {
+      expect( mockServices.privateMessageService.fetchNewPrivateUserMessages ).toHaveBeenCalledTimes( 2 );
+      expect( mockServices.privateMessageService.fetchNewPrivateUserMessages ).toHaveBeenCalledWith( 'user1', {
+        lastMessageId: undefined,
+        lastTimestamp: undefined,
         logLastMessage: false,
         returnData: true
       } );
-      expect( mockServices.privateMessageService.fetchAllPrivateUserMessages ).toHaveBeenCalledWith( 'user2', {
+      expect( mockServices.privateMessageService.fetchNewPrivateUserMessages ).toHaveBeenCalledWith( 'user2', {
+        lastMessageId: undefined,
+        lastTimestamp: undefined,
         logLastMessage: false,
         returnData: true
       } );
@@ -502,25 +506,35 @@ describe( 'Bot - Message Processing', () => {
       const result = await bot._fetchNewPrivateMessages();
 
       expect( result ).toEqual( [] );
-      expect( mockServices.privateMessageService.fetchAllPrivateUserMessages ).not.toHaveBeenCalled();
+      expect( mockServices.privateMessageService.fetchNewPrivateUserMessages ).not.toHaveBeenCalled();
     } );
 
-    test( 'should filter out already processed messages', async () => {
+    test( 'should pass tracking info to fetchNewPrivateUserMessages', async () => {
       const mockUsers = [ { uuid: 'user1' } ];
       const mockUserMessages = [
-        { id: 'pm1', text: 'Old message', sender: 'user1', sentAt: 1609459200000 },
         { id: 'pm2', text: 'New message', sender: 'user1', sentAt: 1609459300000 }
       ];
 
-      // Set last processed message ID for user1
-      bot.lastPrivateMessageIDs[ 'user1' ] = 'pm1';
+      // Set last processed message tracking for user1
+      bot.lastPrivateMessageTracking[ 'user1' ] = {
+        lastMessageId: 'pm1',
+        lastTimestamp: 1609459200000
+      };
 
       mockServices.stateService._getAllUsers.mockReturnValue( mockUsers );
-      mockServices.privateMessageService.fetchAllPrivateUserMessages.mockResolvedValue( mockUserMessages );
+      mockServices.privateMessageService.fetchNewPrivateUserMessages.mockResolvedValue( mockUserMessages );
 
       const result = await bot._fetchNewPrivateMessages();
 
-      // Should only return the new message (pm2)
+      // Should call with tracking info passed to the service
+      expect( mockServices.privateMessageService.fetchNewPrivateUserMessages ).toHaveBeenCalledWith( 'user1', {
+        lastMessageId: 'pm1',
+        lastTimestamp: 1609459200000,
+        logLastMessage: false,
+        returnData: true
+      } );
+
+      // Should return the new message
       expect( result ).toHaveLength( 1 );
       expect( result[ 0 ].id ).toBe( 'pm2' );
     } );
@@ -532,7 +546,7 @@ describe( 'Bot - Message Processing', () => {
       ];
 
       mockServices.stateService._getAllUsers.mockReturnValue( mockUsers );
-      mockServices.privateMessageService.fetchAllPrivateUserMessages
+      mockServices.privateMessageService.fetchNewPrivateUserMessages
         .mockRejectedValueOnce( new Error( 'API error for user1' ) )
         .mockResolvedValueOnce( [
           { id: 'pm2', text: 'Message from user2', sender: 'user2', sentAt: 1609459200000 }

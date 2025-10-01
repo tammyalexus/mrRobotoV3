@@ -50,7 +50,7 @@ describe( 'messageService.returnLastUserMessage', () => {
     const result = await messageService.returnLastUserMessage( 'test-user' );
 
     expect( cometchatApi.fetchMessages ).toHaveBeenCalledWith(
-      'v3/messages?receiverType=user&sender=test-user&limit=1'
+      'v3.0/messages?limit=1&receiverType=user&sender=test-user'
     );
     expect( result ).toBe( 'message-123' );
   } );
