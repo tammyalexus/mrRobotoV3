@@ -6,7 +6,6 @@ This guide will help you run MrRobotoV3 in Docker containers for consistent, iso
 
 - Docker Engine 20.10+ installed
 - Docker Compose 1.27+ installed (or Docker Desktop with Compose support)
-- Your `.env` file configured (see [SETTING_UP_YOUR_ENVIRONMENT.md](./SETTING_UP_YOUR_ENVIRONMENT.md))
 
 ## Quick Start
 
