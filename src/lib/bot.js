@@ -780,7 +780,11 @@ class Bot {
         };
         
         // Persist private message tracking to service container
-        this.services.setState( 'lastPrivateMessageTracking', this.lastPrivateMessageTracking );
+        try {
+          this.services.setState( 'lastPrivateMessageTracking', this.lastPrivateMessageTracking );
+        } catch ( error ) {
+          this.services.logger.error( `Failed to persist private message tracking state: ${ error.message }` );
+        }
         
         this.services.logger.debug( `[Bot] Private message tracking updated for user ${ sender }: { lastMessageId: ${ message.id }, lastTimestamp: ${ message.sentAt } }` );
       }
