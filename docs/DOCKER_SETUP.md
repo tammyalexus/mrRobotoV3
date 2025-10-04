@@ -17,25 +17,26 @@ This guide will help you run MrRobotoV3 in Docker containers for consistent, iso
 git clone <repository-url>
 cd mrRobotoV3
 
-# Copy and configure your environment file
+# create bespoke .env and data.json files for your Bot
 cp .env_example .env
-# Edit .env with your actual values (see setup guide)
+cp data.json_example data.json
+# Edit the .env and data.json files with your actual values (see [SETTING_UP_YOUR_ENVIRONMENT.md](./SETTING_UP_YOUR_ENVIRONMENT.md))
 ```
 
 ### 2. Build and Run with Docker Compose (Recommended)
 
 ```bash
 # Build and start the bot
-docker-compose up -d
+docker compose up -d
 
 # Check if it's running
-docker-compose ps
+docker compose ps
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Stop the bot
-docker-compose down
+docker compose down
 ```
 
 ### 3. Alternative: Direct Docker Commands
@@ -82,16 +83,16 @@ The Docker setup automatically handles:
 
 ```bash
 # View Docker container logs (startup and basic output)
-docker-compose logs
+docker compose logs
 
 # Follow Docker container logs in real-time
-docker-compose logs -f
+docker compose logs -f
 
 # View only recent Docker logs
-docker-compose logs --tail=50
+docker compose logs --tail=50
 
 # View Docker logs for specific time period
-docker-compose logs --since="2023-01-01T00:00:00"
+docker compose logs --since="2023-01-01T00:00:00"
 
 # View application logs (detailed bot activity)
 # Note: The bot writes detailed logs to files in the logs/ directory
@@ -111,10 +112,10 @@ tail -f logs/*.log
 
 ```bash
 # Restart the bot
-docker-compose restart
+docker compose restart
 
 # Rebuild and restart (after code changes)
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ### Updating the Bot
@@ -124,15 +125,15 @@ docker-compose up -d --build
 git pull
 
 # Rebuild and restart
-docker-compose down
-docker-compose up -d --build
+docker compose down
+docker compose up -d --build
 ```
 
 ### Health Monitoring
 
 ```bash
 # Check container health
-docker-compose ps
+docker compose ps
 
 # Get detailed health status
 docker inspect mrroboto-bot --format='{{.State.Health.Status}}'
@@ -149,18 +150,18 @@ docker inspect mrroboto-bot --format='{{range .State.Health.Log}}{{.Output}}{{en
 
 ```bash
 # Check logs for errors
-docker-compose logs
+docker compose logs
 
 # Check if .env file exists and is readable
 ls -la .env
 
 # Verify environment variables
-docker-compose config
+docker compose config
 ```
 
 #### 2. Environment Variable Parsing Errors
 
-If you see errors like "unexpected character" when running `docker-compose config`, this is usually due to special characters in JWT tokens in your `.env` file.
+If you see errors like "unexpected character" when running `docker compose config`, this is usually due to special characters in JWT tokens in your `.env` file.
 
 **Solution A: Quote your environment variables**
 ```env
@@ -186,7 +187,7 @@ export BOT_USER_TOKEN="your-token"
 export COMETCHAT_AUTH_TOKEN="your-token"
 
 # Then run docker-compose
-docker-compose up -d
+docker compose up -d
 ```
 
 #### 3. Permission Issues
@@ -211,7 +212,7 @@ docker stats mrroboto-bot
 
 ```bash
 # Test network connectivity from inside container
-docker-compose exec mrroboto sh
+docker compose exec mrroboto sh
 # Then: ping google.com or curl https://gateway.prod.tt.fm
 ```
 
@@ -221,7 +222,7 @@ docker-compose exec mrroboto sh
 
 ```bash
 # Access running container
-docker-compose exec mrroboto sh
+docker compose exec mrroboto sh
 
 # Run a new container for debugging
 docker run -it --env-file .env mrroboto:latest sh
@@ -231,10 +232,10 @@ docker run -it --env-file .env mrroboto:latest sh
 
 ```bash
 # View effective configuration
-docker-compose config
+docker compose config
 
 # Check environment variables in container
-docker-compose exec mrroboto env
+docker compose exec mrroboto env
 ```
 
 ## Advanced Configuration
@@ -266,10 +267,10 @@ Create environment-specific compose files:
 
 ```bash
 # Production
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 # Development
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
 
 ## Security Considerations
@@ -296,13 +297,13 @@ tar -czf logs_backup_$(date +%Y%m%d_%H%M%S).tar.gz logs/
 
 ```bash
 # Stop the bot
-docker-compose down
+docker compose down
 
 # Restore data.json
 cp data.json.backup.20231201_143000 data.json
 
 # Start the bot
-docker-compose up -d
+docker compose up -d
 ```
 
 ## Performance Optimization
@@ -311,10 +312,10 @@ docker-compose up -d
 
 ```bash
 # Build with build cache
-docker-compose build --parallel
+docker compose build --parallel
 
 # Build with no cache (clean build)
-docker-compose build --no-cache
+docker compose build --no-cache
 ```
 
 ### Runtime Optimization
@@ -327,7 +328,7 @@ docker-compose build --no-cache
 
 If you encounter issues:
 
-1. Check the logs: `docker-compose logs`
+1. Check the logs: `docker compose logs`
 2. Verify your environment configuration
 3. Ensure Docker has sufficient resources allocated
 4. Check the troubleshooting section above
