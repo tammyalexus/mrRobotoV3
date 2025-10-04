@@ -86,7 +86,6 @@ describe( 'messageService', () => {
     // Assert that customData was resolved properly (not a Promise)
     expect( calledPayload ).toHaveProperty( 'data.metadata.chatMessage.message', 'Hello Test' );
     expect( typeof calledPayload.data.metadata.chatMessage ).toBe( 'object' );
-    expect( logger.debug ).toHaveBeenCalledWith( expect.stringContaining( '✅ Private message sent:' ) );
   } );
 
   test( 'sendPrivateMessage logs error on axios failure', async () => {

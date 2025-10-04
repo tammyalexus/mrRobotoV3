@@ -544,15 +544,15 @@ class Bot {
 
   async processNewPublicMessages () {
     try {
-      this.services.logger.debug( `🔄 [processNewPublicMessages] Starting public message check...` );
+      // this.services.logger.debug( `🔄 [processNewPublicMessages] Starting public message check...` );
       const messages = await this._fetchNewMessages();
 
       if ( !messages?.length ) {
-        this.services.logger.debug( `🔄 [processNewPublicMessages] No new public messages found` );
+        // this.services.logger.debug( `🔄 [processNewPublicMessages] No new public messages found` );
         return; // No new messages to process
       }
 
-      this.services.logger.debug( `🔄 [processNewPublicMessages] Processing ${messages.length} new public messages` );
+      // this.services.logger.debug( `🔄 [processNewPublicMessages] Processing ${messages.length} new public messages` );
       await this._processMessageBatch( messages );
     } catch ( error ) {
       // More defensive error handling
@@ -570,15 +570,15 @@ class Bot {
 
   async processNewPrivateMessages () {
     try {
-      this.services.logger.debug( `🔄 [processNewPrivateMessages] Starting private message check...` );
+      // this.services.logger.debug( `🔄 [processNewPrivateMessages] Starting private message check...` );
       const messages = await this._fetchNewPrivateMessages();
 
       if ( !messages?.length ) {
-        this.services.logger.debug( `🔄 [processNewPrivateMessages] No new private messages found` );
+        // this.services.logger.debug( `🔄 [processNewPrivateMessages] No new private messages found` );
         return; // No new messages to process
       }
 
-      this.services.logger.debug( `🔄 [processNewPrivateMessages] Processing ${messages.length} new private messages` );
+      // this.services.logger.debug( `🔄 [processNewPrivateMessages] Processing ${messages.length} new private messages` );
       await this._processMessageBatch( messages );
     } catch ( error ) {
       // More defensive error handling
@@ -635,29 +635,29 @@ class Bot {
 
   async _fetchNewPrivateMessages () {
     try {
-      this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Starting private message fetch` );
+      // this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Starting private message fetch` );
       
       // Get all users currently in the hangout
       const allUsers = this.services.stateService._getAllUsers();
-      this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Found ${ allUsers.length } users in hangout` );
-      this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Users: ${JSON.stringify(allUsers.map(u => ({ uuid: u.uuid, nickname: u.nickname })), null, 2)}` );
+      // this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Found ${ allUsers.length } users in hangout` );
+      // this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Users: ${JSON.stringify(allUsers.map(u => ({ uuid: u.uuid, nickname: u.nickname })), null, 2)}` );
 
       const allPrivateMessages = [];
 
       for ( const user of allUsers ) {
         const userUUID = user.uuid;
-        this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Processing user: ${userUUID} (${user.nickname || 'No nickname'})` );
+        // this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Processing user: ${userUUID} (${user.nickname || 'No nickname'})` );
         
         // Skip bot's own messages
         if ( userUUID === this.services.config.BOT_UID ) {
-          this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Skipping bot's own messages (BOT_UID: ${this.services.config.BOT_UID})` );
+          // this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Skipping bot's own messages (BOT_UID: ${this.services.config.BOT_UID})` );
           continue;
         }
 
         try {
           // Get the last processed message tracking for this user
           const userTracking = this.lastPrivateMessageTracking[userUUID];
-          this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Last processed message tracking for user ${userUUID}: ${JSON.stringify(userTracking)}` );
+          // this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Last processed message tracking for user ${userUUID}: ${JSON.stringify(userTracking)}` );
 
           // Build options for fetchNewPrivateUserMessages with filtering
           const options = {
@@ -666,15 +666,15 @@ class Bot {
             logLastMessage: false,
             returnData: true
           };
-          this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Calling fetchNewPrivateUserMessages with options: ${JSON.stringify(options)}` );
+          // this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Calling fetchNewPrivateUserMessages with options: ${JSON.stringify(options)}` );
 
           // Use the new API-filtered fetch method
           const userMessages = await this.services.privateMessageService.fetchNewPrivateUserMessages( userUUID, options );
-          this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] fetchNewPrivateUserMessages returned ${userMessages ? userMessages.length : 'null'} NEW messages for user ${userUUID}` );
+          // this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] fetchNewPrivateUserMessages returned ${userMessages ? userMessages.length : 'null'} NEW messages for user ${userUUID}` );
 
           if ( userMessages && userMessages.length > 0 ) {
             // No additional filtering needed - the API already filtered for us
-            this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Processing ${userMessages.length} new messages from user ${userUUID}` );
+            // this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Processing ${userMessages.length} new messages from user ${userUUID}` );
 
             // Transform messages to match the structure expected by _processMessageBatch
             const transformedMessages = userMessages.map( (msg, index) => {
@@ -695,15 +695,15 @@ class Bot {
                 recipientUUID: userUUID
               };
               
-              this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Transformed message ${index} from user ${userUUID}: ${JSON.stringify(transformed, null, 2)}` );
+              // this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Transformed message ${index} from user ${userUUID}: ${JSON.stringify(transformed, null, 2)}` );
               return transformed;
             });
 
             allPrivateMessages.push( ...transformedMessages );
 
-            this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Added ${transformedMessages.length} transformed messages from user ${userUUID}` );
+            // this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Added ${transformedMessages.length} transformed messages from user ${userUUID}` );
           } else {
-            this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] No messages found for user ${userUUID}` );
+            // this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] No messages found for user ${userUUID}` );
           }
         } catch ( userError ) {
           this.services.logger.warn( `❌ [_fetchNewPrivateMessages] Failed to fetch private messages for user ${ userUUID }: ${ userError.message }` );
@@ -715,8 +715,8 @@ class Bot {
       // Sort all messages by sentAt timestamp to process them in chronological order
       allPrivateMessages.sort( ( a, b ) => a.sentAt - b.sentAt );
 
-      this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Total new private messages found: ${ allPrivateMessages.length }` );
-      this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] All private messages: ${JSON.stringify(allPrivateMessages, null, 2)}` );
+      // this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] Total new private messages found: ${ allPrivateMessages.length }` );
+      // this.services.logger.debug( `🔍 [_fetchNewPrivateMessages] All private messages: ${JSON.stringify(allPrivateMessages, null, 2)}` );
       return allPrivateMessages;
 
     } catch ( error ) {
@@ -736,27 +736,27 @@ class Bot {
     this._updateMessageTracking( message );
 
     // Debug: Log the message structure safely
-    try {
-      this.services.logger.debug( `[_processSingleMessage] Raw message id: ${ message?.id }` );
-      this.services.logger.debug( `[_processSingleMessage] Raw message keys: ${ Object.keys( message || {} ).join( ', ' ) }` );
-      this.services.logger.debug( `[_processSingleMessage] Raw message structure: ${ JSON.stringify( message, null, 2 ) }` );
-    } catch ( err ) {
-      this.services.logger.debug( `[_processSingleMessage] Could not stringify message: ${ err.message }` );
-      this.services.logger.debug( `[_processSingleMessage] Message type: ${ typeof message }, id: ${ message?.id }` );
-    }
+    // try {
+    //   this.services.logger.debug( `[_processSingleMessage] Raw message id: ${ message?.id }` );
+    //   this.services.logger.debug( `[_processSingleMessage] Raw message keys: ${ Object.keys( message || {} ).join( ', ' ) }` );
+    //   this.services.logger.debug( `[_processSingleMessage] Raw message structure: ${ JSON.stringify( message, null, 2 ) }` );
+    // } catch ( err ) {
+    //   this.services.logger.debug( `[_processSingleMessage] Could not stringify message: ${ err.message }` );
+    //   this.services.logger.debug( `[_processSingleMessage] Message type: ${ typeof message }, id: ${ message?.id }` );
+    // }
 
     const chatMessage = this._extractChatMessage( message );
     if ( !chatMessage ) return;
 
     // Debug: Log sender extraction step by step
-    this.services.logger.debug( `[_processSingleMessage] message?.sender: ${ JSON.stringify( message?.sender ) }` );
-    this.services.logger.debug( `[_processSingleMessage] message?.sender?.uid: ${ JSON.stringify( message?.sender?.uid ) }` );
-    this.services.logger.debug( `[_processSingleMessage] typeof message?.sender: ${ typeof message?.sender }` );
+    // this.services.logger.debug( `[_processSingleMessage] message?.sender: ${ JSON.stringify( message?.sender ) }` );
+    // this.services.logger.debug( `[_processSingleMessage] message?.sender?.uid: ${ JSON.stringify( message?.sender?.uid ) }` );
+    // this.services.logger.debug( `[_processSingleMessage] typeof message?.sender: ${ typeof message?.sender }` );
 
     // Extract sender UUID - handle both direct string and object with uid property
     const sender = message?.sender?.uid || message?.sender || '';
 
-    this.services.logger.debug( `[_processSingleMessage] Final extracted sender: "${ sender }"` );
+    // this.services.logger.debug( `[_processSingleMessage] Final extracted sender: "${ sender }"` );
 
     if ( this._shouldIgnoreMessage( sender ) ) return;
 
@@ -791,10 +791,10 @@ class Bot {
       this.lastMessageIDs.id = message.id;
 
       // Debug: Log tracking updates
-      this.services.logger.debug( `[Bot] Message tracking updated:` );
-      this.services.logger.debug( `[Bot] - Previous ID: ${ previousId } -> New ID: ${ message.id }` );
-      this.services.logger.debug( `[Bot] - Previous timestamp: ${ previousTimestamp } -> New timestamp: ${ message.sentAt + 1 }` );
-      this.services.logger.debug( `[Bot] - Message sentAt: ${ message.sentAt }` );
+      // this.services.logger.debug( `[Bot] Message tracking updated:` );
+      // this.services.logger.debug( `[Bot] - Previous ID: ${ previousId } -> New ID: ${ message.id }` );
+      // this.services.logger.debug( `[Bot] - Previous timestamp: ${ previousTimestamp } -> New timestamp: ${ message.sentAt + 1 }` );
+      // this.services.logger.debug( `[Bot] - Message sentAt: ${ message.sentAt }` );
     }
   }
 

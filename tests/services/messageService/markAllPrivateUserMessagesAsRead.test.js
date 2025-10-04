@@ -30,14 +30,13 @@ describe('messageService.markAllPrivateUserMessagesAsRead', () => {
     expect(messageService.markMessageAsInterracted).toHaveBeenCalledWith(lastMessageId);
   });
 
-  test('should log debug message when user has no unread messages', async () => {
+  test('should handle when user has no unread messages', async () => {
     messageService.returnLastUserMessage.mockResolvedValue(null);
 
     await messageService.markAllPrivateUserMessagesAsRead('test-user');
 
     expect(messageService.returnLastUserMessage).toHaveBeenCalledWith('test-user');
     expect(messageService.markMessageAsInterracted).not.toHaveBeenCalled();
-    expect(logger.debug).toHaveBeenCalledWith('No unread messages found for user test-user');
   });
 
   test('should handle errors gracefully', async () => {

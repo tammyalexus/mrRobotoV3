@@ -95,19 +95,19 @@ async function sendMessage ( payload ) {
 async function joinChatGroup ( roomId ) {
   try {
     const url = `https://${ config.COMETCHAT_API_KEY }.apiclient-us.cometchat.io/v3/groups/${ roomId }/members`;
-    logger.debug( `[CometChat API] joinChatGroup - URL: ${ url }` );
+    // logger.debug( `[CometChat API] joinChatGroup - URL: ${ url }` );
 
     const requestData = {
       participants: [ config.BOT_UID ]
     };
-    logger.debug( `[CometChat API] joinChatGroup - Request Data: ${ JSON.stringify( requestData ) }` );
+    // logger.debug( `[CometChat API] joinChatGroup - Request Data: ${ JSON.stringify( requestData ) }` );
 
     const response = await makeRequest( url, {
       headers,
       method: 'POST',
       data: requestData
     } );
-    logger.debug( `[CometChat API] joinChatGroup - Response Status: ${ response.status }` );
+    // logger.debug( `[CometChat API] joinChatGroup - Response Status: ${ response.status }` );
 
     return response;
   } catch ( error ) {
@@ -123,9 +123,9 @@ async function joinChatGroup ( roomId ) {
  */
 async function fetchMessages ( endpoint, params = {} ) {
   try {
-    logger.debug( `🔍 [CometChat API] fetchMessages - Starting request` );
-    logger.debug( `🔍 [CometChat API] fetchMessages - Endpoint: ${ endpoint }` );
-    logger.debug( `🔍 [CometChat API] fetchMessages - Raw params: ${JSON.stringify(params)}` );
+    // logger.debug( `🔍 [CometChat API] fetchMessages - Starting request` );
+    // logger.debug( `🔍 [CometChat API] fetchMessages - Endpoint: ${ endpoint }` );
+    // logger.debug( `🔍 [CometChat API] fetchMessages - Raw params: ${JSON.stringify(params)}` );
     
     // Handle both object and array formats for params
     let queryParams;
@@ -135,7 +135,7 @@ async function fetchMessages ( endpoint, params = {} ) {
       queryParams = Object.entries( params );
     }
 
-    logger.debug( `🔍 [CometChat API] fetchMessages - Query params: ${JSON.stringify(queryParams)}` );
+    // logger.debug( `🔍 [CometChat API] fetchMessages - Query params: ${JSON.stringify(queryParams)}` );
 
     // Parse endpoint to separate path and query parameters
     let endpointPath = endpoint;
@@ -149,32 +149,32 @@ async function fetchMessages ( endpoint, params = {} ) {
       const urlParams = new URLSearchParams( queryString );
       endpointParams = Array.from( urlParams.entries() );
       
-      logger.debug( `🔍 [CometChat API] fetchMessages - Parsed endpoint path: ${ endpointPath }` );
-      logger.debug( `🔍 [CometChat API] fetchMessages - Parsed endpoint params: ${JSON.stringify(endpointParams)}` );
+      // logger.debug( `🔍 [CometChat API] fetchMessages - Parsed endpoint path: ${ endpointPath }` );
+      // logger.debug( `🔍 [CometChat API] fetchMessages - Parsed endpoint params: ${JSON.stringify(endpointParams)}` );
     }
     
     // Combine endpoint params with additional params
     const allParams = [ ...endpointParams, ...queryParams ];
-    logger.debug( `🔍 [CometChat API] fetchMessages - All combined params: ${JSON.stringify(allParams)}` );
+    // logger.debug( `🔍 [CometChat API] fetchMessages - All combined params: ${JSON.stringify(allParams)}` );
 
     const url = buildUrl( BASE_URL, [ endpointPath ], allParams );
 
-    logger.debug( `🔍 [CometChat API] fetchMessages - BASE_URL: ${ BASE_URL }` );
-    logger.debug( `🔍 [CometChat API] fetchMessages - Final URL: ${ url }` );
-    logger.debug( `🔍 [CometChat API] fetchMessages - Headers: ${JSON.stringify(headers, null, 2)}` );
+    // logger.debug( `🔍 [CometChat API] fetchMessages - BASE_URL: ${ BASE_URL }` );
+    // logger.debug( `🔍 [CometChat API] fetchMessages - Final URL: ${ url }` );
+    // logger.debug( `🔍 [CometChat API] fetchMessages - Headers: ${JSON.stringify(headers, null, 2)}` );
 
     const response = await apiClient.get( url );
 
-    logger.debug( `🔍 [CometChat API] fetchMessages - Response status: ${ response.status }` );
-    logger.debug( `🔍 [CometChat API] fetchMessages - Response data count: ${ response.data?.data?.length || 0 }` );
+    // logger.debug( `🔍 [CometChat API] fetchMessages - Response status: ${ response.status }` );
+    // logger.debug( `🔍 [CometChat API] fetchMessages - Response data count: ${ response.data?.data?.length || 0 }` );
     
-    if ( response.data?.data?.length > 0 ) {
-      const messages = response.data.data;
-      logger.debug( `🔍 [CometChat API] fetchMessages - First message ID: ${ messages[ 0 ]?.id }` );
-      logger.debug( `🔍 [CometChat API] fetchMessages - Last message ID: ${ messages[ messages.length - 1 ]?.id }` );
-    } else {
-      logger.debug( `🔍 [CometChat API] fetchMessages - No messages returned` );
-    }
+    // if ( response.data?.data?.length > 0 ) {
+    //   const messages = response.data.data;
+    //   logger.debug( `🔍 [CometChat API] fetchMessages - First message ID: ${ messages[ 0 ]?.id }` );
+    //   logger.debug( `🔍 [CometChat API] fetchMessages - Last message ID: ${ messages[ messages.length - 1 ]?.id }` );
+    // } else {
+    //   logger.debug( `🔍 [CometChat API] fetchMessages - No messages returned` );
+    // }
 
     return response;
   } catch ( error ) {
