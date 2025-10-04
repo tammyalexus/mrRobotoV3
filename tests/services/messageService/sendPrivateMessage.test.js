@@ -1,46 +1,94 @@
 // Mock the modules before importing messageService
-jest.mock('../../../src/lib/logging.js', () => ({
+jest.mock( '../../../src/lib/logging.js', () => ( {
   logger: {
     debug: jest.fn(),
     info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn()
   }
+} ) );
+
+jest.mock( '../../../src/services/cometchatApi', () => ({
+  buildCustomData: jest.fn(),
+  buildPayload: jest.fn(),
+  sendMessage: jest.fn(),
+  joinChatGroup: jest.fn(),
+  fetchMessages: jest.fn(),
+  markConversationAsRead: jest.fn(),
+  BASE_URL: 'https://test.cometchat.io',
+  headers: {},
+  apiClient: {}
 }));
 
-jest.mock('axios');
-
 // Now import the modules that use the mocked dependencies
-const axios = require('axios');
-const { messageService } = require('../../../src/services/messageService.js');
-const { logger } = require('../../../src/lib/logging.js');
+const { messageService } = require( '../../../src/services/messageService.js' );
+const cometchatApi = require( '../../../src/services/cometchatApi' );
+const { logger } = require( '../../../src/lib/logging.js' );
 
-describe('messageService', () => {
-  beforeEach(() => {
+describe( 'messageService', () => {
+  let mockServices;
+
+  beforeEach( () => {
     jest.clearAllMocks();
-  });
+    
+    // Set up mock implementations for cometchatApi functions
+    cometchatApi.buildCustomData.mockImplementation(async (message, services) => ({
+      message: message,
+      avatarId: services.dataService?.getValue('botData.CHAT_AVATAR_ID'),
+      userName: services.dataService?.getValue('botData.CHAT_NAME'),
+      color: `#${services.dataService?.getValue('botData.CHAT_COLOUR')}`,
+      mentions: [],
+      userUuid: 'test-bot-uid',
+      badges: ['VERIFIED', 'STAFF'],
+      id: 'mock-uuid'
+    }));
 
-  afterEach(() => {
+    cometchatApi.buildPayload.mockImplementation(async (receiver, receiverType, customData, message) => ({
+      receiver: receiver,
+      receiverType: receiverType,
+      category: 'message',
+      type: 'text',
+      data: {
+        text: message,
+        metadata: {
+          chatMessage: customData
+        }
+      }
+    }));
+    
+    mockServices = {
+      dataService: {
+        getAllData: jest.fn().mockReturnValue( {} ),
+        getValue: jest.fn().mockImplementation( ( key ) => {
+          if ( key === 'botData.CHAT_AVATAR_ID' ) return 'avatar123';
+          if ( key === 'botData.CHAT_NAME' ) return 'TestBot';
+          if ( key === 'botData.CHAT_COLOUR' ) return 'FF0000';
+          return null;
+        } )
+      }
+    };
+  } );
+
+  afterEach( () => {
     jest.clearAllMocks();
-  });
+  } );
 
-  test('sendPrivateMessage sends correct payload with resolved customData', async () => {
-    axios.post.mockResolvedValue({
+  test( 'sendPrivateMessage sends correct payload with resolved customData', async () => {
+    cometchatApi.sendMessage.mockResolvedValue( {
       data: { success: true, message: 'Message sent successfully!' }
-    });
+    } );
 
-    await messageService.sendPrivateMessage('Hello Test');
+    await messageService.sendPrivateMessage( 'Hello Test', 'test-receiver', mockServices );
 
-    expect(axios.post).toHaveBeenCalledTimes(1);
-    const calledPayload = axios.post.mock.calls[0][1]; // second argument of axios.post
+    expect( cometchatApi.sendMessage ).toHaveBeenCalledTimes( 1 );
+    const calledPayload = cometchatApi.sendMessage.mock.calls[ 0 ][ 0 ]; // first argument of cometchatApi.sendMessage
 
     // Assert that customData was resolved properly (not a Promise)
-    expect(calledPayload).toHaveProperty('data.metadata.chatMessage.message', 'Hello Test');
-    expect(typeof calledPayload.data.metadata.chatMessage).toBe('object');
-    expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('✅ Private message sent:'));
-  });
+    expect( calledPayload ).toHaveProperty( 'data.metadata.chatMessage.message', 'Hello Test' );
+    expect( typeof calledPayload.data.metadata.chatMessage ).toBe( 'object' );
+  } );
 
-  test('sendPrivateMessage logs error on axios failure', async () => {
+  test( 'sendPrivateMessage logs error on axios failure', async () => {
     const error = {
       response: {
         data: 'Unauthorized'
@@ -48,41 +96,41 @@ describe('messageService', () => {
       message: 'Unauthorized'
     };
 
-    axios.post.mockRejectedValue(error);
+    cometchatApi.sendMessage.mockRejectedValue( error );
 
-    await messageService.sendPrivateMessage('Hello Error');
+    await messageService.sendPrivateMessage( 'Hello Error', 'test-receiver', mockServices );
 
-    expect(axios.post).toHaveBeenCalledTimes(1);
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('❌ Failed to send private message: Unauthorized')
+    expect( cometchatApi.sendMessage ).toHaveBeenCalledTimes( 1 );
+    expect( logger.error ).toHaveBeenCalledWith(
+      expect.stringContaining( '❌ Failed to send private message: Unauthorized' )
     );
-  });
+  } );
 
-  test('sendPrivateMessage logs error message when err.response is undefined', async () => {
-    const error = new Error('Network failure');
-    axios.post.mockRejectedValue(error);
+  test( 'sendPrivateMessage logs error message when err.response is undefined', async () => {
+    const error = new Error( 'Network failure' );
+    cometchatApi.sendMessage.mockRejectedValue( error );
 
-    await messageService.sendPrivateMessage('Hello Error');
+    await messageService.sendPrivateMessage( 'Hello Error', 'test-receiver', mockServices );
 
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('❌ Failed to send private message: Network failure')
+    expect( logger.error ).toHaveBeenCalledWith(
+      expect.stringContaining( '❌ Failed to send private message: Network failure' )
     );
-  });
+  } );
 
-  test('sendPrivateMessage logs error on axios failure with response data', async () => {
-    // Mock axios.post to reject with an error object
+  test( 'sendPrivateMessage logs error on cometchat failure with response data', async () => {
+    // Mock cometchatApi.sendMessage to reject with an error object
     const error = {
       response: {
         data: { message: 'Private message failed' }
       }
     };
-    axios.post.mockRejectedValue(error);
+    cometchatApi.sendMessage.mockRejectedValue( error );
 
-    await messageService.sendPrivateMessage('Test private message');
+    await messageService.sendPrivateMessage( 'Test private message', 'test-receiver', mockServices );
 
-    expect(axios.post).toHaveBeenCalledTimes(1);
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('❌ Failed to send private message:')
+    expect( cometchatApi.sendMessage ).toHaveBeenCalledTimes( 1 );
+    expect( logger.error ).toHaveBeenCalledWith(
+      expect.stringContaining( '❌ Failed to send private message:' )
     );
-  });
-});
+  } );
+} );

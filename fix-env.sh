@@ -14,6 +14,18 @@ fi
 
 echo "🔧 Fixing .env file for Docker Compose compatibility..."
 
+# Determine which Docker Compose command to use
+DOCKER_COMPOSE_CMD=""
+if command -v docker-compose > /dev/null 2>&1; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+elif docker compose version > /dev/null 2>&1; then
+    DOCKER_COMPOSE_CMD="docker compose"
+else
+    echo "❌ Neither 'docker-compose' nor 'docker compose' is available."
+    echo "   Please install Docker Compose."
+    exit 1
+fi
+
 # Create backup
 cp "$ENV_FILE" "$BACKUP_FILE"
 echo "✅ Backup created: $BACKUP_FILE"
@@ -48,7 +60,7 @@ mv "$TEMP_FILE" "$ENV_FILE"
 echo "✅ .env file has been fixed!"
 echo "🧪 Testing Docker Compose configuration..."
 
-if docker-compose config --quiet > /dev/null 2>&1; then
+if $DOCKER_COMPOSE_CMD config --quiet > /dev/null 2>&1; then
     echo "✅ Docker Compose configuration is now valid!"
 else
     echo "❌ Still having issues. Restoring backup..."
@@ -57,4 +69,4 @@ else
     exit 1
 fi
 
-echo "🐳 Ready to run: docker-compose up -d"
+echo "🐳 Ready to run: $DOCKER_COMPOSE_CMD up -d"

@@ -10,13 +10,19 @@ const requiredRole = 'USER';
  * @param {string} commandParams.args - Command arguments
  * @param {Object} commandParams.services - Service container
  * @param {Object} commandParams.context - Command context
+ * @param {string} commandParams.responseChannel - Response channel ('public' or 'request')
  * @returns {Promise<Object>} Command result
  */
 async function handleHelpCommand(commandParams) {
-  const { services } = commandParams;
+  const { services, context, responseChannel = 'request' } = commandParams;
   const { messageService } = services;
   const helpText = `🤖 Available Commands:\n${config.COMMAND_SWITCH}help - Show this help message\n${config.COMMAND_SWITCH}ping - Check if bot is responding\n${config.COMMAND_SWITCH}status - Show bot status\n${config.COMMAND_SWITCH}echo [message] - Echo back your message`;
-  await messageService.sendGroupMessage(helpText, { services });
+  await messageService.sendResponse(helpText, {
+    responseChannel,
+    isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+    sender: context?.sender,
+    services
+  });
   return {
     success: true,
     response: helpText,

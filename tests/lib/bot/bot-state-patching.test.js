@@ -140,6 +140,8 @@ describe('Bot - State Patching', () => {
     it('should warn when receiving patch without current state', async () => {
       // Remove current state
       bot.state = null;
+      // Ensure we're not in initial connection mode
+      bot._isInitialConnection = false;
       
       // Set up the listener
       bot._setupStatefulMessageListener();

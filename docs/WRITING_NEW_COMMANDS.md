@@ -30,15 +30,23 @@ const requiredRole = 'USER';  // Can be: 'OWNER', 'coOwner', 'MODERATOR', or 'US
  * @param {string} commandParams.args - Everything after the command
  * @param {Object} commandParams.services - All available services
  * @param {Object} commandParams.context - Additional context (sender info etc.)
+ * @param {string} commandParams.responseChannel - Response channel ('public' or 'request')
  * @returns {Promise<Object>} - Command result
  */
 async function handleXXXCommand(commandParams) {
-    const { args, services, context } = commandParams;
+    const { args, services, context, responseChannel = 'request' } = commandParams;
     const { messageService } = services;  // Extract any services you need
 
     // Your command logic here
     const response = `Command XXX executed with args: ${args}`;
-    await messageService.sendGroupMessage(response);
+    
+    // Use messageService.sendResponse for automatic channel routing
+    await messageService.sendResponse(response, {
+        responseChannel,
+        isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+        sender: context?.sender,
+        services
+    });
 
     return {
         success: true,
@@ -63,6 +71,7 @@ The `commandParams` object contains:
 | args | string | Everything after the command |
 | services | Object | All available services |
 | context | Object | Sender info and message context |
+| responseChannel | string | Where to send the response ('public' or 'request') |
 
 ### Available Services
 
@@ -75,6 +84,50 @@ const {
     stateService,     // Access room state
     hangoutState      // Direct access to state
 } = services;
+```
+
+## Response Channels
+
+The `responseChannel` parameter controls where the bot sends its response:
+
+### Channel Options
+
+- **`'request'` (default)**: Responds in the same channel as the original message
+  - If the command was sent in public chat → responds in public chat
+  - If the command was sent as a private message → responds as a private message
+- **`'public'`**: Always responds in the public group chat, regardless of where the command originated
+
+### Using Response Channels
+
+Always use `messageService.sendResponse()` instead of `sendGroupMessage()` or `sendPrivateMessage()` directly:
+
+```javascript
+// ✅ Correct: Respects responseChannel setting
+await messageService.sendResponse(response, {
+    responseChannel,
+    isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+    sender: context?.sender,
+    services
+});
+
+// ❌ Incorrect: Always sends to group chat
+await messageService.sendGroupMessage(response);
+
+// ❌ Incorrect: Always sends private message
+await messageService.sendPrivateMessage(response, sender, services);
+```
+
+### Example Response Scenarios
+
+```javascript
+// User sends "!help" in public chat with responseChannel='request'
+// → Bot responds in public chat
+
+// User sends "!help" via private message with responseChannel='request'  
+// → Bot responds via private message
+
+// User sends "!help" via private message with responseChannel='public'
+// → Bot responds in public chat (announces the help publicly)
 ```
 
 ## Permission Levels
@@ -106,6 +159,27 @@ return {
 };
 ```
 
+### Handling Errors with Response Channels
+
+When handling errors, make sure to send error messages using the same response channel pattern:
+
+```javascript
+if (!args.trim()) {
+    const errorResponse = '❓ Please provide the required arguments.';
+    await messageService.sendResponse(errorResponse, {
+        responseChannel,
+        isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+        sender: context?.sender,
+        services
+    });
+    return {
+        success: false,
+        shouldRespond: true,
+        response: errorResponse
+    };
+}
+```
+
 ## Example Command
 
 Here's a complete example of a simple greeting command:
@@ -114,13 +188,18 @@ Here's a complete example of a simple greeting command:
 const requiredRole = 'USER';
 
 async function handleGreetCommand(commandParams) {
-    const { args, services, context } = commandParams;
+    const { args, services, context, responseChannel = 'request' } = commandParams;
     const { messageService } = services;
 
     const name = args || context.sender;
     const response = `👋 Hello, ${name}!`;
     
-    await messageService.sendGroupMessage(response);
+    await messageService.sendResponse(response, {
+        responseChannel,
+        isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+        sender: context?.sender,
+        services
+    });
     
     return {
         success: true,

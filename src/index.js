@@ -10,8 +10,11 @@ services.logger.info( '======================================= Application Start
 
 ( async () => {
 
+  services.logger.debug( '🚀 Starting application async function' );
+
   try {
     // Fetch bot's nickname using BOT_UID and hangUserService
+    services.logger.debug( '🔍 About to fetch bot nickname' );
     try {
       const botNickname = await services.hangUserService.getUserNicknameByUuid( services.config.BOT_UID );
       services.setState( 'botNickname', botNickname );
@@ -20,9 +23,15 @@ services.logger.info( '======================================= Application Start
       services.logger.warn( `⚠️ Could not resolve bot nickname: ${ err.message }` );
     }
 
+    services.logger.debug( '🤖 About to create Bot instance' );
     const roomBot = new Bot( services.config.HANGOUT_ID, services );
     services.logger.debug( '🤖 Bot instance created' );
 
+    // Register bot instance in services so handlers can access it
+    services.bot = roomBot;
+    services.logger.debug( '🤖 Bot instance registered in services container' );
+
+    services.logger.debug( '🔗 About to connect bot' );
     try {
       await roomBot.connect();
       services.logger.debug( '✅ Bot connect() completed successfully' );
@@ -48,17 +57,57 @@ services.logger.info( '======================================= Application Start
     services.logger.debug( `Starting message processing with ${ checkInterval }ms interval` );
     setInterval( async () => {
       try {
-        await roomBot.processNewMessages();
+        await roomBot.processNewPublicMessages();
       } catch ( error ) {
-        services.logger.error( `Error in processNewMessages: ${ error?.message || error?.toString() || 'Unknown error' }` );
+        services.logger.error( `Error in processNewPublicMessages: ${ error?.message || error?.toString() || 'Unknown error' }` );
+      }
+
+      try {
+        await roomBot.processNewPrivateMessages();
+      } catch ( error ) {
+        services.logger.error( `Error in processNewPrivateMessages: ${ error?.message || error?.toString() || 'Unknown error' }` );
       }
     }, checkInterval );
+
+    services.logger.debug( `Started message processing with ${ checkInterval }ms interval` );
+
+    // Small delay to allow state to settle after room join and initial patches
+    services.logger.debug( '⏳ Waiting 2 seconds for state to settle...' );
+    await new Promise( resolve => setTimeout( resolve, 2000 ) );
+
+    // Validate that we have initial state data before declaring success
+    services.logger.debug( '🔍 Starting state validation...' );
+    try {
+      const allUserData = services.hangoutState?.allUserData || {};
+      const userCount = Object.keys( allUserData ).length;
+      services.logger.debug( `🔍 State validation: userCount = ${ userCount }` );
+
+      if ( userCount === 0 ) {
+        services.logger.error( '❌ CRITICAL ERROR: allUserData is empty - no initial state loaded' );
+        services.logger.error( '❌ This indicates the stateful message processing failed to apply initial state patches' );
+        services.logger.error( '❌ The bot cannot operate without proper state initialization' );
+        services.logger.error( '❌ Check logs for JSON Patch application errors and ensure stateful messages are being processed correctly' );
+        services.logger.error( '❌ EXITING APPLICATION DUE TO EMPTY STATE' );
+        process.exit( 1 );
+      }
+
+      services.logger.info( `✅ State validation passed: ${ userCount } users loaded in allUserData` );
+    } catch ( stateError ) {
+      services.logger.error( `❌ CRITICAL ERROR: Failed to validate initial state: ${ stateError.message }` );
+      services.logger.error( '❌ Cannot proceed without valid state - exiting application' );
+      services.logger.error( '❌ EXITING APPLICATION DUE TO STATE ERROR' );
+      process.exit( 1 );
+    }
+    services.logger.debug( '✅ State validation completed successfully' );
 
     services.logger.info( '======================================= Application Started Successfully =======================================' );
 
     // Send startup message to group
+    services.logger.debug( '📤 Preparing to send startup message...' );
     try {
       const botNickname = services.getState( 'botNickname' ) || 'Bot';
+      services.logger.debug( `📤 Sending startup message with nickname: ${ botNickname }` );
+
       await services.messageService.sendGroupMessage( `${ botNickname } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do`, { services } );
 
       // await services.messageService.sendGroupPictureMessage(
@@ -70,10 +119,15 @@ services.logger.info( '======================================= Application Start
       services.logger.info( "✅ Startup message sent to group" );
     } catch ( error ) {
       services.logger.error( `❌ Failed to send startup message: ${ error?.message || error?.toString() || 'Unknown error' }` );
+      services.logger.error( `❌ Startup message error details:`, error );
+      // Don't exit here - continue running even if startup message fails
     }
+
+    services.logger.info( '🎉 APPLICATION STARTUP COMPLETED - Bot is now running' );
 
   } catch ( err ) {
     services.logger.error( `❌ Error during startup: ${ err.response?.data || err.message }` );
     services.logger.error( err );
+    services.logger.error( '❌ EXITING APPLICATION DUE TO STARTUP ERROR' );
   }
 } )();

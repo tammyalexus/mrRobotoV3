@@ -3,6 +3,7 @@ const path = require( 'path' );
 // Mock fs promises - must be done before requiring Bot
 const mockAppendFile = jest.fn();
 jest.mock( 'fs', () => ( {
+  readdirSync: jest.fn().mockReturnValue([]), // Mock for commandService
   promises: {
     appendFile: mockAppendFile
   }
@@ -26,13 +27,13 @@ jest.mock( '../../../src/services/cometchatApi', () => {
 } );
 
 // Mock MessageService
-jest.mock( '../../../src/services/messageService', () => {
-  return jest.fn().mockImplementation( () => ( {
+jest.mock( '../../../src/services/messageService', () => ({
+  messageService: {
     joinChat: jest.fn().mockResolvedValue(),
     fetchGroupMessages: jest.fn().mockResolvedValue( [] ),
     sendGroupMessage: jest.fn().mockResolvedValue()
-  } ) );
-} );
+  }
+}) );
 
 // Mock parseCommands
 jest.mock( '../../../src/services/parseCommands', () => ( {
@@ -72,16 +73,10 @@ describe( 'Bot', () => {
     mockSocketInstance.joinRoom.mockClear();
     mockSocketInstance.on.mockClear();
 
-    const ServiceContainer = require( '../../../src/lib/serviceContainer' );
+    const serviceContainer = require( '../../../src/services/serviceContainer' );
 
-    // Create a real ServiceContainer with mocked internal services
-    mockServices = new ServiceContainer( {
-      HANGOUT_ID: 'test-hangout-123',
-      BOT_USER_TOKEN: 'test-bot-token-456',
-      BOT_UID: 'test-bot-uid-789',
-      COMMAND_SWITCH: '!',
-      SOCKET_MESSAGE_LOG_LEVEL: 'ON'
-    } );
+    // Use the singleton serviceContainer directly
+    mockServices = serviceContainer;
 
     // Mock the logger methods
     mockServices.logger = {
@@ -102,6 +97,26 @@ describe( 'Bot', () => {
     mockServices.parseCommands = jest.fn();
     mockServices.commandService = jest.fn();
     mockServices.getState = jest.fn();
+    
+    // Mock the config with expected test values
+    mockServices.config = {
+      HANGOUT_ID: 'test-hangout-123',
+      BOT_USER_TOKEN: 'test-bot-token-456',
+      BOT_UID: 'test-bot-uid-789',
+      COMMAND_SWITCH: '!',
+      SOCKET_MESSAGE_LOG_LEVEL: 'ON'
+    };
+    
+    // Set up hangoutState with required properties for StateService
+    mockServices.hangoutState = {
+      allUsers: [],
+      allUserData: {},
+      djs: [],
+      settings: {},
+      vibeMeter: 0,
+      votes: { up: 0, down: 0 }
+    };
+    
     // Patch getState for nickname
     originalGetState = mockServices.getState;
     // Additional tests for bot nickname usage in startup message
@@ -243,7 +258,15 @@ describe( 'Bot', () => {
 
   describe( '_joinSocketRoom', () => {
     test( 'should join room and set state on success', async () => {
-      const mockState = { roomId: 'test-room', users: [] };
+      const mockState = { 
+        roomId: 'test-room', 
+        users: [],
+        allUsers: [],
+        allUserData: {},
+        djs: [],
+        settings: {},
+        vibeMeter: 0
+      };
       bot._joinRoomWithTimeout = jest.fn().mockResolvedValue( { state: mockState } );
 
       await bot._joinSocketRoom();
@@ -264,7 +287,16 @@ describe( 'Bot', () => {
     } );
 
     test( 'should log initial state when SOCKET_MESSAGE_LOG_LEVEL is DEBUG', async () => {
-      const mockState = { roomId: 'debug-room', users: [ 'user1' ], currentSong: { id: '123' } };
+      const mockState = { 
+        roomId: 'debug-room', 
+        users: [ 'user1' ], 
+        currentSong: { id: '123' },
+        allUsers: [ { uid: 'user1' } ],
+        allUserData: { 'user1': { nickname: 'TestUser' } },
+        djs: [],
+        settings: {},
+        vibeMeter: 0
+      };
       bot._joinRoomWithTimeout = jest.fn().mockResolvedValue( { state: mockState } );
       mockServices.config.SOCKET_MESSAGE_LOG_LEVEL = 'DEBUG';
 
@@ -278,7 +310,15 @@ describe( 'Bot', () => {
     } );
 
     test( 'should not log initial state when SOCKET_MESSAGE_LOG_LEVEL is not DEBUG', async () => {
-      const mockState = { roomId: 'test-room', users: [] };
+      const mockState = { 
+        roomId: 'test-room', 
+        users: [],
+        allUsers: [],
+        allUserData: {},
+        djs: [],
+        settings: {},
+        vibeMeter: 0
+      };
       bot._joinRoomWithTimeout = jest.fn().mockResolvedValue( { state: mockState } );
       mockServices.config.SOCKET_MESSAGE_LOG_LEVEL = 'ON';
 
@@ -291,7 +331,15 @@ describe( 'Bot', () => {
     } );
 
     test( 'should handle initial state logging errors gracefully', async () => {
-      const mockState = { roomId: 'error-room', users: [] };
+      const mockState = { 
+        roomId: 'error-room', 
+        users: [],
+        allUsers: [],
+        allUserData: {},
+        djs: [],
+        settings: {},
+        vibeMeter: 0
+      };
       bot._joinRoomWithTimeout = jest.fn().mockResolvedValue( { state: mockState } );
       mockServices.config.SOCKET_MESSAGE_LOG_LEVEL = 'DEBUG';
 
@@ -522,18 +570,15 @@ describe( 'Bot', () => {
 describe( 'Bot nickname usage in startup message', () => {
   let mockServices;
   beforeEach( () => {
-    const ServiceContainer = require( '../../../src/lib/serviceContainer' );
-    mockServices = new ServiceContainer( {
-      HANGOUT_ID: 'test-hangout-123',
-      BOT_USER_TOKEN: 'test-bot-token-456',
-      BOT_UID: 'test-bot-uid-789',
-      COMMAND_SWITCH: '!'
-    } );
+    const serviceContainer = require( '../../../src/services/serviceContainer' );
+    mockServices = serviceContainer;
     mockServices.getState = jest.fn();
   } );
 
   test( 'should use botNickname from services.getState in startup message', async () => {
     mockServices.getState.mockReturnValue( 'TestBotNick' );
+    // Ensure config has the expected COMMAND_SWITCH for this test
+    mockServices.config.COMMAND_SWITCH = '!';
     const botNickname = mockServices.getState( 'botNickname' ) || 'Bot';
     const message = `${ botNickname } is online...user ${ mockServices.config.COMMAND_SWITCH }help to see some of what I can do`;
     expect( message ).toContain( 'TestBotNick is online' );
@@ -542,8 +587,11 @@ describe( 'Bot nickname usage in startup message', () => {
 
   test( 'should fallback to "Bot" if nickname is not set', async () => {
     mockServices.getState.mockReturnValue( undefined );
+    // Ensure config has the expected COMMAND_SWITCH for this test
+    mockServices.config.COMMAND_SWITCH = '!';
     const botNickname = mockServices.getState( 'botNickname' ) || 'Bot';
     const message = `${ botNickname } is online...user ${ mockServices.config.COMMAND_SWITCH }help to see some of what I can do`;
     expect( message ).toContain( 'Bot is online' );
+    expect( message ).toContain( '!help' );
   } );
 } );

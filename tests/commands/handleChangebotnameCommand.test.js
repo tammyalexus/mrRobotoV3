@@ -13,7 +13,8 @@ describe('handleChangebotnameCommand', () => {
     // Mock services
     mockServices = {
       messageService: {
-        sendGroupMessage: jest.fn().mockResolvedValue({})
+        sendGroupMessage: jest.fn().mockResolvedValue({}),
+        sendResponse: jest.fn().mockResolvedValue({})
       },
       hangUserService: {
         updateHangNickname: jest.fn().mockResolvedValue({})
@@ -45,7 +46,7 @@ describe('handleChangebotnameCommand', () => {
     // Verify all services were called
     expect(mockServices.hangUserService.updateHangNickname).toHaveBeenCalledWith('NewBotName');
     expect(mockServices.dataService.setValue).toHaveBeenCalledWith('botData.CHAT_NAME', 'NewBotName');
-    expect(mockServices.messageService.sendGroupMessage).toHaveBeenCalled();
+    expect(mockServices.messageService.sendResponse).toHaveBeenCalled();
   });
 
   test('fails when no name is provided', async () => {

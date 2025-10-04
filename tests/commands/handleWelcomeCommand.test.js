@@ -19,7 +19,8 @@ describe('handleWelcomeCommand', () => {
 
         mockServices = {
             messageService: {
-                sendGroupMessage: jest.fn()
+                sendGroupMessage: jest.fn(),
+                sendResponse: jest.fn()
             },
             dataService: {
                 loadData: jest.fn().mockResolvedValue(),
@@ -54,7 +55,7 @@ describe('handleWelcomeCommand', () => {
 
         expect(result.success).toBe(false);
         expect(result.response).toContain('Please provide a new welcome message');
-        expect(mockServices.messageService.sendGroupMessage).toHaveBeenCalled();
+        expect(mockServices.messageService.sendResponse).toHaveBeenCalled();
     });
 
     it('should update welcome message successfully', async () => {
@@ -68,7 +69,7 @@ describe('handleWelcomeCommand', () => {
             expect.stringContaining('New welcome message'),
             'utf8'
         );
-        expect(mockServices.messageService.sendGroupMessage).toHaveBeenCalled();
+        expect(mockServices.messageService.sendResponse).toHaveBeenCalled();
     });
 
     it('should handle errors when updating file', async () => {
@@ -82,6 +83,6 @@ describe('handleWelcomeCommand', () => {
         expect(result.success).toBe(false);
         expect(result.response).toContain('Failed to update welcome message');
         expect(result.error).toBe('Write error');
-        expect(mockServices.messageService.sendGroupMessage).toHaveBeenCalled();
+        expect(mockServices.messageService.sendResponse).toHaveBeenCalled();
     });
 });

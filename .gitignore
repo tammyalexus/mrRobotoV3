@@ -139,6 +139,7 @@ vite.config.ts.timestamp-*
 /.idea/
 
 # MacOS stuff
+**/.DS_Store
 .DS_Store
 
 # Docker-related files
