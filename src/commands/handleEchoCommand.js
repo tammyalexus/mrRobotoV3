@@ -12,12 +12,16 @@ const requiredRole = 'USER';
  * @returns {Promise<Object>} Command result
  */
 async function handleEchoCommand(commandParams) {
-  const { args, services, context, responseChannel = 'request' } = commandParams;
+  const { args, services, context, responseChannel = 'public' } = commandParams;
   const { messageService, hangUserService } = services;
+  
+  // Force responseChannel to 'public' for echo command
+  const actualResponseChannel = 'public';
+  
   if (!args.trim()) {
     const response = '❓ Echo what? Please provide a message to echo.';
     await messageService.sendResponse(response, {
-      responseChannel,
+      responseChannel: actualResponseChannel,
       isPrivateMessage: context?.fullMessage?.isPrivateMessage,
       sender: context?.sender,
       services
@@ -44,7 +48,7 @@ async function handleEchoCommand(commandParams) {
   }
   const response = `🔊 Echo: ${args} (from ${senderDisplay})`;
   await messageService.sendResponse(response, {
-    responseChannel,
+    responseChannel: actualResponseChannel,
     isPrivateMessage: context?.fullMessage?.isPrivateMessage,
     sender: context?.sender,
     services

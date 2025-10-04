@@ -140,7 +140,7 @@ describe('Command Flow Integration', () => {
     expect(mockMessageService.sendResponse).toHaveBeenCalledWith(
       expect.stringContaining('Hello World'),
       expect.objectContaining({
-        responseChannel: 'request',
+        responseChannel: 'public',
         services: mockServices
       })
     );

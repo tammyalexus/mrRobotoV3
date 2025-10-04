@@ -154,7 +154,7 @@ describe( 'commandService', () => {
       expect( mockMessageService.sendResponse ).toHaveBeenCalledWith(
         expect.stringContaining( 'from Nick-From-UUID' ),
         expect.objectContaining( {
-          responseChannel: 'request',
+          responseChannel: 'public',
           services: expect.any( Object )
         } )
       );
