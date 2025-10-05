@@ -51,7 +51,7 @@ services.logger.info( '======================================= Application Start
       services.logger.warn( '⚠️ Continuing without group membership - some features may not work' );
     }
 
-    const checkInterval = 1000 * 1; // 1 second
+    const checkInterval = 2000 * 1; // 2 seconds
 
     // Start message processing with setInterval
     services.logger.debug( `Starting message processing with ${ checkInterval }ms interval` );

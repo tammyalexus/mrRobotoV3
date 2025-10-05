@@ -37,8 +37,9 @@ async function userJoined ( message, state, services ) {
       // Initialize private message tracking for the new user
       if ( services.bot && typeof services.bot.initializePrivateMessageTrackingForUser === 'function' ) {
         try {
-          await services.bot.initializePrivateMessageTrackingForUser( userUUID );
-          services.logger.debug( `✅ Private message tracking initialized for new user: ${ userUUID }` );
+          // Set timestamp to now to avoid processing messages sent while user was not in room
+          await services.bot.initializePrivateMessageTrackingForUser( userUUID, true );
+          services.logger.debug( `✅ Private message tracking initialized for new user: ${ userUUID } with timestamp set to now` );
         } catch ( error ) {
           services.logger.warn( `Failed to initialize private message tracking for user ${ userUUID }: ${ error.message }` );
         }

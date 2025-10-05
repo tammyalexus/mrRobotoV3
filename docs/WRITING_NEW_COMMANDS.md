@@ -21,7 +21,7 @@ Every command file should follow this template:
 
 ```javascript
 // Set the required permission level
-const requiredRole = 'USER';  // Can be: 'OWNER', 'coOwner', 'MODERATOR', or 'USER'
+const requiredRole = 'USER';  // Can be: 'OWNER', 'MODERATOR', or 'USER'
 
 /**
  * Handle the XXX command
@@ -135,17 +135,15 @@ await messageService.sendPrivateMessage(response, sender, services);
 Set the required permission level at the top of your file:
 
 ```javascript
-const requiredRole = 'USER';  // Most permissive
-const requiredRole = 'MODERATOR';  // Requires moderator or higher
-const requiredRole = 'coOwner';  // Requires co-owner or owner
-const requiredRole = 'OWNER';  // Most restrictive
+const requiredRole = 'USER';     // Most permissive - allows all users
+const requiredRole = 'MODERATOR'; // Requires moderator, coOwner, or owner
+const requiredRole = 'OWNER';     // Most restrictive - requires coOwner or owner
 ```
 
 Permission hierarchy (highest to lowest):
-1. OWNER
-2. coOwner
-3. MODERATOR
-4. USER
+1. **OWNER** (includes: owner, coOwner roles)
+2. **MODERATOR** (includes: owner, coOwner, moderator roles)  
+3. **USER** (includes: all roles)
 
 ## Command Response Format
 

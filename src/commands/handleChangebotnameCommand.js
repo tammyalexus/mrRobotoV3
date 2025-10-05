@@ -2,8 +2,8 @@ const { logger } = require('../lib/logging.js');
 const fs = require('fs').promises;
 const path = require('path');
 
-// This command requires OWNER role
-module.exports.requiredRole = 'OWNER';
+// Set required role level for this command
+const requiredRole = 'OWNER';
 
 /**
  * Changes the bot's nickname and updates all related configurations
@@ -11,7 +11,7 @@ module.exports.requiredRole = 'OWNER';
  * @param {string} commandParams.responseChannel - Response channel ('public' or 'request')
  * @returns {Promise<Object>} Command result
  */
-module.exports = async function handleChangebotnameCommand(commandParams) {
+async function handleChangebotnameCommand(commandParams) {
   const { args, services, context, responseChannel = 'request' } = commandParams;
 
   if (!args) {
@@ -67,4 +67,9 @@ module.exports = async function handleChangebotnameCommand(commandParams) {
       response: errorMsg
     };
   }
-};
+}
+
+// Attach role level to the function
+handleChangebotnameCommand.requiredRole = requiredRole;
+
+module.exports = handleChangebotnameCommand;
