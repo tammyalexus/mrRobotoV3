@@ -391,11 +391,11 @@ describe( 'Bot', () => {
 
       const joinPromise = bot._joinRoomWithTimeout();
 
-      // Fast-forward past the timeout
-      jest.advanceTimersByTime( 11000 );
+      // Fast-forward past the timeout (60 seconds + buffer)
+      jest.advanceTimersByTime( 61000 );
 
-      await expect( joinPromise ).rejects.toThrow( 'Socket join room timeout after 10 seconds' );
-    } );
+      await expect( joinPromise ).rejects.toThrow( 'Socket join room timeout after 60 seconds' );
+    }, 70000 ); // Set Jest timeout to 70 seconds to allow for the 60-second timeout plus buffer
   } );
 
   describe( '_setupReconnectHandler', () => {

@@ -60,7 +60,12 @@ const services = {
     if ( !this.hangoutState ) this.hangoutState = {};
     this.hangoutState[ key ] = value;
     if ( this.state ) this.state[ key ] = value;
-    this.logger.debug( `State updated: ${ key } = ${ value }` );
+    
+    // Properly log objects by stringifying them
+    const valueToLog = typeof value === 'object' && value !== null 
+      ? JSON.stringify( value, null, 2 ) 
+      : value;
+    this.logger.debug( `State updated: ${ key } = ${ valueToLog }` );
   },
 
   getState ( key ) {
