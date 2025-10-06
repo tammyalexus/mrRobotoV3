@@ -12,6 +12,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Features may be incomplete or subject to breaking changes
 - API stability not guaranteed until 1.0.0 release
 
+## [0.6.0_alpha] - 2025-10-06
+### Added
+- **Private Message Commands**: Added full support for sending commands via private messages
+  - Bot now processes commands sent through private/direct messages
+  - Same command functionality available in both group and private contexts
+  - Enhanced user interaction capabilities with private command support
+- **Improved Message Processing**: Enhanced message processing architecture
+  - Added separate processing loops for public and private messages
+  - Better concurrency protection with processing flags
+  - More responsive message handling with 1-second processing intervals
+
+### Improved
+- **Startup Reliability**: Resolved intermittent race conditions during bot startup
+  - Implemented deferred patch handling system for stateful messages
+  - Fixed race condition where state patches arrived before state initialization
+  - Eliminated Docker restart loops during application startup
+  - Added proper state validation and error handling
+- **Code Quality**: Various stability improvements and optimizations
+  - Enhanced error handling throughout the application
+  - Improved logging and debugging capabilities
+  - Better separation of concerns between services
+
+## [0.5.0_alpha] - 2025-09-25
+### Added
+- **Docker Deployment**: Complete containerization of the application
+  - Added comprehensive Docker configuration with multi-stage builds
+  - Docker Compose orchestration with health checks and resource limits
+  - Persistent storage for logs and bot data
+  - Production-ready container setup with proper user permissions
+- **Enhanced Startup Sequence**: Improved application initialization
+  - Added strategic delays to prevent race conditions during startup
+  - Better error handling and logging during bot connection
+  - Improved state management during initial connection phase
+
 ## [0.4.6_alpha] - 2025-09-20
 ### Fixed
 - **Startup sequence**: Changed startup order
