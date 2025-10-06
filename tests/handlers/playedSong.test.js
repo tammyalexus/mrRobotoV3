@@ -233,4 +233,82 @@ describe( 'playedSong handler', () => {
       { services }
     );
   } );
+
+  test( 'should fallback to full state for DJ UUID when not in patch', async () => {
+    // Set up full state with DJ UUID but patch without DJ UUID
+    services.hangoutState.djs = [
+      { uuid: 'a5e09ebd-ceb5-46b6-b962-52754e32840d' }
+    ];
+
+    const message = {
+      statePatch: [
+        // No DJ UUID patch - simulating single DJ scenario
+        {
+          op: 'replace',
+          path: '/nowPlaying/song/artistName',
+          value: 'Queen'
+        },
+        {
+          op: 'replace',
+          path: '/nowPlaying/song/trackName',
+          value: 'Another One Bites The Dust (Remastered 2011)'
+        }
+      ]
+    };
+
+    services.hangoutState.nowPlaying = { song: 'test' };
+    playedSong( message, {}, services );
+
+    // Wait for async announcement
+    await Promise.resolve();
+
+    expect( services.messageService.formatMention ).toHaveBeenCalledWith( 'a5e09ebd-ceb5-46b6-b962-52754e32840d' );
+    expect( services.messageService.sendGroupMessage ).toHaveBeenCalledWith(
+      '<@uid:a5e09ebd-ceb5-46b6-b962-52754e32840d> is now playing Another One Bites The Dust (Remastered 2011) by Queen',
+      { services }
+    );
+  } );
+
+  test( 'should extract song info from full nowPlaying object replacement', async () => {
+    // Set up full state with DJ UUID
+    services.hangoutState.djs = [
+      { uuid: 'f813b9cc-28c4-4ec6-a9eb-2cdfacbcafbc' }
+    ];
+
+    const message = {
+      statePatch: [
+        {
+          op: 'replace',
+          path: '/nowPlaying',
+          value: {
+            song: {
+              songId: '28015388',
+              crateSongUuid: '765af0f4-6a39-415c-b8fc-f0d4b4312cb6',
+              artistName: 'The Cure',
+              trackName: 'Killing An Arab (Live)',
+              musicProviders: {
+                sevenDigital: '91860310'
+              },
+              duration: 265
+            },
+            startTime: 1759778175655,
+            endTime: 1759778440655,
+            playId: '27272588-f3a8-4a40-bb4e-9cd6b73566e8'
+          }
+        }
+      ]
+    };
+
+    services.hangoutState.nowPlaying = { song: 'test' };
+    playedSong( message, {}, services );
+
+    // Wait for async announcement
+    await Promise.resolve();
+
+    expect( services.messageService.formatMention ).toHaveBeenCalledWith( 'f813b9cc-28c4-4ec6-a9eb-2cdfacbcafbc' );
+    expect( services.messageService.sendGroupMessage ).toHaveBeenCalledWith(
+      '<@uid:f813b9cc-28c4-4ec6-a9eb-2cdfacbcafbc> is now playing Killing An Arab (Live) by The Cure',
+      { services }
+    );
+  } );
 } );
