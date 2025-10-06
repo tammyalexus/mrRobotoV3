@@ -219,7 +219,7 @@ This file contains the Bot's "memory" and serves two purposes:
 ## Step 2: Welcome Message Configuration
 Firstly we update the value for "welcomeMessage"
    * this is use by the Bot to greet people when they arrive in the Hangout
-   * the token {username} will be substituted by the BOt for the Nickname of the user joining the Hangout
+   * the token {username} will be automatically converted to a mention of the user joining the Hangout
    * the token {hangoutName} will be substituted for the name/title of the Hangout
 
 ## Step 3: Bot Data Configuration

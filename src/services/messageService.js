@@ -13,6 +13,22 @@ const { logger } = require( '../lib/logging.js' );
 
 const messageService = {
   // ===============
+  // Utility Functions
+  // ===============
+
+  /**
+   * Creates a properly formatted mention string for a user UUID
+   * @param {string} userUuid - The UUID of the user to mention
+   * @returns {string} Formatted mention string
+   */
+  formatMention: function ( userUuid ) {
+    if ( !userUuid ) {
+      throw new Error( 'userUuid is required for formatting mentions' );
+    }
+    return `<@uid:${ userUuid }>`;
+  },
+
+  // ===============
   // Group Message Functions
   // ===============
 
@@ -60,27 +76,27 @@ const messageService = {
    * @param {Object} options.services - Service container
    * @returns {Promise<Object>} Response result
    */
-  sendResponse: async function (message, options = {}) {
+  sendResponse: async function ( message, options = {} ) {
     const { responseChannel = 'request', isPrivateMessage = false, sender, services } = options;
-    
+
     // If responseChannel is 'public', always send to group chat
-    if (responseChannel === 'public') {
-      return await this.sendGroupMessage(message, { services });
+    if ( responseChannel === 'public' ) {
+      return await this.sendGroupMessage( message, { services } );
     }
-    
+
     // If responseChannel is 'request', send back to the same channel as the request
-    if (responseChannel === 'request') {
-      if (isPrivateMessage && sender) {
+    if ( responseChannel === 'request' ) {
+      if ( isPrivateMessage && sender ) {
         // Original was private, send private response
-        return await this.sendPrivateMessage(message, sender, services);
+        return await this.sendPrivateMessage( message, sender, services );
       } else {
         // Original was public, send public response
-        return await this.sendGroupMessage(message, { services });
+        return await this.sendGroupMessage( message, { services } );
       }
     }
-    
+
     // Default fallback to group message
-    return await this.sendGroupMessage(message, { services });
+    return await this.sendGroupMessage( message, { services } );
   },
 
   /**

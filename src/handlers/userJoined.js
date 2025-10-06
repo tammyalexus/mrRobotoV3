@@ -22,8 +22,9 @@ async function userJoined ( message, state, services ) {
 
     if ( userDataPatch ) {
       const nickname = userDataPatch.value?.userProfile?.nickname;
-      const userUUID = userDataPatch.path.split('/')[2]; // Extract UUID from path like /allUserData/uuid
-      
+      const avatarId = userDataPatch.value?.userProfile?.avatarId;
+      const userUUID = userDataPatch.path.split( '/' )[ 2 ]; // Extract UUID from path like /allUserData/uuid
+
       if ( !nickname ) {
         services.logger.warn( 'No nickname found in user data' );
         return;
@@ -31,6 +32,12 @@ async function userJoined ( message, state, services ) {
 
       if ( !userUUID ) {
         services.logger.warn( 'No user UUID found in patch path' );
+        return;
+      }
+
+      // Skip welcoming ghost users
+      if ( avatarId === 'ghost' ) {
+        services.logger.debug( `Skipping welcome message for ghost user: ${ userUUID } (nickname: ${ nickname })` );
         return;
       }
 
@@ -61,8 +68,9 @@ async function userJoined ( message, state, services ) {
       services.logger.debug( `Retrieved welcome message template: ${ messageTemplate }` );
 
       // Replace placeholders with actual values
+      // Convert {username} to server-side mention format
       const personalizedMessage = messageTemplate
-        .replace( '{username}', nickname )
+        .replace( '{username}', services.messageService.formatMention( userUUID ) )
         .replace( '{hangoutName}', hangoutName );
 
       services.logger.debug( `Sending personalized welcome message: ${ personalizedMessage }` );
@@ -70,7 +78,7 @@ async function userJoined ( message, state, services ) {
       // Send the personalized welcome message
       await services.messageService.sendGroupMessage( personalizedMessage, { services } );
 
-      services.logger.debug( `✅ Welcome message sent for user: ${ nickname }` );
+      services.logger.debug( `✅ Welcome message sent for user: ${ userUUID }` );
     } else {
       services.logger.debug( 'No user data patch found in userJoined message' );
     }

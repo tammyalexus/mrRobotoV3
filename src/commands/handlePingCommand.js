@@ -11,16 +11,16 @@ const requiredRole = 'USER';
  * @param {string} commandParams.responseChannel - Response channel ('public' or 'request')
  * @returns {Promise<Object>} Command result
  */
-async function handlePingCommand(commandParams) {
+async function handlePingCommand ( commandParams ) {
   const { services, context, responseChannel = 'request' } = commandParams;
-  const { messageService } = services;
-  const response = '🏓 Pong! Bot is alive and responding.';
-  await messageService.sendResponse(response, {
+  const { messageService, config } = services;
+  const response = `🏓 Pong! ${ messageService.formatMention( config.BOT_UID ) } is alive and responding.`;
+  await messageService.sendResponse( response, {
     responseChannel,
     isPrivateMessage: context?.fullMessage?.isPrivateMessage,
     sender: context?.sender,
     services
-  });
+  } );
   return {
     success: true,
     response,

@@ -105,13 +105,13 @@ services.logger.info( '======================================= Application Start
     // Send startup message to group
     services.logger.debug( '📤 Preparing to send startup message...' );
     try {
-      const botNickname = services.getState( 'botNickname' ) || 'Bot';
-      services.logger.debug( `📤 Sending startup message with nickname: ${ botNickname }` );
+      const botMention = services.messageService.formatMention( services.config.BOT_UID );
+      services.logger.debug( `📤 Sending startup message with bot mention: ${ botMention }` );
 
-      await services.messageService.sendGroupMessage( `${ botNickname } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do`, { services } );
+      await services.messageService.sendGroupMessage( `${ botMention } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do`, { services } );
 
       // await services.messageService.sendGroupPictureMessage(
-      //   `${ botNickname } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do`,
+      //   `${ botMention } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do`,
       //   "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmprZG5yMDY1aDVndGo3cDI4eWN2cTJ1cHNrODlkcTgzbDhzc25obSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Cmr1OMJ2FN0B2/giphy.gif",
       //   { services }
       // );
