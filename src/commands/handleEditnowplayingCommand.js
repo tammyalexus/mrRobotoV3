@@ -5,6 +5,7 @@ const path = require( 'path' );
 // Set required role level for this command - requires moderator or higher
 const requiredRole = 'MODERATOR';
 const description = 'Update the now playing message template';
+const example = 'editnowplaying {username} is now playing {trackName} by {artistName}';
 const hidden = false;
 
 /**
@@ -136,6 +137,7 @@ async function handleEditnowplayingCommand ( commandParams ) {
 // Attach metadata to the function
 handleEditnowplayingCommand.requiredRole = requiredRole;
 handleEditnowplayingCommand.description = description;
+handleEditnowplayingCommand.example = example;
 handleEditnowplayingCommand.hidden = hidden;
 
 module.exports = handleEditnowplayingCommand;

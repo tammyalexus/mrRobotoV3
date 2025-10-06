@@ -5,6 +5,7 @@ const path = require( 'path' );
 // Set required role level for this command
 const requiredRole = 'USER';
 const description = 'Show this help message';
+const example = 'help [command]';
 const hidden = false;
 
 /**
@@ -29,6 +30,7 @@ function loadAvailableCommands () {
             name: commandName,
             role: commandModule.requiredRole,
             description: commandModule.description,
+            example: commandModule.example || commandName, // Use the example or fallback to command name
             hidden: commandModule.hidden || false
           };
         }
@@ -76,11 +78,58 @@ function organizeCommandsByRole ( commands ) {
  * @returns {Promise<Object>} Command result
  */
 async function handleHelpCommand ( commandParams ) {
-  const { services, context, responseChannel = 'request' } = commandParams;
+  const { args, services, context, responseChannel = 'request' } = commandParams;
   const { messageService } = services;
 
   try {
     const availableCommands = loadAvailableCommands();
+
+    // If a specific command is requested
+    if ( args && args.trim() ) {
+      const requestedCommand = args.trim().toLowerCase();
+      const command = availableCommands[ requestedCommand ];
+
+      if ( command ) {
+        // Show specific command help
+        const helpText = `🤖 Help for command: ${ config.COMMAND_SWITCH }${ command.name }\n\n` +
+                        `📝 Description: ${ command.description }\n` +
+                        `🎯 Example: ${ config.COMMAND_SWITCH }${ command.example }\n` +
+                        `👤 Required Role: ${ command.role }`;
+
+        await messageService.sendResponse( helpText, {
+          responseChannel,
+          isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+          sender: context?.sender,
+          services
+        } );
+
+        return {
+          success: true,
+          response: helpText,
+          shouldRespond: true
+        };
+      } else {
+        // Command doesn't exist
+        const errorText = `❌ Command "${ requestedCommand }" does not exist.\n` +
+                         `Type ${ config.COMMAND_SWITCH }help to see all available commands.`;
+
+        await messageService.sendResponse( errorText, {
+          responseChannel,
+          isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+          sender: context?.sender,
+          services
+        } );
+
+        return {
+          success: false,
+          response: errorText,
+          shouldRespond: true,
+          error: `Command "${requestedCommand}" not found`
+        };
+      }
+    }
+
+    // Show general help (all commands)
     const organizedCommands = organizeCommandsByRole( availableCommands );
 
     let helpText = '🤖 Available Commands:\n\n';
@@ -109,10 +158,14 @@ async function handleHelpCommand ( commandParams ) {
       organizedCommands.OWNER.forEach( command => {
         helpText += `${ config.COMMAND_SWITCH }${ command.name } - ${ command.description }\n`;
       } );
+      helpText += '\n';
     }
 
-    // Remove trailing newlines
-    helpText = helpText.trim();
+    // Add footer with specific help instructions
+    helpText += `💡 Tip: Type ${ config.COMMAND_SWITCH }help [command] to see specific examples and usage.`;
+
+    // Remove extra trailing newlines
+    helpText = helpText.replace(/\n+$/, '');
 
     await messageService.sendResponse( helpText, {
       responseChannel,
@@ -147,6 +200,7 @@ async function handleHelpCommand ( commandParams ) {
 // Attach metadata to the function
 handleHelpCommand.requiredRole = requiredRole;
 handleHelpCommand.description = description;
+handleHelpCommand.example = example;
 handleHelpCommand.hidden = hidden;
 
 module.exports = handleHelpCommand;

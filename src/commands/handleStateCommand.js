@@ -4,6 +4,7 @@ const path = require( 'path' );
 // Set required role level for this command
 const requiredRole = 'OWNER';
 const description = 'Dump current hangout state to log file';
+const example = 'state';
 const hidden = false;
 
 /**
@@ -71,6 +72,7 @@ async function handleStateCommand ( commandParams ) {
 // Attach metadata to the function
 handleStateCommand.requiredRole = requiredRole;
 handleStateCommand.description = description;
+handleStateCommand.example = example;
 handleStateCommand.hidden = hidden;
 
 module.exports = handleStateCommand;

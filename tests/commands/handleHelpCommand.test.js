@@ -96,4 +96,58 @@ describe( 'handleHelpCommand', () => {
             expect( commandNames ).toEqual( sortedNames );
         }
     } );
+
+    it( 'should show specific command help when a command is provided as argument', async () => {
+        mockCommandParams.args = 'echo';
+
+        const result = await handleHelpCommand( mockCommandParams );
+
+        expect( result.success ).toBe( true );
+        expect( result.response ).toContain( 'Help for command: !echo' );
+        expect( result.response ).toContain( 'Description: Echo back your message' );
+        expect( result.response ).toContain( 'Example: !echo Hello everyone!' );
+        expect( result.response ).toContain( 'Required Role: USER' );
+        expect( mockServices.messageService.sendResponse ).toHaveBeenCalled();
+    } );
+
+    it( 'should show error message for non-existent command', async () => {
+        mockCommandParams.args = 'nonexistent';
+
+        const result = await handleHelpCommand( mockCommandParams );
+
+        expect( result.success ).toBe( false );
+        expect( result.response ).toContain( 'Command "nonexistent" does not exist' );
+        expect( result.response ).toContain( 'Type !help to see all available commands' );
+        expect( result.error ).toContain( 'Command "nonexistent" not found' );
+        expect( mockServices.messageService.sendResponse ).toHaveBeenCalled();
+    } );
+
+    it( 'should handle case-insensitive command names', async () => {
+        mockCommandParams.args = 'ECHO';
+
+        const result = await handleHelpCommand( mockCommandParams );
+
+        expect( result.success ).toBe( true );
+        expect( result.response ).toContain( 'Help for command: !echo' );
+        expect( result.response ).toContain( 'Example: !echo Hello everyone!' );
+    } );
+
+    it( 'should show specific help for owner commands', async () => {
+        mockCommandParams.args = 'changebotname';
+
+        const result = await handleHelpCommand( mockCommandParams );
+
+        expect( result.success ).toBe( true );
+        expect( result.response ).toContain( 'Help for command: !changebotname' );
+        expect( result.response ).toContain( 'Description: Change the bot name' );
+        expect( result.response ).toContain( 'Example: !changebotname MyAwesomeBot' );
+        expect( result.response ).toContain( 'Required Role: OWNER' );
+    } );
+
+    it( 'should include tip about specific help in general help', async () => {
+        const result = await handleHelpCommand( mockCommandParams );
+
+        expect( result.success ).toBe( true );
+        expect( result.response ).toContain( 'Type !help [command] to see specific examples and usage' );
+    } );
 } );

@@ -1,6 +1,7 @@
 // Set required role level for this command
 const requiredRole = 'USER';
 const description = 'Show bot status';
+const example = 'status';
 const hidden = false;
 
 function formatUptime ( seconds ) {
@@ -51,6 +52,7 @@ async function handleStatusCommand ( commandParams ) {
 // Attach metadata to the function
 handleStatusCommand.requiredRole = requiredRole;
 handleStatusCommand.description = description;
+handleStatusCommand.example = example;
 handleStatusCommand.hidden = hidden;
 
 module.exports = handleStatusCommand;

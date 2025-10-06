@@ -5,6 +5,7 @@ const path = require( 'path' );
 // Set required role level for this command - requires moderator or higher
 const requiredRole = 'MODERATOR';
 const description = 'Update the welcome message template';
+const example = 'welcome Hi {username}, welcome to {hangoutName}!';
 const hidden = false;
 
 /**
@@ -136,6 +137,7 @@ async function handleWelcomeCommand ( commandParams ) {
 // Attach metadata to the function
 handleWelcomeCommand.requiredRole = requiredRole;
 handleWelcomeCommand.description = description;
+handleWelcomeCommand.example = example;
 handleWelcomeCommand.hidden = hidden;
 
 module.exports = handleWelcomeCommand;

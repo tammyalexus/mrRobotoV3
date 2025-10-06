@@ -1,6 +1,7 @@
 // Set required role level for this command
 const requiredRole = 'USER';
 const description = 'Echo back your message';
+const example = 'echo Hello everyone!';
 const hidden = false;
 
 /**
@@ -56,6 +57,7 @@ async function handleEchoCommand ( commandParams ) {
 // Attach metadata to the function
 handleEchoCommand.requiredRole = requiredRole;
 handleEchoCommand.description = description;
+handleEchoCommand.example = example;
 handleEchoCommand.hidden = hidden;
 
 module.exports = handleEchoCommand;

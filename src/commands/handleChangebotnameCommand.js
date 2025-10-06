@@ -5,6 +5,7 @@ const path = require( 'path' );
 // Set required role level for this command
 const requiredRole = 'OWNER';
 const description = 'Change the bot name';
+const example = 'changebotname MyAwesomeBot';
 const hidden = false;
 
 /**
@@ -74,6 +75,7 @@ async function handleChangebotnameCommand ( commandParams ) {
 // Attach metadata to the function
 handleChangebotnameCommand.requiredRole = requiredRole;
 handleChangebotnameCommand.description = description;
+handleChangebotnameCommand.example = example;
 handleChangebotnameCommand.hidden = hidden;
 
 module.exports = handleChangebotnameCommand;
