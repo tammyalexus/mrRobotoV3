@@ -84,7 +84,7 @@ For the most consistent experience across different systems:
    ```bash
    npm install
    ```
-3. Create a .env file for your Bot. Details on how to obtain all the information needed to build the .env file can be found here: [Creating your .env file](docs/CREATING_YOUR_ENV_FILE.md)
+3. Create a .env file for your Bot. Details on how to obtain all the information needed to build the .env file can be found here: [Creating your .env file](docs/SETTING_UP_YOUR_ENVIRONMENT.md)
 
 4. From the root of the project folder, run the following command. It should read and output the config you've just created. If it doesn't then something is wrong and the application won't be able to read it either
    ```

@@ -1,104 +1,107 @@
 // Mock the modules before importing messageService
-jest.mock('../../../src/lib/logging.js', () => ({
+jest.mock( '../../../src/lib/logging.js', () => ( {
   logger: {
     debug: jest.fn(),
     info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn()
   }
-}));
+} ) );
 
-jest.mock('../../../src/services/cometchatApi');
+jest.mock( '../../../src/services/cometchatApi' );
 
 // Now import the modules that use the mocked dependencies
-const { messageService } = require('../../../src/services/messageService.js');
-const cometchatApi = require('../../../src/services/cometchatApi');
-const { logger } = require('../../../src/lib/logging.js');
+const { messageService } = require( '../../../src/services/messageService.js' );
+const cometchatApi = require( '../../../src/services/cometchatApi' );
+const { logger } = require( '../../../src/lib/logging.js' );
 
-describe('fetchGroupMessages', () => {
-  beforeEach(() => {
+describe( 'fetchGroupMessages', () => {
+  let mockServices;
+
+  beforeEach( () => {
     jest.clearAllMocks();
-  });
+    mockServices = {
+      cometchatApi
+    };
+  } );
 
-  afterEach(() => {
+  afterEach( () => {
     jest.resetAllMocks();
-  });
+  } );
 
-  test('returns formatted group messages from API response', async () => {
+  test( 'returns formatted group messages from API response', async () => {
     const { COMMAND_SWITCH } = process.env;
     const mockMessages = [
       {
         id: '25324828',
         sentAt: undefined,
-        sender: 'user-123',
-        data: { text: `${COMMAND_SWITCH}escortme` }
+        sender: { uid: 'user-123' },
+        data: { text: `${ COMMAND_SWITCH }escortme` }
       },
       {
         id: '25324848',
         sentAt: undefined,
-        sender: 'user-789',
+        sender: { uid: 'user-789' },
         data: { text: `wibble` }
       },
       {
         id: '25324829',
         sentAt: undefined,
-        sender: 'user-456',
-        data: { text: `${COMMAND_SWITCH}hello` }
+        sender: { uid: 'user-456' },
+        data: { text: `${ COMMAND_SWITCH }hello` }
       }
     ];
 
-    cometchatApi.apiClient = {
-      get: jest.fn().mockResolvedValue({ data: { data: mockMessages } })
-    };
+    cometchatApi.fetchMessages = jest.fn().mockResolvedValue( { data: { data: mockMessages } } );
 
-    const result = await messageService.fetchGroupMessages();
+    const result = await messageService.fetchGroupMessages( null, { services: mockServices } );
 
-    expect(result).toEqual([
+    expect( result ).toEqual( [
       {
         id: '25324828',
-        sentAt: undefined,
+        text: `${ COMMAND_SWITCH }escortme`,
         sender: 'user-123',
+        sentAt: undefined,
+        updatedAt: undefined,
         data: {
           text: `${ COMMAND_SWITCH }escortme`
         }
       },
       {
         id: '25324829',
-        sentAt: undefined,
+        text: `${ COMMAND_SWITCH }hello`,
         sender: 'user-456',
+        sentAt: undefined,
+        updatedAt: undefined,
         data: {
           text: `${ COMMAND_SWITCH }hello`
         }
       }
-    ]);
+    ] );
 
     // Debug logging for group messages is currently disabled in the code
     // so we don't expect any debug calls
-  });
+  } );
 
-  test('logs an error when the API call fails', async () => {
-    const error = new Error('Network failure');
-    cometchatApi.apiClient = {
-      get: jest.fn().mockRejectedValue(error)
-    };
+  test( 'logs an error when the API call fails', async () => {
+    const error = new Error( 'Network failure' );
+    cometchatApi.fetchMessages = jest.fn().mockRejectedValue( error );
 
-    await messageService.fetchGroupMessages();
+    await messageService.fetchGroupMessages( null, { services: mockServices } );
 
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('❌ Error in fetchGroupMessagesRaw:')
+    expect( logger.error ).toHaveBeenCalledWith(
+      expect.stringContaining( '❌ Error in fetchGroupMessagesRaw:' )
     );
-  });
+  } );
 
-  test('returns empty array if no group messages are found', async () => {
-    cometchatApi.apiClient = {
-      get: jest.fn().mockResolvedValue({ data: { data: [] } })
-    };
+  test( 'returns empty array if no group messages are found', async () => {
+    cometchatApi.fetchMessages = jest.fn().mockResolvedValue( { data: { data: [] } } );
 
-    const result = await messageService.fetchGroupMessages();
-    expect(result).toEqual([]);
-  });
+    const result = await messageService.fetchGroupMessages( null, { services: mockServices } );
+    expect( result ).toEqual( [] );
+  } );
 
-  test('returns parsed message with [No Text] if message is missing text', async () => {
+  test( 'returns parsed message with [No Text] if message is missing text', async () => {
     const mockMessages = [
       {
         id: '1',
@@ -108,12 +111,98 @@ describe('fetchGroupMessages', () => {
       }
     ];
 
-    cometchatApi.apiClient = {
-      get: jest.fn().mockResolvedValue({ data: { data: mockMessages } })
-    };
+    cometchatApi.fetchMessages = jest.fn().mockResolvedValue( { data: { data: mockMessages } } );
 
-    const result = await messageService.fetchGroupMessages();
+    const result = await messageService.fetchGroupMessages( null, { services: mockServices } );
 
-    expect(result).toEqual([]);
-  });
-});
+    expect( result ).toEqual( [] );
+  } );
+
+  test( 'returns all messages when filterCommands is false', async () => {
+    const { COMMAND_SWITCH } = process.env;
+    const mockMessages = [
+      {
+        id: '25324828',
+        sentAt: undefined,
+        sender: { uid: 'user-123' },
+        data: { text: `${ COMMAND_SWITCH }escortme` }
+      },
+      {
+        id: '25324848',
+        sentAt: undefined,
+        sender: { uid: 'user-789' },
+        data: { text: `regular message` }
+      },
+      {
+        id: '25324829',
+        sentAt: undefined,
+        sender: { uid: 'user-456' },
+        data: { text: `${ COMMAND_SWITCH }hello` }
+      }
+    ];
+
+    cometchatApi.fetchMessages = jest.fn().mockResolvedValue( { data: { data: mockMessages } } );
+
+    const result = await messageService.fetchGroupMessages( null, { filterCommands: false, services: mockServices } );
+
+    expect( result ).toEqual( [
+      {
+        id: '25324828',
+        text: `${ COMMAND_SWITCH }escortme`,
+        sender: 'user-123',
+        sentAt: undefined,
+        updatedAt: undefined,
+        data: { text: `${ COMMAND_SWITCH }escortme` }
+      },
+      {
+        id: '25324848',
+        text: 'regular message',
+        sender: 'user-789',
+        sentAt: undefined,
+        updatedAt: undefined,
+        data: { text: `regular message` }
+      },
+      {
+        id: '25324829',
+        text: `${ COMMAND_SWITCH }hello`,
+        sender: 'user-456',
+        sentAt: undefined,
+        updatedAt: undefined,
+        data: { text: `${ COMMAND_SWITCH }hello` }
+      }
+    ] );
+  } );
+
+  test( 'filters command messages by default (filterCommands defaults to true)', async () => {
+    const { COMMAND_SWITCH } = process.env;
+    const mockMessages = [
+      {
+        id: '25324828',
+        sentAt: undefined,
+        sender: { uid: 'user-123' },
+        data: { text: `${ COMMAND_SWITCH }escortme` }
+      },
+      {
+        id: '25324848',
+        sentAt: undefined,
+        sender: { uid: 'user-789' },
+        data: { text: `regular message` }
+      }
+    ];
+
+    cometchatApi.fetchMessages = jest.fn().mockResolvedValue( { data: { data: mockMessages } } );
+
+    const result = await messageService.fetchGroupMessages( null, { services: mockServices } );
+
+    expect( result ).toEqual( [
+      {
+        id: '25324828',
+        text: `${ COMMAND_SWITCH }escortme`,
+        sender: 'user-123',
+        sentAt: undefined,
+        updatedAt: undefined,
+        data: { text: `${ COMMAND_SWITCH }escortme` }
+      }
+    ] );
+  } );
+} );

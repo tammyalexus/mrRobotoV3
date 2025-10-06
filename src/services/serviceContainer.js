@@ -1,14 +1,15 @@
 // Services Container - Singleton pattern via Node.js module caching
-const { messageService } = require('./messageService.js');
-const parseCommands = require('./parseCommands.js');
-const commandService = require('./commandService.js');
-const playlistService = require('./playlistService.js');
-const { hangSocketServices } = require('./hangSocketServices.js');
-const { logger } = require('../lib/logging.js');
-const config = require('../config.js');
-const hangUserService = require('./hangUserService.js');
-const StateService = require('./stateService.js');
-const DataService = require('./dataService.js');
+const { messageService } = require( './messageService.js' );
+const privateMessageService = require( './privateMessageService.js' );
+const parseCommands = require( './parseCommands.js' );
+const commandService = require( './commandService.js' );
+const playlistService = require( './playlistService.js' );
+const { hangSocketServices } = require( './hangSocketServices.js' );
+const { logger } = require( '../lib/logging.js' );
+const config = require( '../config.js' );
+const hangUserService = require( './hangUserService.js' );
+const StateService = require( './stateService.js' );
+const DataService = require( './dataService.js' );
 
 // Shared state that all services can access and modify
 const sharedState = {
@@ -23,12 +24,23 @@ const sharedState = {
 
 // Services container with shared references
 // Initialize dataService
-const dataService = require('./dataService.js');
-dataService.loadData().catch(err => logger.error('Failed to load data:', err));
+const dataService = require( './dataService.js' );
+
+// Load data and make it available in the services container
+const initializeData = async () => {
+  try {
+    await dataService.loadData();
+    services.data = dataService.getAllData();
+  } catch ( err ) {
+    logger.error( 'Failed to load data:', err );
+    services.data = {}; // Fallback to empty object
+  }
+};
 
 const services = {
   // External services
   messageService,
+  privateMessageService,
   parseCommands,
   commandService,
   playlistService,
@@ -37,39 +49,67 @@ const services = {
   logger,
   config,
   dataService,
-  
+  data: {}, // Will be populated by initializeData()
+
   // Shared state
   state: sharedState,
   hangoutState: {}, // Initialize hangoutState
 
   // Helper methods for state management
-  setState(key, value) {
-    if (!this.hangoutState) this.hangoutState = {};
-    this.hangoutState[key] = value;
-    if (this.state) this.state[key] = value;
-    this.logger.debug(`State updated: ${key} = ${value}`);
+  setState ( key, value ) {
+    if ( !this.hangoutState ) this.hangoutState = {};
+    this.hangoutState[ key ] = value;
+    if ( this.state ) this.state[ key ] = value;
+    
+    // Properly log objects by stringifying them
+    const valueToLog = typeof value === 'object' && value !== null 
+      ? JSON.stringify( value, null, 2 ) 
+      : value;
+    this.logger.debug( `State updated: ${ key } = ${ valueToLog }` );
   },
 
-  getState(key) {
-    if (!this.hangoutState) this.hangoutState = {};
+  getState ( key ) {
+    if ( !this.hangoutState ) this.hangoutState = {};
     // Prefer hangoutState, fallback to state
-    return this.hangoutState[key] !== undefined ? this.hangoutState[key] : this.state[key];
+    return this.hangoutState[ key ] !== undefined ? this.hangoutState[ key ] : this.state[ key ];
   },
 
-  updateLastMessageId(id) {
-    if (!this.hangoutState) this.hangoutState = {};
+  updateLastMessageId ( id ) {
+    if ( !this.hangoutState ) this.hangoutState = {};
     this.hangoutState.lastMessageId = id;
-    if (this.state) this.state.lastMessageId = id;
-    this.logger.debug(`Last message ID updated to: ${id}`);
+    if ( this.state ) this.state.lastMessageId = id;
+    this.logger.debug( `Last message ID updated to: ${ id }` );
   },
 
-  initializeStateService() {
-    if (!this.hangoutState) {
-      throw new Error('Cannot initialize StateService: hangoutState is not set');
+  initializeStateService () {
+    if ( !this.hangoutState ) {
+      throw new Error( 'Cannot initialize StateService: hangoutState is not set' );
     }
-    this.stateService = new StateService(this.hangoutState, this);
-    this.logger.debug('StateService initialized');
+
+    // Check if hangoutState is empty (just an empty object)
+    const stateKeys = Object.keys( this.hangoutState );
+    if ( stateKeys.length === 0 ) {
+      throw new Error( 'Cannot initialize StateService: hangoutState is empty - socket room may not be joined yet' );
+    }
+
+    // Check if hangoutState has essential properties that indicate it's properly loaded
+    const hasAllUserData = this.hangoutState.hasOwnProperty( 'allUserData' );
+    const hasAllUsers = this.hangoutState.hasOwnProperty( 'allUsers' );
+
+    if ( !hasAllUserData || !hasAllUsers ) {
+      const missingProps = [];
+      if ( !hasAllUserData ) missingProps.push( 'allUserData' );
+      if ( !hasAllUsers ) missingProps.push( 'allUsers' );
+
+      throw new Error( `Cannot initialize StateService: hangoutState is missing essential properties: ${ missingProps.join( ', ' ) } - initial state may not be fully loaded` );
+    }
+
+    this.stateService = new StateService( this.hangoutState, this );
+    this.logger.debug( 'StateService initialized with valid hangout state' );
   }
 };
+
+// Initialize data asynchronously
+initializeData();
 
 module.exports = services;

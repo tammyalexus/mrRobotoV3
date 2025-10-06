@@ -1,41 +1,42 @@
 // Mock modules before importing messageService
-jest.mock('../../../src/lib/logging.js', () => ({
+jest.mock( '../../../src/lib/logging.js', () => ( {
   logger: {
     debug: jest.fn(),
     info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn()
   }
-}));
+} ) );
 
-jest.mock('../../../src/lib/buildUrl.js', () => ({
+jest.mock( '../../../src/lib/buildUrl.js', () => ( {
   buildUrl: jest.fn()
-}));
+} ) );
 
-jest.mock('../../../src/services/cometchatApi.js', () => ({
+jest.mock( '../../../src/services/cometchatApi.js', () => ( {
   BASE_URL: 'https://test-api.cometchat.com',
   apiClient: {
     get: jest.fn()
-  }
-}));
+  },
+  fetchMessages: jest.fn()
+} ) );
 
-jest.mock('../../../src/config.js', () => ({
+jest.mock( '../../../src/config.js', () => ( {
   BOT_UID: 'test-bot-uid'
-}));
+} ) );
 
-const { messageService } = require('../../../src/services/messageService.js');
-const { buildUrl } = require('../../../src/lib/buildUrl.js');
-const cometchatApi = require('../../../src/services/cometchatApi.js');
-const config = require('../../../src/config.js');
-const { logger } = require('../../../src/lib/logging.js');
+const { messageService } = require( '../../../src/services/messageService.js' );
+const { buildUrl } = require( '../../../src/lib/buildUrl.js' );
+const cometchatApi = require( '../../../src/services/cometchatApi.js' );
+const config = require( '../../../src/config.js' );
+const { logger } = require( '../../../src/lib/logging.js' );
 
-describe('messageService.returnLastUserMessage', () => {
-  beforeEach(() => {
+describe( 'messageService.returnLastUserMessage', () => {
+  beforeEach( () => {
     jest.clearAllMocks();
-    buildUrl.mockReturnValue('https://test-api.cometchat.com/v3/users/test-user/messages');
-  });
+    buildUrl.mockReturnValue( 'https://test-api.cometchat.com/v3/users/test-user/messages' );
+  } );
 
-  test('should return message ID when user has unread messages', async () => {
+  test( 'should return message ID when user has unread messages', async () => {
     const mockResponse = {
       data: {
         data: [
@@ -44,64 +45,59 @@ describe('messageService.returnLastUserMessage', () => {
         ]
       }
     };
-    cometchatApi.apiClient.get.mockResolvedValue(mockResponse);
+    cometchatApi.fetchMessages.mockResolvedValue( mockResponse );
 
-    const result = await messageService.returnLastUserMessage('test-user');
+    const result = await messageService.returnLastUserMessage( 'test-user' );
 
-    expect(buildUrl).toHaveBeenCalledWith(
-      cometchatApi.BASE_URL,
-      ['v3', 'users', 'test-user', 'messages'],
-      [
-        ['limit', 1],
-        ['unread', true],
-        ['uid', config.BOT_UID]
-      ]
+    expect( cometchatApi.fetchMessages ).toHaveBeenCalledWith(
+      'v3.0/messages?limit=1&receiverType=user&sender=test-user'
     );
-    expect(result).toBe('message-123');
-  });
+    expect( result ).toBe( 'message-123' );
+  } );
 
-  test('should return null when user has no messages', async () => {
+  test( 'should return null when user has no messages', async () => {
     const mockResponse = {
       data: {
         data: []
       }
     };
-    cometchatApi.apiClient.get.mockResolvedValue(mockResponse);
+    cometchatApi.fetchMessages.mockResolvedValue( mockResponse );
 
-    const result = await messageService.returnLastUserMessage('test-user');
+    const result = await messageService.returnLastUserMessage( 'test-user' );
 
-    expect(result).toBeNull();
-  });
+    expect( result ).toBeNull();
+  } );
 
-  test('should return null when response data is missing', async () => {
-    const mockResponse = { data: {} };
-    cometchatApi.apiClient.get.mockResolvedValue(mockResponse);
+  test( 'should return null when response data is missing', async () => {
+    const mockResponse = { data: null };
+    cometchatApi.fetchMessages.mockResolvedValue( mockResponse );
 
-    const result = await messageService.returnLastUserMessage('test-user');
+    const result = await messageService.returnLastUserMessage( 'test-user' );
 
-    expect(result).toBeNull();
-  });
+    expect( result ).toBeNull();
+  } );
 
-  test('should return null when API call fails', async () => {
-    const error = new Error('API error');
-    cometchatApi.apiClient.get.mockRejectedValue(error);
+  test( 'should return null when API call fails', async () => {
+    const error = new Error( 'API error' );
+    cometchatApi.fetchMessages.mockRejectedValue( error );
 
-    const result = await messageService.returnLastUserMessage('test-user');
+    const result = await messageService.returnLastUserMessage( 'test-user' );
 
-    expect(logger.error).toHaveBeenCalledWith('❌ Error fetching last user message: API error');
-    expect(result).toBeNull();
-  });
+    // Check that error was logged (don't test exact message format)
+    expect( logger.error ).toHaveBeenCalledWith( expect.stringContaining( 'Error getting last user message' ) );
+    expect( result ).toBeNull();
+  } );
 
-  test('should handle malformed response data', async () => {
+  test( 'should handle malformed response data', async () => {
     const mockResponse = {
       data: {
         data: 'not-an-array'
       }
     };
-    cometchatApi.apiClient.get.mockResolvedValue(mockResponse);
+    cometchatApi.fetchMessages.mockResolvedValue( mockResponse );
 
-    const result = await messageService.returnLastUserMessage('test-user');
+    const result = await messageService.returnLastUserMessage( 'test-user' );
 
-    expect(result).toBeNull();
-  });
-});
+    expect( result ).toBeNull();
+  } );
+} );

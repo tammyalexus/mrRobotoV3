@@ -12,15 +12,21 @@ const requiredRole = 'MODERATOR';
  * @param {string} commandParams.args - Command arguments (new welcome message)
  * @param {Object} commandParams.services - Service container
  * @param {Object} commandParams.context - Command context
+ * @param {string} commandParams.responseChannel - Response channel ('public' or 'request')
  * @returns {Promise<Object>} Command result
  */
 async function handleWelcomeCommand(commandParams) {
-    const { args, services } = commandParams;
+    const { args, services, context, responseChannel = 'request' } = commandParams;
     const { messageService, dataService } = services;
 
     if (!args || args.trim().length === 0) {
         const response = `❌ Please provide a new welcome message. Usage: ${config.COMMAND_SWITCH}welcome Hi {username}, welcome to {hangoutName}`;
-        await messageService.sendGroupMessage(response, { services });
+        await messageService.sendResponse(response, {
+            responseChannel,
+            isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+            sender: context?.sender,
+            services
+        });
         return {
             success: false,
             shouldRespond: true,
@@ -50,7 +56,12 @@ async function handleWelcomeCommand(commandParams) {
             await fs.writeFile(dataFilePath, JSON.stringify(newData, null, 2), 'utf8');
         } catch (error) {
             const response = `❌ Failed to update welcome message: ${error.message}`;
-            await messageService.sendGroupMessage(response, { services });
+            await messageService.sendResponse(response, {
+                responseChannel,
+                isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+                sender: context?.sender,
+                services
+            });
             return {
                 success: false,
                 shouldRespond: true,
@@ -77,7 +88,12 @@ async function handleWelcomeCommand(commandParams) {
 
         if (updatedMessage !== args) {
             const response = `❌ Failed to update welcome message: Welcome message in memory does not match new message after reload`;
-            await messageService.sendGroupMessage(response, { services });
+            await messageService.sendResponse(response, {
+                responseChannel,
+                isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+                sender: context?.sender,
+                services
+            });
             return {
                 success: false,
                 shouldRespond: true,
@@ -87,7 +103,12 @@ async function handleWelcomeCommand(commandParams) {
         }
 
         const response = `✅ Welcome message updated to: "${args}"`;
-        await messageService.sendGroupMessage(response, { services });
+        await messageService.sendResponse(response, {
+            responseChannel,
+            isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+            sender: context?.sender,
+            services
+        });
         return {
             success: true,
             shouldRespond: true,
@@ -95,7 +116,12 @@ async function handleWelcomeCommand(commandParams) {
         };
     } catch (error) {
         const response = `❌ Failed to update welcome message: ${error.message}`;
-        await messageService.sendGroupMessage(response, { services });
+        await messageService.sendResponse(response, {
+            responseChannel,
+            isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+            sender: context?.sender,
+            services
+        });
         return {
             success: false,
             shouldRespond: true,

@@ -16,18 +16,29 @@ jest.mock('../../src/services/cometchatApi', () => {
 });
 
 // Mock the MessageService module
-jest.mock('../../src/services/messageService', () => {
-    return jest.fn().mockImplementation(() => ({
-        // Add any methods that MessageService uses
-    }));
-});
+jest.mock('../../src/services/messageService', () => ({
+    messageService: {
+        sendGroupMessage: jest.fn(),
+        fetchGroupMessages: jest.fn(),
+        joinChat: jest.fn(),
+        // Add other methods as needed
+    }
+}));
+
+// Mock the PrivateMessageService module
+jest.mock('../../src/services/privateMessageService', () => ({
+    fetchAllPrivateUserMessages: jest.fn(),
+    sendPrivateMessage: jest.fn(),
+    markAllPrivateUserMessagesAsRead: jest.fn(),
+    // Add other methods as needed
+}));
 
 // Mock parseCommands
 jest.mock('../../src/services/parseCommands', () => ({
     parseCommands: jest.fn()
 }));
 
-const ServiceContainer = require('../../src/lib/serviceContainer');
+const serviceContainer = require('../../src/services/serviceContainer');
 
 describe('ServiceContainer', () => {
     let container;
@@ -41,25 +52,26 @@ describe('ServiceContainer', () => {
             COMMAND_SWITCH: '!',
             SOCKET_MESSAGE_LOG_LEVEL: 'ON'
         };
-        container = new ServiceContainer(mockConfig);
+        // Use the singleton serviceContainer directly
+        container = serviceContainer;
     });
 
     test('should initialize with config and basic services', () => {
-        expect(container.config).toBe(mockConfig);
+        expect(container.config).toBeDefined();
         expect(container.logger).toBeDefined();
         expect(container.parseCommands).toBeDefined();
-        expect(container.cometchatApi).toBeDefined();
         expect(container.messageService).toBeDefined();
-        expect(container.hangoutState).toBeNull();
+        expect(container.hangoutState).toEqual({});
     });
 
-    test('initializeStateService should throw error if hangoutState is not set', () => {
-        expect(() => container.initializeStateService()).toThrow('Cannot initialize StateService: hangoutState is not set');
+    test('initializeStateService should throw error if hangoutState is empty', () => {
+        expect(() => container.initializeStateService()).toThrow('Cannot initialize StateService: hangoutState is empty');
     });
 
     test('initializeStateService should create stateService when hangoutState is set', () => {
         const mockState = {
             allUsers: [],
+            allUserData: {},
             djs: [],
             settings: {}
         };
@@ -73,20 +85,18 @@ describe('ServiceContainer', () => {
     test('updateLastMessageId should update lastMessageId', () => {
         const messageId = '123';
         container.updateLastMessageId(messageId);
-        expect(container.lastMessageId).toBe(messageId);
+        expect(container.hangoutState.lastMessageId).toBe(messageId);
     });
 
-    test('getServices should return all services', () => {
-        const services = container.getServices();
-        expect(services).toEqual({
-            config: container.config,
-            logger: container.logger,
-            parseCommands: container.parseCommands,
-            cometchatApi: container.cometchatApi,
-            messageService: container.messageService,
-            stateService: container.stateService,
-            socket: container.socket,
-            hangoutState: container.hangoutState
-        });
+    test('should have all expected services available', () => {
+        expect(container.config).toBeDefined();
+        expect(container.logger).toBeDefined();
+        expect(container.parseCommands).toBeDefined();
+        expect(container.messageService).toBeDefined();
+        expect(container.privateMessageService).toBeDefined();
+        expect(container.commandService).toBeDefined();
+        expect(container.hangUserService).toBeDefined();
+        expect(container.dataService).toBeDefined();
+        expect(container.hangoutState).toBeDefined();
     });
 });

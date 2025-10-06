@@ -24,15 +24,21 @@ function formatUptime(seconds) {
  * @param {string} commandParams.args - Command arguments
  * @param {Object} commandParams.services - Service container
  * @param {Object} commandParams.context - Command context
+ * @param {string} commandParams.responseChannel - Response channel ('public' or 'request')
  * @returns {Promise<Object>} Command result
  */
 async function handleStatusCommand(commandParams) {
-  const { services } = commandParams;
+  const { services, context, responseChannel = 'request' } = commandParams;
   const { messageService } = services;
   const uptime = process.uptime();
   const uptimeFormatted = formatUptime(uptime);
   const response = `🤖 Bot Status:\n✅ Online and operational\n⏱️ Uptime: ${uptimeFormatted}`;
-  await messageService.sendGroupMessage(response, { services });
+  await messageService.sendResponse(response, {
+    responseChannel,
+    isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+    sender: context?.sender,
+    services
+  });
   return {
     success: true,
     response,

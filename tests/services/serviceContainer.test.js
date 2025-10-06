@@ -126,7 +126,7 @@ describe('serviceContainer', () => {
       services.setState('connectedUsers', newUsers);
       
       expect(services.state.connectedUsers).toEqual(newUsers);
-      expect(services.logger.debug).toHaveBeenCalledWith(`State updated: connectedUsers = ${newUsers}`);
+      expect(services.logger.debug).toHaveBeenCalledWith(`State updated: connectedUsers = ${JSON.stringify(newUsers, null, 2)}`);
     });
 
     test('should handle setting null values', () => {

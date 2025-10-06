@@ -11,7 +11,8 @@ jest.mock('fs', () => ({
 
 // Mock messageService
 const mockMessageService = {
-  sendGroupMessage: jest.fn().mockResolvedValue({ success: true })
+  sendGroupMessage: jest.fn().mockResolvedValue({ success: true }),
+  sendResponse: jest.fn().mockResolvedValue({ success: true })
 };
 
 // Mock hangUserService
@@ -99,9 +100,10 @@ describe('Command Flow Integration', () => {
     expect(commandResult.success).toBe(true);
     expect(commandResult.shouldRespond).toBe(true);
     expect(commandResult.response).toContain('Available Commands');
-    expect(mockMessageService.sendGroupMessage).toHaveBeenCalledWith(
+    expect(mockMessageService.sendResponse).toHaveBeenCalledWith(
       expect.stringContaining('Available Commands'),
       expect.objectContaining({
+        responseChannel: 'request',
         services: mockServices
       })
     );
@@ -135,9 +137,10 @@ describe('Command Flow Integration', () => {
     expect(commandResult.success).toBe(true);
     expect(commandResult.shouldRespond).toBe(true);
     expect(commandResult.response).toContain('Hello World');
-    expect(mockMessageService.sendGroupMessage).toHaveBeenCalledWith(
+    expect(mockMessageService.sendResponse).toHaveBeenCalledWith(
       expect.stringContaining('Hello World'),
       expect.objectContaining({
+        responseChannel: 'public',
         services: mockServices
       })
     );
@@ -156,7 +159,7 @@ describe('Command Flow Integration', () => {
       expect(true).toBe(false);
     }
     
-    expect(mockMessageService.sendGroupMessage).not.toHaveBeenCalled();
+    expect(mockMessageService.sendResponse).not.toHaveBeenCalled();
   });
 
   test('should handle unknown commands gracefully', async () => {
@@ -188,9 +191,10 @@ describe('Command Flow Integration', () => {
     expect(commandResult.shouldRespond).toBe(true);
     expect(commandResult.error).toBe('Unknown command');
     expect(commandResult.response).toContain('Unknown command');
-    expect(mockMessageService.sendGroupMessage).toHaveBeenCalledWith(
+    expect(mockMessageService.sendResponse).toHaveBeenCalledWith(
       expect.stringContaining('Unknown command'),
       expect.objectContaining({
+        responseChannel: 'request',
         services: mockServices
       })
     );
