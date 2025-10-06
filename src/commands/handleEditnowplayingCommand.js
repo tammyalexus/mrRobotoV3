@@ -4,25 +4,25 @@ const path = require( 'path' );
 
 // Set required role level for this command - requires moderator or higher
 const requiredRole = 'MODERATOR';
-const description = 'Update the welcome message template';
+const description = 'Update the now playing message template';
 const hidden = false;
 
 /**
- * Updates the welcome message used when new users join
+ * Updates the now playing message template used when songs change
  * @param {Object} commandParams - Standard command parameters
  * @param {string} commandParams.command - The command name
- * @param {string} commandParams.args - Command arguments (new welcome message)
+ * @param {string} commandParams.args - Command arguments (new now playing message template)
  * @param {Object} commandParams.services - Service container
  * @param {Object} commandParams.context - Command context
  * @param {string} commandParams.responseChannel - Response channel ('public' or 'request')
  * @returns {Promise<Object>} Command result
  */
-async function handleWelcomeCommand ( commandParams ) {
+async function handleEditnowplayingCommand ( commandParams ) {
     const { args, services, context, responseChannel = 'request' } = commandParams;
     const { messageService, dataService } = services;
 
     if ( !args || args.trim().length === 0 ) {
-        const response = `❌ Please provide a new welcome message. Usage: ${ config.COMMAND_SWITCH }welcome Hi {username}, welcome to {hangoutName}`;
+        const response = `❌ Please provide a new now playing message template. Usage: ${ config.COMMAND_SWITCH }editnowplaying {username} is now playing {trackName} by {artistName}`;
         await messageService.sendResponse( response, {
             responseChannel,
             isPrivateMessage: context?.fullMessage?.isPrivateMessage,
@@ -37,7 +37,7 @@ async function handleWelcomeCommand ( commandParams ) {
     }
 
     const { logger } = services;
-    logger.info( 'Starting welcome message update process' );
+    logger.info( 'Starting now playing message template update process' );
     try {
         // Load current data
         logger.debug( 'Loading current data...' );
@@ -47,7 +47,7 @@ async function handleWelcomeCommand ( commandParams ) {
 
         const newData = {
             ...currentData,
-            welcomeMessage: args
+            nowPlayingMessage: args
         };
         logger.debug( `New data to write: ${ JSON.stringify( newData ) }` );
 
@@ -57,7 +57,7 @@ async function handleWelcomeCommand ( commandParams ) {
         try {
             await fs.writeFile( dataFilePath, JSON.stringify( newData, null, 2 ), 'utf8' );
         } catch ( error ) {
-            const response = `❌ Failed to update welcome message: ${ error.message }`;
+            const response = `❌ Failed to update now playing message template: ${ error.message }`;
             await messageService.sendResponse( response, {
                 responseChannel,
                 isPrivateMessage: context?.fullMessage?.isPrivateMessage,
@@ -84,12 +84,12 @@ async function handleWelcomeCommand ( commandParams ) {
         const reloadedData = dataService.getAllData();
         logger.debug( `Data in memory after reload: ${ JSON.stringify( reloadedData ) }` );
 
-        // Verify the specific welcome message was updated
-        const updatedMessage = dataService.getValue( 'welcomeMessage' );
-        logger.debug( `Updated welcome message in service: ${ updatedMessage }` );
+        // Verify the specific now playing message was updated
+        const updatedMessage = dataService.getValue( 'nowPlayingMessage' );
+        logger.debug( `Updated now playing message template in service: ${ updatedMessage }` );
 
         if ( updatedMessage !== args ) {
-            const response = `❌ Failed to update welcome message: Welcome message in memory does not match new message after reload`;
+            const response = `❌ Failed to update now playing message template: Now playing message template in memory does not match new template after reload`;
             await messageService.sendResponse( response, {
                 responseChannel,
                 isPrivateMessage: context?.fullMessage?.isPrivateMessage,
@@ -100,11 +100,11 @@ async function handleWelcomeCommand ( commandParams ) {
                 success: false,
                 shouldRespond: true,
                 response,
-                error: 'Welcome message in memory does not match new message after reload'
+                error: 'Now playing message template in memory does not match new template after reload'
             };
         }
 
-        const response = `✅ Welcome message updated to: "${ args }"`;
+        const response = `✅ Now playing message template updated to: "${ args }"`;
         await messageService.sendResponse( response, {
             responseChannel,
             isPrivateMessage: context?.fullMessage?.isPrivateMessage,
@@ -117,7 +117,7 @@ async function handleWelcomeCommand ( commandParams ) {
             response
         };
     } catch ( error ) {
-        const response = `❌ Failed to update welcome message: ${ error.message }`;
+        const response = `❌ Failed to update now playing message template: ${ error.message }`;
         await messageService.sendResponse( response, {
             responseChannel,
             isPrivateMessage: context?.fullMessage?.isPrivateMessage,
@@ -134,8 +134,8 @@ async function handleWelcomeCommand ( commandParams ) {
 }
 
 // Attach metadata to the function
-handleWelcomeCommand.requiredRole = requiredRole;
-handleWelcomeCommand.description = description;
-handleWelcomeCommand.hidden = hidden;
+handleEditnowplayingCommand.requiredRole = requiredRole;
+handleEditnowplayingCommand.description = description;
+handleEditnowplayingCommand.hidden = hidden;
 
-module.exports = handleWelcomeCommand;
+module.exports = handleEditnowplayingCommand;

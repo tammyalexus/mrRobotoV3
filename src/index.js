@@ -108,7 +108,7 @@ services.logger.info( '======================================= Application Start
       const botMention = services.messageService.formatMention( services.config.BOT_UID );
       services.logger.debug( `📤 Sending startup message with bot mention: ${ botMention }` );
 
-      await services.messageService.sendGroupMessage( `${ botMention } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do`, { services } );
+      await services.messageService.sendGroupMessage( `${ botMention } is online...use ${ services.config.COMMAND_SWITCH }help to see some of what I can do`, { services } );
 
       // await services.messageService.sendGroupPictureMessage(
       //   `${ botMention } is online...user ${ services.config.COMMAND_SWITCH }help to see some of what I can do`,

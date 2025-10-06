@@ -1,5 +1,7 @@
 // Set required role level for this command
 const requiredRole = 'USER';
+const description = 'Check if bot is responding';
+const hidden = false;
 
 /**
  * Checks if the bot is responding
@@ -28,7 +30,9 @@ async function handlePingCommand ( commandParams ) {
   };
 }
 
-// Attach role level to the function
+// Attach metadata to the function
 handlePingCommand.requiredRole = requiredRole;
+handlePingCommand.description = description;
+handlePingCommand.hidden = hidden;
 
 module.exports = handlePingCommand;

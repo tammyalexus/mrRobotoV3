@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **Now Playing Message Customization**: Added `editnowplaying` command for moderators
+  - Allows real-time modification of song announcement templates
+  - Supports flexible templates with {username}, {trackName}, {artistName} placeholders
+  - Template can use any combination of placeholders or none at all
+  - Changes are persisted to data.json and apply immediately
+  - Requires moderator role or higher for access
 
 ### Notes
 - All releases are currently in alpha state

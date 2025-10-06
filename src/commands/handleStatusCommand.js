@@ -1,19 +1,21 @@
 // Set required role level for this command
 const requiredRole = 'USER';
+const description = 'Show bot status';
+const hidden = false;
 
-function formatUptime(seconds) {
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-  if (days > 0) {
-    return `${days}d ${hours}h ${minutes}m ${secs}s`;
-  } else if (hours > 0) {
-    return `${hours}h ${minutes}m ${secs}s`;
-  } else if (minutes > 0) {
-    return `${minutes}m ${secs}s`;
+function formatUptime ( seconds ) {
+  const days = Math.floor( seconds / 86400 );
+  const hours = Math.floor( ( seconds % 86400 ) / 3600 );
+  const minutes = Math.floor( ( seconds % 3600 ) / 60 );
+  const secs = Math.floor( seconds % 60 );
+  if ( days > 0 ) {
+    return `${ days }d ${ hours }h ${ minutes }m ${ secs }s`;
+  } else if ( hours > 0 ) {
+    return `${ hours }h ${ minutes }m ${ secs }s`;
+  } else if ( minutes > 0 ) {
+    return `${ minutes }m ${ secs }s`;
   } else {
-    return `${secs}s`;
+    return `${ secs }s`;
   }
 }
 
@@ -27,18 +29,18 @@ function formatUptime(seconds) {
  * @param {string} commandParams.responseChannel - Response channel ('public' or 'request')
  * @returns {Promise<Object>} Command result
  */
-async function handleStatusCommand(commandParams) {
+async function handleStatusCommand ( commandParams ) {
   const { services, context, responseChannel = 'request' } = commandParams;
   const { messageService } = services;
   const uptime = process.uptime();
-  const uptimeFormatted = formatUptime(uptime);
-  const response = `🤖 Bot Status:\n✅ Online and operational\n⏱️ Uptime: ${uptimeFormatted}`;
-  await messageService.sendResponse(response, {
+  const uptimeFormatted = formatUptime( uptime );
+  const response = `🤖 Bot Status:\n✅ Online and operational\n⏱️ Uptime: ${ uptimeFormatted }`;
+  await messageService.sendResponse( response, {
     responseChannel,
     isPrivateMessage: context?.fullMessage?.isPrivateMessage,
     sender: context?.sender,
     services
-  });
+  } );
   return {
     success: true,
     response,
@@ -46,7 +48,9 @@ async function handleStatusCommand(commandParams) {
   };
 }
 
-// Attach role level to the function
+// Attach metadata to the function
 handleStatusCommand.requiredRole = requiredRole;
+handleStatusCommand.description = description;
+handleStatusCommand.hidden = hidden;
 
 module.exports = handleStatusCommand;

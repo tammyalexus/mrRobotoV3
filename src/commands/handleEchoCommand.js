@@ -1,5 +1,7 @@
 // Set required role level for this command
 const requiredRole = 'USER';
+const description = 'Echo back your message';
+const hidden = false;
 
 /**
  * Echoes a message back to the chat
@@ -51,7 +53,9 @@ async function handleEchoCommand ( commandParams ) {
   };
 }
 
-// Attach role level to the function
+// Attach metadata to the function
 handleEchoCommand.requiredRole = requiredRole;
+handleEchoCommand.description = description;
+handleEchoCommand.hidden = hidden;
 
 module.exports = handleEchoCommand;

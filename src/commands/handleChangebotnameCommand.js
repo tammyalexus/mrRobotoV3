@@ -1,9 +1,11 @@
-const { logger } = require('../lib/logging.js');
-const fs = require('fs').promises;
-const path = require('path');
+const { logger } = require( '../lib/logging.js' );
+const fs = require( 'fs' ).promises;
+const path = require( 'path' );
 
 // Set required role level for this command
 const requiredRole = 'OWNER';
+const description = 'Change the bot name';
+const hidden = false;
 
 /**
  * Changes the bot's nickname and updates all related configurations
@@ -11,17 +13,17 @@ const requiredRole = 'OWNER';
  * @param {string} commandParams.responseChannel - Response channel ('public' or 'request')
  * @returns {Promise<Object>} Command result
  */
-async function handleChangebotnameCommand(commandParams) {
+async function handleChangebotnameCommand ( commandParams ) {
   const { args, services, context, responseChannel = 'request' } = commandParams;
 
-  if (!args) {
+  if ( !args ) {
     const response = '❌ Please provide a new name for the bot.';
-    await services.messageService.sendResponse(response, {
+    await services.messageService.sendResponse( response, {
       responseChannel,
       isPrivateMessage: context?.fullMessage?.isPrivateMessage,
       sender: context?.sender,
       services
-    });
+    } );
     return {
       success: false,
       shouldRespond: true,
@@ -31,18 +33,18 @@ async function handleChangebotnameCommand(commandParams) {
 
   try {
     // 1. Update the nickname in TT.fm
-    await services.hangUserService.updateHangNickname(args);
+    await services.hangUserService.updateHangNickname( args );
 
     // 2. Update CHAT_NAME in the data service (this will also update the file)
-    await services.dataService.setValue('botData.CHAT_NAME', args);
+    await services.dataService.setValue( 'botData.CHAT_NAME', args );
 
-    const response = `✅ Bot name successfully changed to: ${args}`;
-    await services.messageService.sendResponse(response, {
+    const response = `✅ Bot name successfully changed to: ${ args }`;
+    await services.messageService.sendResponse( response, {
       responseChannel,
       isPrivateMessage: context?.fullMessage?.isPrivateMessage,
       sender: context?.sender,
       services
-    });
+    } );
 
     return {
       success: true,
@@ -50,15 +52,15 @@ async function handleChangebotnameCommand(commandParams) {
       response
     };
 
-  } catch (error) {
-    const errorMsg = `❌ Failed to change bot name: ${error.message}`;
-    logger.error(`Error in changeBotName command: ${error.message}`);
-    await services.messageService.sendResponse(errorMsg, {
+  } catch ( error ) {
+    const errorMsg = `❌ Failed to change bot name: ${ error.message }`;
+    logger.error( `Error in changeBotName command: ${ error.message }` );
+    await services.messageService.sendResponse( errorMsg, {
       responseChannel,
       isPrivateMessage: context?.fullMessage?.isPrivateMessage,
       sender: context?.sender,
       services
-    });
+    } );
 
     return {
       success: false,
@@ -69,7 +71,9 @@ async function handleChangebotnameCommand(commandParams) {
   }
 }
 
-// Attach role level to the function
+// Attach metadata to the function
 handleChangebotnameCommand.requiredRole = requiredRole;
+handleChangebotnameCommand.description = description;
+handleChangebotnameCommand.hidden = hidden;
 
 module.exports = handleChangebotnameCommand;

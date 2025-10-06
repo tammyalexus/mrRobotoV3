@@ -208,6 +208,7 @@ This file contains the Bot's "memory" and serves two purposes:
 ```json
 {
    "welcomeMessage": "Hi {username}, welcome to {hangoutName}",
+   "nowPlayingMessage": "{username} is now playing {trackName} by {artistName}",
    "botData": {
       "CHAT_AVATAR_ID": "bot-1",
       "CHAT_NAME": "HangBot",
@@ -216,11 +217,18 @@ This file contains the Bot's "memory" and serves two purposes:
 } 
 ```
 
-## Step 2: Welcome Message Configuration
-Firstly we update the value for "welcomeMessage"
-   * this is use by the Bot to greet people when they arrive in the Hangout
+## Step 2: Message Template Configuration
+First we update the value for "welcomeMessage"
+   * this is used by the Bot to greet people when they arrive in the Hangout
    * the token {username} will be automatically converted to a mention of the user joining the Hangout
    * the token {hangoutName} will be substituted for the name/title of the Hangout
+
+Next we update the value for "nowPlayingMessage"
+   * this is used by the Bot to announce when a new song starts playing
+   * the token {username} will be automatically converted to a mention of the DJ playing the song
+   * the token {trackName} will be substituted for the name of the song
+   * the token {artistName} will be substituted for the name of the artist
+   * **TIP**: After setup, you can use the `editnowplaying` command to modify this template while the bot is running
 
 ## Step 3: Bot Data Configuration
 Next we have to update the botData section

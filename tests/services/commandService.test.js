@@ -172,6 +172,36 @@ describe( 'commandService', () => {
       expect( result.response ).toContain( 'Echo what?' );
     } );
 
+    test( 'should handle editnowplaying command with message template', async () => {
+      // Mock the fs module for this test
+      const fs = require( 'fs' );
+      jest.spyOn( fs.promises, 'writeFile' ).mockResolvedValue();
+      jest.spyOn( fs.promises, 'readFile' ).mockResolvedValue(
+        JSON.stringify( { nowPlayingMessage: '{username} plays {trackName}' }, null, 2 )
+      );
+
+      // Mock dataService for editnowplaying
+      mockServices.dataService.loadData = jest.fn().mockResolvedValue();
+      mockServices.dataService.getAllData = jest.fn().mockReturnValue( { nowPlayingMessage: 'old template' } );
+      mockServices.dataService.getValue = jest.fn().mockReturnValue( '{username} plays {trackName}' );
+
+      // Test with moderator role (required for editnowplaying)
+      mockStateService.getUserRole.mockReturnValue( 'moderator' );
+
+      const testTemplate = '{username} plays {trackName}';
+      const result = await commandService( 'editnowplaying', testTemplate, mockServices, mockContext );
+
+      expect( result.success ).toBe( true );
+      expect( result.shouldRespond ).toBe( true );
+      expect( result.response ).toContain( 'Now playing message template updated' );
+      expect( mockServices.dataService.loadData ).toHaveBeenCalled();
+      expect( fs.promises.writeFile ).toHaveBeenCalled();
+
+      // Clean up mocks
+      fs.promises.writeFile.mockRestore();
+      fs.promises.readFile.mockRestore();
+    } );
+
     test( 'should handle unknown command', async () => {
       const result = await commandService( 'unknown', '', mockServices, mockContext );
 
