@@ -2,7 +2,8 @@
 jest.mock( '../../src/services/messageService.js', () => ( {
   messageService: {
     sendGroupMessage: jest.fn().mockResolvedValue( { success: true } ),
-    sendResponse: jest.fn().mockResolvedValue( { success: true } )
+    sendResponse: jest.fn().mockResolvedValue( { success: true } ),
+    formatMention: jest.fn().mockImplementation( ( uuid ) => `<@uid:${ uuid }>` )
   }
 } ) );
 
@@ -26,7 +27,8 @@ jest.mock( '../../src/services/stateService.js', () => ( {
 
 // Mock config module
 jest.mock( '../../src/config.js', () => ( {
-  COMMAND_SWITCH: '!'
+  COMMAND_SWITCH: '!',
+  BOT_UID: 'test-bot-uuid-123'
 } ) );
 
 const commandService = require( '../../src/services/commandService.js' );
@@ -34,7 +36,8 @@ const commandService = require( '../../src/services/commandService.js' );
 // Mock messageService
 const mockMessageService = {
   sendGroupMessage: jest.fn().mockResolvedValue( { success: true } ),
-  sendResponse: jest.fn().mockResolvedValue( { success: true } )
+  sendResponse: jest.fn().mockResolvedValue( { success: true } ),
+  formatMention: jest.fn().mockImplementation( ( uuid ) => `<@uid:${ uuid }>` )
 };
 
 // Mock stateService
@@ -51,7 +54,8 @@ const mockServices = {
     error: jest.fn()
   },
   config: {
-    COMMAND_SWITCH: '!'
+    COMMAND_SWITCH: '!',
+    BOT_UID: 'test-bot-uuid-123'
   },
   stateService: mockStateService,
   hangUserService: require( '../../src/services/hangUserService.js' ),
@@ -143,29 +147,21 @@ describe( 'commandService', () => {
       );
     } );
 
-    test( 'should handle echo command with message and include sender nickname', async () => {
+    test( 'should handle echo command with message and include sender mention', async () => {
       const testMessage = 'Hello World';
       const result = await commandService( 'echo', testMessage, mockServices, mockContext );
 
       expect( result.success ).toBe( true );
       expect( result.shouldRespond ).toBe( true );
       expect( result.response ).toContain( testMessage );
-      expect( result.response ).toContain( 'from Nick-From-UUID' );
+      expect( result.response ).toContain( 'from <@uid:testUser>' );
       expect( mockMessageService.sendResponse ).toHaveBeenCalledWith(
-        expect.stringContaining( 'from Nick-From-UUID' ),
+        expect.stringContaining( 'from <@uid:testUser>' ),
         expect.objectContaining( {
           responseChannel: 'public',
           services: expect.any( Object )
         } )
       );
-    } );
-
-    test( 'should fall back to unknown when nickname lookup fails', async () => {
-      const hangUserService = require( '../../src/services/hangUserService.js' );
-      hangUserService.getUserNicknameByUuid.mockRejectedValueOnce( new Error( 'lookup failed' ) );
-
-      const result = await commandService( 'echo', 'msg', mockServices, mockContext );
-      expect( result.response ).toContain( 'from unknown' );
     } );
 
     test( 'should handle echo command without message', async () => {
@@ -174,6 +170,36 @@ describe( 'commandService', () => {
       expect( result.success ).toBe( false );
       expect( result.shouldRespond ).toBe( true );
       expect( result.response ).toContain( 'Echo what?' );
+    } );
+
+    test( 'should handle editnowplaying command with message template', async () => {
+      // Mock the fs module for this test
+      const fs = require( 'fs' );
+      jest.spyOn( fs.promises, 'writeFile' ).mockResolvedValue();
+      jest.spyOn( fs.promises, 'readFile' ).mockResolvedValue(
+        JSON.stringify( { nowPlayingMessage: '{username} plays {trackName}' }, null, 2 )
+      );
+
+      // Mock dataService for editnowplaying
+      mockServices.dataService.loadData = jest.fn().mockResolvedValue();
+      mockServices.dataService.getAllData = jest.fn().mockReturnValue( { nowPlayingMessage: 'old template' } );
+      mockServices.dataService.getValue = jest.fn().mockReturnValue( '{username} plays {trackName}' );
+
+      // Test with moderator role (required for editnowplaying)
+      mockStateService.getUserRole.mockReturnValue( 'moderator' );
+
+      const testTemplate = '{username} plays {trackName}';
+      const result = await commandService( 'editnowplaying', testTemplate, mockServices, mockContext );
+
+      expect( result.success ).toBe( true );
+      expect( result.shouldRespond ).toBe( true );
+      expect( result.response ).toContain( 'Now playing message template updated' );
+      expect( mockServices.dataService.loadData ).toHaveBeenCalled();
+      expect( fs.promises.writeFile ).toHaveBeenCalled();
+
+      // Clean up mocks
+      fs.promises.writeFile.mockRestore();
+      fs.promises.readFile.mockRestore();
     } );
 
     test( 'should handle unknown command', async () => {
