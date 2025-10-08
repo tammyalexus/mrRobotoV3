@@ -24,14 +24,14 @@ jest.mock( 'fs', () => ( {
     'handleChangebotnameCommand.js',
     'handleEchoCommand.js',
     'handleEditnowplayingCommand.js',
+    'handleEditwelcomeCommand.js',
     'handleFeatureCommand.js',
     'handleHelpCommand.js',
     'handlePingCommand.js',
     'handleStateCommand.js',
     'handleStatusCommand.js',
     'handleTogglecommandCommand.js',
-    'handleUnknownCommand.js',
-    'handleWelcomeCommand.js'
+    'handleUnknownCommand.js'
   ] ),
   promises: {
     appendFile: jest.fn().mockResolvedValue(),

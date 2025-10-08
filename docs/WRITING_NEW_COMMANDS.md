@@ -257,20 +257,20 @@ Type !help to see all available commands.
 // Command metadata
 const requiredRole = 'MODERATOR';
 const description = 'Update the welcome message template';
-const example = 'welcome Hi {username}, welcome to {hangoutName}!';
+const example = 'editwelcome Hi {username}, welcome to {hangoutName}!';
 const hidden = false;
 
-async function handleWelcomeCommand(commandParams) {
+async function handleEditwelcomeCommand(commandParams) {
     // Command implementation here
 }
 
 // Attach ALL metadata to the function
-handleWelcomeCommand.requiredRole = requiredRole;
-handleWelcomeCommand.description = description;
-handleWelcomeCommand.example = example;
-handleWelcomeCommand.hidden = hidden;
+handleEditwelcomeCommand.requiredRole = requiredRole;
+handleEditwelcomeCommand.description = description;
+handleEditwelcomeCommand.example = example;
+handleEditwelcomeCommand.hidden = hidden;
 
-module.exports = handleWelcomeCommand;
+module.exports = handleEditwelcomeCommand;
 ```
 
 ### Automatic Discovery

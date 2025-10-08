@@ -6,10 +6,10 @@ jest.mock('fs', () => ({
     }
 }));
 
-const handleWelcomeCommand = require('../../src/commands/handleWelcomeCommand');
+const handleEditwelcomeCommand = require('../../src/commands/handleEditwelcomeCommand');
 const fs = require('fs');
 
-describe('handleWelcomeCommand', () => {
+describe('handleEditwelcomeCommand', () => {
     let mockServices;
     let mockCommandParams;
 
@@ -40,7 +40,7 @@ describe('handleWelcomeCommand', () => {
         fs.promises.readFile.mockResolvedValue(JSON.stringify({ welcomeMessage: 'New welcome message' }, null, 2));
 
         mockCommandParams = {
-            command: 'welcome',
+            command: 'editwelcome',
             args: 'New welcome message',
             services: mockServices,
             context: {
@@ -51,7 +51,7 @@ describe('handleWelcomeCommand', () => {
 
     it('should require args', async () => {
         mockCommandParams.args = '';
-        const result = await handleWelcomeCommand(mockCommandParams);
+        const result = await handleEditwelcomeCommand(mockCommandParams);
 
         expect(result.success).toBe(false);
         expect(result.response).toContain('Please provide a new welcome message');
@@ -59,7 +59,7 @@ describe('handleWelcomeCommand', () => {
     });
 
     it('should update welcome message successfully', async () => {
-        const result = await handleWelcomeCommand(mockCommandParams);
+        const result = await handleEditwelcomeCommand(mockCommandParams);
 
         expect(result.success).toBe(true);
         expect(result.response).toContain('New welcome message');
@@ -78,7 +78,7 @@ describe('handleWelcomeCommand', () => {
             throw new Error('Write error');
         });
 
-        const result = await handleWelcomeCommand(mockCommandParams);
+        const result = await handleEditwelcomeCommand(mockCommandParams);
 
         expect(result.success).toBe(false);
         expect(result.response).toContain('Failed to update welcome message');

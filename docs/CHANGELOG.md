@@ -126,7 +126,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.3_alpha] - 2025-08-25
 ### Added
-- New `welcome` command for moderators to customize the welcome message
+- New `editwelcome` command for moderators to customize the welcome message
 - DataService for managing global configuration via data.json
 - Configurable welcome messages with dynamic placeholders ({username}, {hangoutName})
 - data.json file for persistent bot configuration

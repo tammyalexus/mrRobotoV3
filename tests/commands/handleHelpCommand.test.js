@@ -48,14 +48,14 @@ jest.mock( 'fs', () => ( {
     'handleChangebotnameCommand.js',
     'handleEchoCommand.js',
     'handleEditnowplayingCommand.js',
+    'handleEditwelcomeCommand.js',
     'handleFeatureCommand.js',
     'handleHelpCommand.js',
     'handlePingCommand.js',
     'handleStateCommand.js',
     'handleStatusCommand.js',
     'handleTogglecommandCommand.js',
-    'handleUnknownCommand.js',
-    'handleWelcomeCommand.js'
+    'handleUnknownCommand.js'
   ] ),
   existsSync: jest.fn().mockReturnValue( true ),
   mkdirSync: jest.fn()
@@ -114,7 +114,7 @@ describe( 'handleHelpCommand', () => {
 
         // Check for Moderator commands
         expect( result.response ).toContain( '!editnowplaying - Update the now playing message template' );
-        expect( result.response ).toContain( '!welcome - Update the welcome message template' );
+        expect( result.response ).toContain( '!editwelcome - Update the welcome message template' );
 
         // Check for Owner commands
         expect( result.response ).toContain( '!changebotname - Change the bot name' );
