@@ -157,6 +157,12 @@ async function userJoined ( message, state, services ) {
       return;
     }
 
+    // Check if welcome message feature is enabled
+    if ( !services.featuresService.isFeatureEnabled( 'welcomeMessage' ) ) {
+      services.logger.debug( 'Welcome message feature is disabled, skipping welcome message' );
+      return;
+    }
+
     // Send welcome message
     await sendWelcomeMessage( userData, services );
 

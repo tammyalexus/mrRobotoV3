@@ -1,6 +1,10 @@
 {
   "welcomeMessage": "Hi {username}, welcome to {hangoutName}",
   "nowPlayingMessage": "{username} is now playing {trackName} by {artistName}",
+  "disabledCommands": [
+  ],
+  "disabledFeatures": [
+  ],
   "botData": {
     "CHAT_AVATAR_ID": "bot-1",
     "CHAT_NAME": "HangBot",
