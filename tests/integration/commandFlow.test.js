@@ -27,7 +27,7 @@ jest.mock( 'fs', () => ( {
     'handlePingCommand.js',
     'handleStateCommand.js',
     'handleStatusCommand.js',
-    'handleTogglecommandCommand.js',
+    'handleCommandCommand.js',
     'handleUnknownCommand.js',
     'handleWelcomeCommand.js'
   ] )

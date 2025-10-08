@@ -4,9 +4,40 @@ const path = require( 'path' );
 
 // Set required role level for this command
 const requiredRole = 'OWNER';
-const description = 'Toggle a command enabled/disabled state';
-const example = 'togglecommand enable/disable/status ping';
+const description = 'Manage bot commands - list, enable, disable, or check status';
+const example = 'command list';
 const hidden = false;
+
+/**
+ * Get all available commands by scanning the commands directory
+ * @returns {Array} Array of command names
+ */
+function getAllCommands() {
+    try {
+        const commandsDir = path.join( __dirname, '../commands' );
+        const files = fs.readdirSync( commandsDir );
+        const commands = [];
+        
+        files.forEach( file => {
+            if ( file.endsWith( '.js' ) ) {
+                // Extract command name from filename: handleStateCommand.js -> state
+                const match = file.match( /^handle(.*)Command\.js$/ );
+                if ( match && match[ 1 ] ) {
+                    const commandName = match[ 1 ].toLowerCase();
+                    commands.push( commandName );
+                }
+                // Also support handleUnknownCommand.js as 'unknown'
+                if ( file === 'handleUnknownCommand.js' ) {
+                    commands.push( 'unknown' );
+                }
+            }
+        } );
+        
+        return commands.sort();
+    } catch ( error ) {
+        return [];
+    }
+}
 
 /**
  * Get the current disabled commands from data.json
@@ -45,150 +76,174 @@ function commandExists( commandName ) {
 }
 
 /**
- * Toggles the enabled state of a command via data.json
- * @param {Object} commandParams - Standard command parameters
- * @param {string} commandParams.command - The command name
- * @param {string} commandParams.args - Action and command name (enable/disable/status commandname)
- * @param {Object} commandParams.services - Service container
- * @param {Object} commandParams.context - Command context
- * @param {string} commandParams.responseChannel - Response channel ('public' or 'request')
- * @returns {Promise<Object>} Command result
+ * Handle command management - list, enable, disable, or check status
+ * @param {Object} commandParams - The command parameters object
+ * @param {string} commandParams.args - The command arguments
+ * @param {Object} commandParams.services - The services object
+ * @param {Object} commandParams.context - The context object containing bot and msg information
+ * @param {string} commandParams.responseChannel - The channel to send responses to
  */
-async function handleTogglecommandCommand ( commandParams ) {
-    const { args, services, context, responseChannel = 'request' } = commandParams;
+async function handleCommandCommand( { args, services, context, responseChannel } ) {
     const { messageService } = services;
-
-    if ( !args || args.trim().length === 0 ) {
-        const response = `❌ Please provide an action and command name. Usage: ${ config.COMMAND_SWITCH }togglecommand <enable/disable/status> <command>`;
-        await messageService.sendResponse( response, {
-            responseChannel,
-            isPrivateMessage: context?.fullMessage?.isPrivateMessage,
-            sender: context?.sender,
-            services
-        } );
+    
+    if ( !args || args.trim() === '' ) {
+        await messageService.sendResponse( 
+            'Please specify an action: list, enable <command>, disable <command>, or status <command>',
+            {
+                responseChannel,
+                isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+                sender: context?.sender,
+                services
+            }
+        );
         return {
             success: false,
             shouldRespond: true,
-            response
+            response: 'Please specify an action: list, enable <command>, disable <command>, or status <command>'
         };
     }
-
-    const parts = args.trim().toLowerCase().split( /\s+/ );
-    if ( parts.length !== 2 ) {
-        const response = `❌ Invalid syntax. Usage: ${ config.COMMAND_SWITCH }togglecommand <enable/disable/status> <command>`;
-        await messageService.sendResponse( response, {
-            responseChannel,
-            isPrivateMessage: context?.fullMessage?.isPrivateMessage,
-            sender: context?.sender,
-            services
-        } );
-        return {
-            success: false,
-            shouldRespond: true,
-            response
-        };
-    }
-
-    const [ action, commandName ] = parts;
-
-    // Validate action
-    if ( ![ 'enable', 'disable', 'status' ].includes( action ) ) {
-        const response = `❌ Invalid action '${ action }'. Use: enable, disable, or status`;
-        await messageService.sendResponse( response, {
-            responseChannel,
-            isPrivateMessage: context?.fullMessage?.isPrivateMessage,
-            sender: context?.sender,
-            services
-        } );
-        return {
-            success: false,
-            shouldRespond: true,
-            response
-        };
-    }
-
-    // Check if the command exists
-    if ( !commandExists( commandName ) ) {
-        const response = `❌ Command '${ commandName }' does not exist.`;
-        await messageService.sendResponse( response, {
-            responseChannel,
-            isPrivateMessage: context?.fullMessage?.isPrivateMessage,
-            sender: context?.sender,
-            services
-        } );
-        return {
-            success: false,
-            shouldRespond: true,
-            response
-        };
-    }
-
-    // Special case: cannot disable unknown command
-    if ( commandName === 'unknown' && action === 'disable' ) {
-        const response = `❌ Cannot disable the 'unknown' command as it handles unrecognized commands.`;
-        await messageService.sendResponse( response, {
-            responseChannel,
-            isPrivateMessage: context?.fullMessage?.isPrivateMessage,
-            sender: context?.sender,
-            services
-        } );
-        return {
-            success: false,
-            shouldRespond: true,
-            response
-        };
-    }
-
-    try {
+    
+    const [ action, commandName ] = args.split( ' ' );
+    
+    if ( action === 'list' ) {
+        const allCommands = getAllCommands();
         const disabledCommands = getDisabledCommands();
-        const isCurrentlyDisabled = disabledCommands.includes( commandName );
-
-        let response;
-
-        if ( action === 'status' ) {
-            const status = isCurrentlyDisabled ? 'disabled' : 'enabled';
-            response = `ℹ️ Command '${ commandName }' is currently ${ status }.`;
-        } else if ( action === 'enable' ) {
-            if ( !isCurrentlyDisabled ) {
-                response = `ℹ️ Command '${ commandName }' is already enabled.`;
-            } else {
-                // Remove from disabled list
-                const newDisabledCommands = disabledCommands.filter( cmd => cmd !== commandName );
-                updateDisabledCommands( newDisabledCommands );
-                response = `✅ Command '${ commandName }' has been enabled.`;
-            }
-        } else if ( action === 'disable' ) {
-            if ( isCurrentlyDisabled ) {
-                response = `ℹ️ Command '${ commandName }' is already disabled.`;
-            } else {
-                // Add to disabled list
-                const newDisabledCommands = [ ...disabledCommands, commandName ];
-                updateDisabledCommands( newDisabledCommands );
-                response = `✅ Command '${ commandName }' has been disabled.`;
-            }
+        
+        if ( allCommands.length === 0 ) {
+            const response = '❌ No commands found';
+            await messageService.sendResponse( response, {
+                responseChannel,
+                isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+                sender: context?.sender,
+                services
+            });
+            return {
+                success: false,
+                shouldRespond: true,
+                response
+            };
         }
-
+        
+        let response = '🔧 **Command Status:**\n\n';
+        allCommands.forEach( command => {
+            const isDisabled = disabledCommands.includes( command );
+            const emoji = isDisabled ? '🔴' : '🟢';
+            const status = isDisabled ? 'disabled' : 'enabled';
+            response += `${emoji} **${command}** - ${status}\n`;
+        } );
+        
         await messageService.sendResponse( response, {
             responseChannel,
             isPrivateMessage: context?.fullMessage?.isPrivateMessage,
             sender: context?.sender,
             services
-        } );
-
+        });
         return {
             success: true,
             shouldRespond: true,
             response
         };
-
-    } catch ( error ) {
-        const response = `❌ Failed to ${ action } command '${ commandName }': ${ error.message }`;
+    }
+    
+    if ( !commandName ) {
+        const response = 'Please specify a command name';
         await messageService.sendResponse( response, {
             responseChannel,
             isPrivateMessage: context?.fullMessage?.isPrivateMessage,
             sender: context?.sender,
             services
-        } );
+        });
+        return {
+            success: false,
+            shouldRespond: true,
+            response
+        };
+    }
+    
+    // Check if the command exists
+    if ( !commandExists( commandName ) ) {
+        const response = `❌ Command '${commandName}' does not exist`;
+        await messageService.sendResponse( response, {
+            responseChannel,
+            isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+            sender: context?.sender,
+            services
+        });
+        return {
+            success: false,
+            shouldRespond: true,
+            response
+        };
+    }
+    
+    // Special case: cannot disable unknown command
+    if ( commandName === 'unknown' && action === 'disable' ) {
+        const response = "❌ Cannot disable the 'unknown' command as it handles unrecognized commands";
+        await messageService.sendResponse( response, {
+            responseChannel,
+            isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+            sender: context?.sender,
+            services
+        });
+        return {
+            success: false,
+            shouldRespond: true,
+            response
+        };
+    }
+    
+    try {
+        const disabledCommands = getDisabledCommands();
+        const isCurrentlyDisabled = disabledCommands.includes( commandName );
+        
+        let response;
+        
+        if ( action === 'status' ) {
+            const status = isCurrentlyDisabled ? 'disabled' : 'enabled';
+            response = `ℹ️ Command '${commandName}' is currently ${status}`;
+        } else if ( action === 'enable' ) {
+            if ( !isCurrentlyDisabled ) {
+                response = `ℹ️ Command '${commandName}' is already enabled`;
+            } else {
+                // Remove from disabled list
+                const newDisabledCommands = disabledCommands.filter( cmd => cmd !== commandName );
+                updateDisabledCommands( newDisabledCommands );
+                response = `✅ Command '${commandName}' has been enabled`;
+            }
+        } else if ( action === 'disable' ) {
+            if ( isCurrentlyDisabled ) {
+                response = `ℹ️ Command '${commandName}' is already disabled`;
+            } else {
+                // Add to disabled list
+                const newDisabledCommands = [ ...disabledCommands, commandName ];
+                updateDisabledCommands( newDisabledCommands );
+                response = `✅ Command '${commandName}' has been disabled`;
+            }
+        } else {
+            response = `❌ Invalid action '${action}'. Use: list, enable, disable, or status`;
+        }
+        
+        await messageService.sendResponse( response, {
+            responseChannel,
+            isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+            sender: context?.sender,
+            services
+        });
+        return {
+            success: true,
+            shouldRespond: true,
+            response
+        };
+        
+    } catch ( error ) {
+        console.error( 'Error in command management:', error );
+        const response = '❌ An error occurred while managing the command';
+        await messageService.sendResponse( response, {
+            responseChannel,
+            isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+            sender: context?.sender,
+            services
+        });
         return {
             success: false,
             shouldRespond: true,
@@ -199,9 +254,9 @@ async function handleTogglecommandCommand ( commandParams ) {
 }
 
 // Attach metadata to the function
-handleTogglecommandCommand.requiredRole = requiredRole;
-handleTogglecommandCommand.description = description;
-handleTogglecommandCommand.example = example;
-handleTogglecommandCommand.hidden = hidden;
+handleCommandCommand.requiredRole = requiredRole;
+handleCommandCommand.description = description;
+handleCommandCommand.example = example;
+handleCommandCommand.hidden = hidden;
 
-module.exports = handleTogglecommandCommand;
+module.exports = handleCommandCommand;

@@ -2,13 +2,9 @@ const handleFeatureCommand = require( '../../src/commands/handleFeatureCommand' 
 
 describe( 'handleFeatureCommand', () => {
   let services;
-  let message;
+  let commandParams;
 
   beforeEach( () => {
-    message = {
-      userId: 'user123'
-    };
-
     services = {
       featuresService: {
         isFeatureEnabled: jest.fn(),
@@ -17,11 +13,21 @@ describe( 'handleFeatureCommand', () => {
         getAllFeatures: jest.fn()
       },
       messageService: {
-        groupMessage: jest.fn()
+        sendResponse: jest.fn()
       },
       stateService: {
         getUserRole: jest.fn()
       }
+    };
+
+    commandParams = {
+      command: 'feature',
+      args: 'list',
+      services: services,
+      context: {
+        sender: 'user123'
+      },
+      responseChannel: 'request'
     };
   } );
 
@@ -33,28 +39,35 @@ describe( 'handleFeatureCommand', () => {
         disabled: ['nowPlayingMessage']
       } );
 
-      await handleFeatureCommand( message, 'list', [], services );
+      const result = await handleFeatureCommand( commandParams );
 
-      expect( services.messageService.groupMessage ).toHaveBeenCalled();
+      expect( result.success ).toBe( true );
+      expect( services.messageService.sendResponse ).toHaveBeenCalled();
     } );
 
     it( 'should deny access to moderators', async () => {
       services.stateService.getUserRole.mockReturnValue( 'moderator' );
 
-      await handleFeatureCommand( message, 'list', [], services );
+      const result = await handleFeatureCommand( commandParams );
 
-      expect( services.messageService.groupMessage ).toHaveBeenCalledWith(
-        'Only the room owner can manage features.'
+      expect( result.success ).toBe( false );
+      expect( result.response ).toContain( '❌ Only the room owner can manage features.' );
+      expect( services.messageService.sendResponse ).toHaveBeenCalledWith(
+        expect.stringContaining('❌ Only the room owner can manage features.'),
+        expect.any(Object)
       );
     } );
 
     it( 'should deny access to regular users', async () => {
       services.stateService.getUserRole.mockReturnValue( 'user' );
 
-      await handleFeatureCommand( message, 'list', [], services );
+      const result = await handleFeatureCommand( commandParams );
 
-      expect( services.messageService.groupMessage ).toHaveBeenCalledWith(
-        'Only the room owner can manage features.'
+      expect( result.success ).toBe( false );
+      expect( result.response ).toContain( '❌ Only the room owner can manage features.' );
+      expect( services.messageService.sendResponse ).toHaveBeenCalledWith(
+        expect.stringContaining('❌ Only the room owner can manage features.'),
+        expect.any(Object)
       );
     } );
   } );
@@ -62,6 +75,7 @@ describe( 'handleFeatureCommand', () => {
   describe( 'list command', () => {
     beforeEach( () => {
       services.stateService.getUserRole.mockReturnValue( 'owner' );
+      commandParams.args = 'list';
     } );
 
     it( 'should display enabled and disabled features', async () => {
@@ -70,10 +84,15 @@ describe( 'handleFeatureCommand', () => {
         disabled: ['nowPlayingMessage']
       } );
 
-      await handleFeatureCommand( message, 'list', [], services );
+      const result = await handleFeatureCommand( commandParams );
 
-      const expectedMessage = 'Available Features:\n\n✅ Enabled:\n- welcomeMessage\n\n❌ Disabled:\n- nowPlayingMessage\n';
-      expect( services.messageService.groupMessage ).toHaveBeenCalledWith( expectedMessage );
+      expect( result.success ).toBe( true );
+      expect( result.response ).toContain( '📋 **Available Features:**' );
+      expect( result.response ).toContain( '✅ **Enabled:**' );
+      expect( result.response ).toContain( '• welcomeMessage' );
+      expect( result.response ).toContain( '❌ **Disabled:**' );
+      expect( result.response ).toContain( '• nowPlayingMessage' );
+      expect( services.messageService.sendResponse ).toHaveBeenCalled();
     } );
 
     it( 'should handle all features enabled', async () => {
@@ -82,10 +101,13 @@ describe( 'handleFeatureCommand', () => {
         disabled: []
       } );
 
-      await handleFeatureCommand( message, 'list', [], services );
+      const result = await handleFeatureCommand( commandParams );
 
-      const expectedMessage = 'Available Features:\n\n✅ Enabled:\n- welcomeMessage\n- nowPlayingMessage\n\n❌ Disabled:\n(none)';
-      expect( services.messageService.groupMessage ).toHaveBeenCalledWith( expectedMessage );
+      expect( result.success ).toBe( true );
+      expect( result.response ).toContain( '• welcomeMessage' );
+      expect( result.response ).toContain( '• nowPlayingMessage' );
+      expect( result.response ).toContain( '❌ **Disabled:**\n(none)' );
+      expect( services.messageService.sendResponse ).toHaveBeenCalled();
     } );
 
     it( 'should handle all features disabled', async () => {
@@ -94,10 +116,13 @@ describe( 'handleFeatureCommand', () => {
         disabled: ['welcomeMessage', 'nowPlayingMessage']
       } );
 
-      await handleFeatureCommand( message, 'list', [], services );
+      const result = await handleFeatureCommand( commandParams );
 
-      const expectedMessage = 'Available Features:\n\n✅ Enabled:\n(none)\n\n❌ Disabled:\n- welcomeMessage\n- nowPlayingMessage\n';
-      expect( services.messageService.groupMessage ).toHaveBeenCalledWith( expectedMessage );
+      expect( result.success ).toBe( true );
+      expect( result.response ).toContain( '✅ **Enabled:**\n(none)' );
+      expect( result.response ).toContain( '• welcomeMessage' );
+      expect( result.response ).toContain( '• nowPlayingMessage' );
+      expect( services.messageService.sendResponse ).toHaveBeenCalled();
     } );
   } );
 
@@ -108,25 +133,35 @@ describe( 'handleFeatureCommand', () => {
 
     it( 'should enable a feature successfully', async () => {
       services.featuresService.enableFeature.mockReturnValue( true );
+      commandParams.args = 'enable welcomeMessage';
 
-      await handleFeatureCommand( message, 'enable', ['welcomeMessage'], services );
+      const result = await handleFeatureCommand( commandParams );
 
       expect( services.featuresService.enableFeature ).toHaveBeenCalledWith( 'welcomeMessage' );
-      expect( services.messageService.groupMessage ).toHaveBeenCalledWith( 'Feature "welcomeMessage" has been enabled.' );
+      expect( result.success ).toBe( true );
+      expect( result.response ).toContain( '✅ Feature "welcomeMessage" has been enabled.' );
+      expect( services.messageService.sendResponse ).toHaveBeenCalled();
     } );
 
     it( 'should handle feature already enabled', async () => {
       services.featuresService.enableFeature.mockReturnValue( false );
+      commandParams.args = 'enable welcomeMessage';
 
-      await handleFeatureCommand( message, 'enable', ['welcomeMessage'], services );
+      const result = await handleFeatureCommand( commandParams );
 
-      expect( services.messageService.groupMessage ).toHaveBeenCalledWith( 'Feature "welcomeMessage" is already enabled.' );
+      expect( result.success ).toBe( false );
+      expect( result.response ).toContain( 'ℹ️ Feature "welcomeMessage" is already enabled.' );
+      expect( services.messageService.sendResponse ).toHaveBeenCalled();
     } );
 
     it( 'should require feature name argument', async () => {
-      await handleFeatureCommand( message, 'enable', [], services );
+      commandParams.args = 'enable';
 
-      expect( services.messageService.groupMessage ).toHaveBeenCalledWith( 'Usage: !feature enable <featureName>' );
+      const result = await handleFeatureCommand( commandParams );
+
+      expect( result.success ).toBe( false );
+      expect( result.response ).toContain( '❌ Please specify a feature name. Usage: `!feature enable <featureName>`' );
+      expect( services.messageService.sendResponse ).toHaveBeenCalled();
     } );
   } );
 
@@ -137,25 +172,35 @@ describe( 'handleFeatureCommand', () => {
 
     it( 'should disable a feature successfully', async () => {
       services.featuresService.disableFeature.mockReturnValue( true );
+      commandParams.args = 'disable welcomeMessage';
 
-      await handleFeatureCommand( message, 'disable', ['welcomeMessage'], services );
+      const result = await handleFeatureCommand( commandParams );
 
       expect( services.featuresService.disableFeature ).toHaveBeenCalledWith( 'welcomeMessage' );
-      expect( services.messageService.groupMessage ).toHaveBeenCalledWith( 'Feature "welcomeMessage" has been disabled.' );
+      expect( result.success ).toBe( true );
+      expect( result.response ).toContain( '❌ Feature "welcomeMessage" has been disabled.' );
+      expect( services.messageService.sendResponse ).toHaveBeenCalled();
     } );
 
     it( 'should handle feature already disabled', async () => {
       services.featuresService.disableFeature.mockReturnValue( false );
+      commandParams.args = 'disable welcomeMessage';
 
-      await handleFeatureCommand( message, 'disable', ['welcomeMessage'], services );
+      const result = await handleFeatureCommand( commandParams );
 
-      expect( services.messageService.groupMessage ).toHaveBeenCalledWith( 'Feature "welcomeMessage" is already disabled.' );
+      expect( result.success ).toBe( false );
+      expect( result.response ).toContain( 'ℹ️ Feature "welcomeMessage" is already disabled.' );
+      expect( services.messageService.sendResponse ).toHaveBeenCalled();
     } );
 
     it( 'should require feature name argument', async () => {
-      await handleFeatureCommand( message, 'disable', [], services );
+      commandParams.args = 'disable';
 
-      expect( services.messageService.groupMessage ).toHaveBeenCalledWith( 'Usage: !feature disable <featureName>' );
+      const result = await handleFeatureCommand( commandParams );
+
+      expect( result.success ).toBe( false );
+      expect( result.response ).toContain( '❌ Please specify a feature name. Usage: `!feature disable <featureName>`' );
+      expect( services.messageService.sendResponse ).toHaveBeenCalled();
     } );
   } );
 
@@ -166,25 +211,35 @@ describe( 'handleFeatureCommand', () => {
 
     it( 'should show enabled status', async () => {
       services.featuresService.isFeatureEnabled.mockReturnValue( true );
+      commandParams.args = 'status welcomeMessage';
 
-      await handleFeatureCommand( message, 'status', ['welcomeMessage'], services );
+      const result = await handleFeatureCommand( commandParams );
 
       expect( services.featuresService.isFeatureEnabled ).toHaveBeenCalledWith( 'welcomeMessage' );
-      expect( services.messageService.groupMessage ).toHaveBeenCalledWith( 'Feature "welcomeMessage" is currently enabled ✅.' );
+      expect( result.success ).toBe( true );
+      expect( result.response ).toContain( 'ℹ️ Feature "welcomeMessage" is currently enabled ✅.' );
+      expect( services.messageService.sendResponse ).toHaveBeenCalled();
     } );
 
     it( 'should show disabled status', async () => {
       services.featuresService.isFeatureEnabled.mockReturnValue( false );
+      commandParams.args = 'status welcomeMessage';
 
-      await handleFeatureCommand( message, 'status', ['welcomeMessage'], services );
+      const result = await handleFeatureCommand( commandParams );
 
-      expect( services.messageService.groupMessage ).toHaveBeenCalledWith( 'Feature "welcomeMessage" is currently disabled ❌.' );
+      expect( result.success ).toBe( true );
+      expect( result.response ).toContain( 'ℹ️ Feature "welcomeMessage" is currently disabled ❌.' );
+      expect( services.messageService.sendResponse ).toHaveBeenCalled();
     } );
 
     it( 'should require feature name argument', async () => {
-      await handleFeatureCommand( message, 'status', [], services );
+      commandParams.args = 'status';
 
-      expect( services.messageService.groupMessage ).toHaveBeenCalledWith( 'Usage: !feature status <featureName>' );
+      const result = await handleFeatureCommand( commandParams );
+
+      expect( result.success ).toBe( false );
+      expect( result.response ).toContain( '❌ Please specify a feature name. Usage: `!feature status <featureName>`' );
+      expect( services.messageService.sendResponse ).toHaveBeenCalled();
     } );
   } );
 
@@ -194,17 +249,25 @@ describe( 'handleFeatureCommand', () => {
     } );
 
     it( 'should show usage for unknown subcommand', async () => {
-      await handleFeatureCommand( message, 'invalid', [], services );
+      commandParams.args = 'invalid';
 
-      const expectedMessage = 'Usage: !feature <list|enable|disable|status> [featureName]\n\nExamples:\n!feature list\n!feature enable welcomeMessage\n!feature disable nowPlayingMessage\n!feature status welcomeMessage';
-      expect( services.messageService.groupMessage ).toHaveBeenCalledWith( expectedMessage );
+      const result = await handleFeatureCommand( commandParams );
+
+      expect( result.success ).toBe( false );
+      expect( result.response ).toContain( '📋 **Feature Management Usage:**' );
+      expect( result.response ).toContain( '`!feature list`' );
+      expect( result.response ).toContain( '`!feature enable <featureName>`' );
+      expect( services.messageService.sendResponse ).toHaveBeenCalled();
     } );
 
     it( 'should show usage when no subcommand provided', async () => {
-      await handleFeatureCommand( message, '', [], services );
+      commandParams.args = '';
 
-      const expectedMessage = 'Usage: !feature <list|enable|disable|status> [featureName]\n\nExamples:\n!feature list\n!feature enable welcomeMessage\n!feature disable nowPlayingMessage\n!feature status welcomeMessage';
-      expect( services.messageService.groupMessage ).toHaveBeenCalledWith( expectedMessage );
+      const result = await handleFeatureCommand( commandParams );
+
+      expect( result.success ).toBe( false );
+      expect( result.response ).toContain( '📋 **Feature Management Usage:**' );
+      expect( services.messageService.sendResponse ).toHaveBeenCalled();
     } );
   } );
 } );

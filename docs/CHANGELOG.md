@@ -7,12 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- **Now Playing Message Customization**: Added `editnowplaying` command for moderators
-  - Allows real-time modification of song announcement templates
-  - Supports flexible templates with {username}, {trackName}, {artistName} placeholders
-  - Template can use any combination of placeholders or none at all
-  - Changes are persisted to data.json and apply immediately
-  - Requires moderator role or higher for access
+- **Allow features and commands to be enabled and disabled by Owners using commands**: 
+  - Commands can be enabled or disabled by Hangout Owners
+  - Certain features, such as the Now Playing or User Joined messages can als be enabled or disbled via commands
 
 ### Notes
 - All releases are currently in alpha state
