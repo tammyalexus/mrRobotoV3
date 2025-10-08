@@ -4,6 +4,7 @@ const config = require( '../config.js' );
 const requiredRole = 'USER';
 const description = '';
 const hidden = true;
+const enabled = true; // Always enabled to handle unknown commands
 
 /**
  * Handles unknown commands
