@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Allow features and commands to be enabled and disabled by Owners using commands**: 
   - Commands can be enabled or disabled by Hangout Owners
-  - Certain features, such as the Now Playing or User Joined messages can als be enabled or disbled via commands
+  - Certain features, such as the Now Playing or User Joined messages can also be enabled or disbled via commands
 
 ### Notes
 - All releases are currently in alpha state
