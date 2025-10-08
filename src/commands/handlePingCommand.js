@@ -1,4 +1,4 @@
-// Set required role level for this command
+// Set the required permission level
 const requiredRole = 'USER';
 const description = 'Check if bot is responding';
 const example = 'ping';

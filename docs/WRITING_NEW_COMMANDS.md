@@ -197,6 +197,13 @@ const example = 'welcome Hi {username}, welcome to {hangoutName}!';
 - Set to `false` for user-facing commands
 - Hidden commands won't appear in help listings
 
+#### **Command State Management**
+Commands are enabled by default. To disable commands at runtime:
+- Use the `togglecommand` command (owner only): `!togglecommand disable commandname`
+- Disabled commands are stored in `data.json` outside of git
+- Commands can be re-enabled with: `!togglecommand enable commandname`
+- Check status with: `!togglecommand status commandname`
+
 ```javascript
 const hidden = false;  // Normal user command
 const hidden = true;   // Internal/utility command
@@ -250,20 +257,20 @@ Type !help to see all available commands.
 // Command metadata
 const requiredRole = 'MODERATOR';
 const description = 'Update the welcome message template';
-const example = 'welcome Hi {username}, welcome to {hangoutName}!';
+const example = 'editwelcome Hi {username}, welcome to {hangoutName}!';
 const hidden = false;
 
-async function handleWelcomeCommand(commandParams) {
+async function handleEditwelcomeCommand(commandParams) {
     // Command implementation here
 }
 
 // Attach ALL metadata to the function
-handleWelcomeCommand.requiredRole = requiredRole;
-handleWelcomeCommand.description = description;
-handleWelcomeCommand.example = example;
-handleWelcomeCommand.hidden = hidden;
+handleEditwelcomeCommand.requiredRole = requiredRole;
+handleEditwelcomeCommand.description = description;
+handleEditwelcomeCommand.example = example;
+handleEditwelcomeCommand.hidden = hidden;
 
-module.exports = handleWelcomeCommand;
+module.exports = handleEditwelcomeCommand;
 ```
 
 ### Automatic Discovery
@@ -451,3 +458,99 @@ const hidden = false;                   // true to hide from help
 - `!help nonexistent` - Tests error handling
 
 Your command will automatically be included in the help system when properly configured!
+
+## Command Administration
+
+The bot includes a powerful command administration system that allows owners to enable/disable commands at runtime without modifying source code.
+
+### Toggle Command System
+
+Commands are **enabled by default**. The `togglecommand` allows owners to manage command states:
+
+#### Syntax
+```
+!togglecommand <action> <commandname>
+```
+
+#### Actions
+- **`enable`** - Enable a disabled command
+- **`disable`** - Disable an enabled command  
+- **`status`** - Check if a command is enabled or disabled
+
+#### Examples
+```
+!togglecommand disable ping     # Disable the ping command
+!togglecommand enable ping      # Re-enable the ping command
+!togglecommand status ping      # Check ping command status
+```
+
+#### How It Works
+- Disabled commands are stored in `data.json` (outside of git)
+- Changes persist across bot restarts
+- No source code modifications needed
+- Git repository stays clean and synchronized
+- Deployment-specific command states
+
+#### Safety Features
+- Cannot disable the `unknown` command (handles unrecognized commands)
+- Only owners can use `togglecommand`
+- Validates command exists before toggling
+- Clear status messages for all operations
+
+#### When Commands Are Disabled
+Users attempting to use disabled commands receive:
+```
+❌ The "commandname" command is currently disabled.
+```
+
+## Command Administration
+
+### Enabling and Disabling Commands
+
+Commands can be dynamically enabled or disabled at runtime using the `togglecommand` feature. This provides fine-grained control over which commands are available without requiring a bot restart.
+
+#### The `enabled` Flag
+
+Every command should include an `enabled` flag in its metadata:
+
+```javascript
+const enabled = true;  // Command is active and can be executed
+// or
+const enabled = false; // Command is disabled
+```
+
+When a command is disabled:
+- Users receive a "Command 'commandname' is currently disabled" message
+- The command still appears in help listings (unless also marked as `hidden`)
+- Only the owner can re-enable it using `togglecommand`
+
+#### The `togglecommand` Command
+
+The `togglecommand` command allows owners to enable/disable other commands at runtime:
+
+```
+!togglecommand enable commandname    # Enable a command
+!togglecommand disable commandname   # Disable a command
+!togglecommand status commandname    # Check command status
+```
+
+**Examples:**
+```
+!togglecommand disable echo          # Disables the echo command
+!togglecommand enable echo           # Re-enables the echo command
+!togglecommand status ping           # Shows: "Command 'ping' is currently enabled"
+```
+
+**Features:**
+- Owner-only access (highest permission level)
+- Persistent changes (survives bot restarts)
+- Real-time effect (no restart required)
+- Built-in validation (prevents disabling critical commands like help)
+- Clear feedback messages
+
+#### Best Practices
+
+1. **Default State**: Always set new commands to `enabled = true`
+2. **Testing**: Use `togglecommand` to test command disable/enable flows
+3. **Maintenance**: Temporarily disable problematic commands instead of removing them
+4. **Critical Commands**: The system prevents disabling essential commands like `help` and `togglecommand` itself

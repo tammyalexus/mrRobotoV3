@@ -9,6 +9,21 @@ const example = 'help [command]';
 const hidden = false;
 
 /**
+ * Check if a command is disabled in data.json
+ * @param {string} commandName - The command name to check
+ * @returns {boolean} True if command is disabled, false if enabled
+ */
+function isCommandDisabled ( commandName ) {
+  try {
+    const dataPath = path.join( __dirname, '../../data.json' );
+    const data = JSON.parse( fs.readFileSync( dataPath, 'utf8' ) );
+    return Array.isArray( data.disabledCommands ) && data.disabledCommands.includes( commandName );
+  } catch ( error ) {
+    return false; // Default to enabled if we can't read the file
+  }
+}
+
+/**
  * Dynamically loads all available commands and their metadata
  * @returns {Object} Commands organized by role
  */
@@ -24,8 +39,11 @@ function loadAvailableCommands () {
         const commandName = match[ 1 ].toLowerCase();
         const commandModule = require( path.join( commandsDir, file ) );
 
-        // Skip commands that are hidden or don't have required metadata
-        if ( !commandModule.hidden && commandModule.requiredRole && commandModule.description ) {
+        // Skip commands that are hidden, disabled, or don't have required metadata
+        if ( !commandModule.hidden &&
+          !isCommandDisabled( commandName ) &&
+          commandModule.requiredRole &&
+          commandModule.description ) {
           commands[ commandName ] = {
             name: commandName,
             role: commandModule.requiredRole,
@@ -92,9 +110,9 @@ async function handleHelpCommand ( commandParams ) {
       if ( command ) {
         // Show specific command help
         const helpText = `🤖 Help for command: ${ config.COMMAND_SWITCH }${ command.name }\n\n` +
-                        `📝 Description: ${ command.description }\n` +
-                        `🎯 Example: ${ config.COMMAND_SWITCH }${ command.example }\n` +
-                        `👤 Required Role: ${ command.role }`;
+          `📝 Description: ${ command.description }\n` +
+          `🎯 Example: ${ config.COMMAND_SWITCH }${ command.example }\n` +
+          `👤 Required Role: ${ command.role }`;
 
         await messageService.sendResponse( helpText, {
           responseChannel,
@@ -109,9 +127,28 @@ async function handleHelpCommand ( commandParams ) {
           shouldRespond: true
         };
       } else {
+        // Check if command exists but is disabled
+        if ( isCommandDisabled( requestedCommand ) ) {
+          const errorText = `❌ Command "${ requestedCommand }" is currently disabled.`;
+
+          await messageService.sendResponse( errorText, {
+            responseChannel,
+            isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+            sender: context?.sender,
+            services
+          } );
+
+          return {
+            success: false,
+            response: errorText,
+            shouldRespond: true,
+            error: `Command "${ requestedCommand }" is disabled`
+          };
+        }
+
         // Command doesn't exist
         const errorText = `❌ Command "${ requestedCommand }" does not exist.\n` +
-                         `Type ${ config.COMMAND_SWITCH }help to see all available commands.`;
+          `Type ${ config.COMMAND_SWITCH }help to see all available commands.`;
 
         await messageService.sendResponse( errorText, {
           responseChannel,
@@ -124,7 +161,7 @@ async function handleHelpCommand ( commandParams ) {
           success: false,
           response: errorText,
           shouldRespond: true,
-          error: `Command "${requestedCommand}" not found`
+          error: `Command "${ requestedCommand }" not found`
         };
       }
     }
@@ -165,7 +202,7 @@ async function handleHelpCommand ( commandParams ) {
     helpText += `💡 Tip: Type ${ config.COMMAND_SWITCH }help [command] to see specific examples and usage.`;
 
     // Remove extra trailing newlines
-    helpText = helpText.replace(/\n+$/, '');
+    helpText = helpText.replace( /\n+$/, '' );
 
     await messageService.sendResponse( helpText, {
       responseChannel,

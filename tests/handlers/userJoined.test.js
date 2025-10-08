@@ -17,6 +17,9 @@ jest.mock( '../../src/services/serviceContainer.js', () => ( {
             return null;
         } )
     },
+    featuresService: {
+        isFeatureEnabled: jest.fn().mockReturnValue( true ) // Default to enabled for existing tests
+    },
     logger: {
         debug: jest.fn(),
         info: jest.fn(),
@@ -194,5 +197,35 @@ describe( 'userJoined handler', () => {
         expect( services.messageService.sendGroupMessage ).not.toHaveBeenCalled();
         expect( services.logger.debug )
             .toHaveBeenCalledWith( 'Skipping welcome message for ghost user: 2ec32e47-36e5-40cf-8b49-a777a4a10848 (nickname: ghost-267)' );
+    } );
+
+    it( 'should not send welcome message when welcomeMessage feature is disabled', async () => {
+        // Mock feature as disabled
+        services.featuresService.isFeatureEnabled.mockReturnValue( false );
+
+        const message = {
+            statePatch: [ {
+                op: 'add',
+                path: '/allUserData/123-456',
+                value: {
+                    userProfile: {
+                        nickname: 'TestUser'
+                    }
+                }
+            } ]
+        };
+
+        const state = { someState: true };
+
+        await userJoined( message, state, services );
+
+        // Should check if feature is enabled
+        expect( services.featuresService.isFeatureEnabled ).toHaveBeenCalledWith( 'welcomeMessage' );
+        
+        // Should not send welcome message when feature is disabled
+        expect( services.messageService.sendGroupMessage ).not.toHaveBeenCalled();
+        
+        // Should log that feature is disabled
+        expect( services.logger.debug ).toHaveBeenCalledWith( 'Welcome message feature is disabled, skipping welcome message' );
     } );
 } );

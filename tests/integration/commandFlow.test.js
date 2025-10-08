@@ -6,7 +6,31 @@ const commandService = require( '../../src/services/commandService.js' );
 jest.mock( 'fs', () => ( {
   promises: {
     appendFile: jest.fn().mockResolvedValue()
-  }
+  },
+  readFileSync: jest.fn().mockReturnValue( JSON.stringify( {
+    disabledCommands: [],
+    disabledFeatures: [],
+    welcomeMessage: "Hey {username}, welcome to {hangoutName}",
+    nowPlayingMessage: "{username} is now playing \"{trackName}\" by {artistName}",
+    botData: {
+      CHAT_AVATAR_ID: "test-avatar",
+      CHAT_NAME: "TestBot",
+      CHAT_COLOUR: "ff0000"
+    }
+  } ) ),
+  readdirSync: jest.fn().mockReturnValue( [
+    'handleChangebotnameCommand.js',
+    'handleEchoCommand.js',
+    'handleEditnowplayingCommand.js',
+    'handleFeatureCommand.js',
+    'handleHelpCommand.js',
+    'handlePingCommand.js',
+    'handleStateCommand.js',
+    'handleStatusCommand.js',
+    'handleCommandCommand.js',
+    'handleUnknownCommand.js',
+    'handleWelcomeCommand.js'
+  ] )
 } ) );
 
 // Mock messageService

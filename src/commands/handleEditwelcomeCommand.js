@@ -5,7 +5,7 @@ const path = require( 'path' );
 // Set required role level for this command - requires moderator or higher
 const requiredRole = 'MODERATOR';
 const description = 'Update the welcome message template';
-const example = 'welcome Hi {username}, welcome to {hangoutName}!';
+const example = 'editwelcome Hi {username}, welcome to {hangoutName}!';
 const hidden = false;
 
 /**
@@ -18,12 +18,12 @@ const hidden = false;
  * @param {string} commandParams.responseChannel - Response channel ('public' or 'request')
  * @returns {Promise<Object>} Command result
  */
-async function handleWelcomeCommand ( commandParams ) {
+async function handleEditwelcomeCommand ( commandParams ) {
     const { args, services, context, responseChannel = 'request' } = commandParams;
     const { messageService, dataService } = services;
 
     if ( !args || args.trim().length === 0 ) {
-        const response = `❌ Please provide a new welcome message. Usage: ${ config.COMMAND_SWITCH }welcome Hi {username}, welcome to {hangoutName}`;
+        const response = `❌ Please provide a new welcome message. Usage: ${ config.COMMAND_SWITCH }editwelcome Hi {username}, welcome to {hangoutName}`;
         await messageService.sendResponse( response, {
             responseChannel,
             isPrivateMessage: context?.fullMessage?.isPrivateMessage,
@@ -135,9 +135,9 @@ async function handleWelcomeCommand ( commandParams ) {
 }
 
 // Attach metadata to the function
-handleWelcomeCommand.requiredRole = requiredRole;
-handleWelcomeCommand.description = description;
-handleWelcomeCommand.example = example;
-handleWelcomeCommand.hidden = hidden;
+handleEditwelcomeCommand.requiredRole = requiredRole;
+handleEditwelcomeCommand.description = description;
+handleEditwelcomeCommand.example = example;
+handleEditwelcomeCommand.hidden = hidden;
 
-module.exports = handleWelcomeCommand;
+module.exports = handleEditwelcomeCommand;

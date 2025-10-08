@@ -22,6 +22,9 @@ describe( 'playedSong handler', () => {
           }
           return null;
         } )
+      },
+      featuresService: {
+        isFeatureEnabled: jest.fn().mockReturnValue( true ) // Default to enabled for existing tests
       }
     };
     global.playedSongTimer = null;
@@ -310,5 +313,46 @@ describe( 'playedSong handler', () => {
       '<@uid:f813b9cc-28c4-4ec6-a9eb-2cdfacbcafbc> is now playing Killing An Arab (Live) by The Cure',
       { services }
     );
+  } );
+
+  test( 'should not announce song when nowPlayingMessage feature is disabled', async () => {
+    // Mock feature as disabled
+    services.featuresService.isFeatureEnabled.mockReturnValue( false );
+
+    const message = {
+      statePatch: [
+        {
+          op: 'replace',
+          path: '/djs/0/uuid',
+          value: 'f813b9cc-28c4-4ec6-a9eb-2cdfacbcafbc'
+        },
+        {
+          op: 'replace',
+          path: '/nowPlaying/song/artistName',
+          value: 'Billy Idol'
+        },
+        {
+          op: 'replace',
+          path: '/nowPlaying/song/trackName',
+          value: 'Cradle Of Love'
+        }
+      ]
+    };
+
+    services.hangoutState.nowPlaying = { song: 'test' };
+    playedSong( message, {}, services );
+
+    // Wait for potential async announcement
+    await Promise.resolve();
+
+    // Should check if feature is enabled
+    expect( services.featuresService.isFeatureEnabled ).toHaveBeenCalledWith( 'nowPlayingMessage' );
+    
+    // Should not send any messages when feature is disabled
+    expect( services.messageService.formatMention ).not.toHaveBeenCalled();
+    expect( services.messageService.sendGroupMessage ).not.toHaveBeenCalled();
+    
+    // Timer should still work regardless of feature status
+    expect( global.playedSongTimer ).not.toBeNull();
   } );
 } );

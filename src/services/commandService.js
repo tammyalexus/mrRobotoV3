@@ -4,6 +4,22 @@ const fs = require( 'fs' );
 const path = require( 'path' );
 const { hasPermission } = require( '../lib/roleUtils' );
 
+/**
+ * Check if a command is disabled in data.json
+ * @param {string} commandName - The command name to check
+ * @returns {boolean} True if command is disabled, false if enabled
+ */
+function isCommandDisabled ( commandName ) {
+  try {
+    const dataPath = path.join( __dirname, '../../data.json' );
+    const data = JSON.parse( fs.readFileSync( dataPath, 'utf8' ) );
+    return Array.isArray( data.disabledCommands ) && data.disabledCommands.includes( commandName );
+  } catch ( error ) {
+    logger.warn( `Failed to read disabled commands from data.json: ${ error.message }` );
+    return false; // Default to enabled if we can't read the file
+  }
+}
+
 // Dynamically load all command handlers from src/commands
 const commands = {};
 const commandsDir = path.join( __dirname, '../commands' );
@@ -52,6 +68,23 @@ async function processCommand ( command, messageRemainder, services, context = {
     // Always treat 'unknown' command as an unknown command
     if ( trimmedCommand === 'unknown' || !commands[ trimmedCommand ] ) {
       return await commands.unknown( commandParams );
+    }
+
+    // Check if command is disabled (unknown command is always enabled)
+    if ( isCommandDisabled( trimmedCommand ) ) {
+      const response = `❌ The "${ trimmedCommand }" command is currently disabled.`;
+      await serviceContainer.messageService.sendResponse( response, {
+        responseChannel: 'request',
+        isPrivateMessage: context?.fullMessage?.isPrivateMessage,
+        sender: context?.sender,
+        services: serviceContainer
+      } );
+      return {
+        success: false,
+        error: 'Command disabled',
+        response,
+        shouldRespond: true
+      };
     }
 
     // Check user's role and command permissions

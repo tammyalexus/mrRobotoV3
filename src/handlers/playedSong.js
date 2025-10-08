@@ -74,8 +74,8 @@ function playedSong ( message, state, services ) {
     // Extract and announce song information
     const songInfo = extractSongInfo( message, services );
     
-    if ( songInfo ) {
-      // Don't await to avoid blocking the timer logic
+    if ( songInfo && services.featuresService.isFeatureEnabled( 'nowPlayingMessage' ) ) {
+      // Only announce if the feature is enabled
       announceSong( songInfo, services );
     }
 

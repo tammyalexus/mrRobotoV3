@@ -7,6 +7,45 @@ jest.mock( '../../src/services/messageService.js', () => ( {
   }
 } ) );
 
+// Mock fs module to prevent reading actual data.json file
+jest.mock( 'fs', () => ( {
+  readFileSync: jest.fn().mockReturnValue( JSON.stringify( {
+    disabledCommands: [],
+    disabledFeatures: [],
+    welcomeMessage: "Hey {username}, welcome to {hangoutName}",
+    nowPlayingMessage: "{username} is now playing \"{trackName}\" by {artistName}",
+    botData: {
+      CHAT_AVATAR_ID: "test-avatar",
+      CHAT_NAME: "TestBot",
+      CHAT_COLOUR: "ff0000"
+    }
+  } ) ),
+  readdirSync: jest.fn().mockReturnValue( [
+    'handleChangebotnameCommand.js',
+    'handleEchoCommand.js',
+    'handleEditnowplayingCommand.js',
+    'handleEditwelcomeCommand.js',
+    'handleFeatureCommand.js',
+    'handleHelpCommand.js',
+    'handlePingCommand.js',
+    'handleStateCommand.js',
+    'handleStatusCommand.js',
+        'handleCommandCommand.js',
+    'handleUnknownCommand.js'
+  ] ),
+  promises: {
+    appendFile: jest.fn().mockResolvedValue(),
+    writeFile: jest.fn().mockResolvedValue(),
+    readFile: jest.fn().mockResolvedValue( JSON.stringify( {
+      botData: {
+        CHAT_AVATAR_ID: "test-avatar",
+        CHAT_NAME: "TestBot",
+        CHAT_COLOUR: "ff0000"
+      }
+    } ) )
+  }
+} ) );
+
 // Mock hangUserService to resolve nickname from UUID
 jest.mock( '../../src/services/hangUserService.js', () => ( {
   getUserNicknameByUuid: jest.fn().mockResolvedValue( 'Nick-From-UUID' )
@@ -173,13 +212,6 @@ describe( 'commandService', () => {
     } );
 
     test( 'should handle editnowplaying command with message template', async () => {
-      // Mock the fs module for this test
-      const fs = require( 'fs' );
-      jest.spyOn( fs.promises, 'writeFile' ).mockResolvedValue();
-      jest.spyOn( fs.promises, 'readFile' ).mockResolvedValue(
-        JSON.stringify( { nowPlayingMessage: '{username} plays {trackName}' }, null, 2 )
-      );
-
       // Mock dataService for editnowplaying
       mockServices.dataService.loadData = jest.fn().mockResolvedValue();
       mockServices.dataService.getAllData = jest.fn().mockReturnValue( { nowPlayingMessage: 'old template' } );
@@ -195,11 +227,10 @@ describe( 'commandService', () => {
       expect( result.shouldRespond ).toBe( true );
       expect( result.response ).toContain( 'Now playing message template updated' );
       expect( mockServices.dataService.loadData ).toHaveBeenCalled();
+      
+      // Check that fs.promises.writeFile was called (from our mock)
+      const fs = require( 'fs' );
       expect( fs.promises.writeFile ).toHaveBeenCalled();
-
-      // Clean up mocks
-      fs.promises.writeFile.mockRestore();
-      fs.promises.readFile.mockRestore();
     } );
 
     test( 'should handle unknown command', async () => {
