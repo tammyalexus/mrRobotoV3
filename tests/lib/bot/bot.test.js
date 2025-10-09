@@ -3,7 +3,7 @@ const path = require( 'path' );
 // Mock fs promises - must be done before requiring Bot
 const mockAppendFile = jest.fn();
 jest.mock( 'fs', () => ( {
-  readdirSync: jest.fn().mockReturnValue([]), // Mock for commandService
+  readdirSync: jest.fn().mockReturnValue( [] ), // Mock for commandService
   promises: {
     appendFile: mockAppendFile
   }
@@ -27,13 +27,13 @@ jest.mock( '../../../src/services/cometchatApi', () => {
 } );
 
 // Mock MessageService
-jest.mock( '../../../src/services/messageService', () => ({
+jest.mock( '../../../src/services/messageService', () => ( {
   messageService: {
     joinChat: jest.fn().mockResolvedValue(),
     fetchGroupMessages: jest.fn().mockResolvedValue( [] ),
     sendGroupMessage: jest.fn().mockResolvedValue()
   }
-}) );
+} ) );
 
 // Mock parseCommands
 jest.mock( '../../../src/services/parseCommands', () => ( {
@@ -97,7 +97,7 @@ describe( 'Bot', () => {
     mockServices.parseCommands = jest.fn();
     mockServices.commandService = jest.fn();
     mockServices.getState = jest.fn();
-    
+
     // Mock the config with expected test values
     mockServices.config = {
       HANGOUT_ID: 'test-hangout-123',
@@ -106,7 +106,7 @@ describe( 'Bot', () => {
       COMMAND_SWITCH: '!',
       SOCKET_MESSAGE_LOG_LEVEL: 'ON'
     };
-    
+
     // Set up hangoutState with required properties for StateService
     mockServices.hangoutState = {
       allUsers: [],
@@ -116,7 +116,7 @@ describe( 'Bot', () => {
       vibeMeter: 0,
       votes: { up: 0, down: 0 }
     };
-    
+
     // Patch getState for nickname
     originalGetState = mockServices.getState;
     // Additional tests for bot nickname usage in startup message
@@ -258,8 +258,8 @@ describe( 'Bot', () => {
 
   describe( '_joinSocketRoom', () => {
     test( 'should join room and set state on success', async () => {
-      const mockState = { 
-        roomId: 'test-room', 
+      const mockState = {
+        roomId: 'test-room',
         users: [],
         allUsers: [],
         allUserData: {},
@@ -287,9 +287,9 @@ describe( 'Bot', () => {
     } );
 
     test( 'should log initial state when SOCKET_MESSAGE_LOG_LEVEL is DEBUG', async () => {
-      const mockState = { 
-        roomId: 'debug-room', 
-        users: [ 'user1' ], 
+      const mockState = {
+        roomId: 'debug-room',
+        users: [ 'user1' ],
         currentSong: { id: '123' },
         allUsers: [ { uid: 'user1' } ],
         allUserData: { 'user1': { nickname: 'TestUser' } },
@@ -310,8 +310,8 @@ describe( 'Bot', () => {
     } );
 
     test( 'should not log initial state when SOCKET_MESSAGE_LOG_LEVEL is not DEBUG', async () => {
-      const mockState = { 
-        roomId: 'test-room', 
+      const mockState = {
+        roomId: 'test-room',
         users: [],
         allUsers: [],
         allUserData: {},
@@ -331,8 +331,8 @@ describe( 'Bot', () => {
     } );
 
     test( 'should handle initial state logging errors gracefully', async () => {
-      const mockState = { 
-        roomId: 'error-room', 
+      const mockState = {
+        roomId: 'error-room',
         users: [],
         allUsers: [],
         allUserData: {},
@@ -350,6 +350,74 @@ describe( 'Bot', () => {
 
       expect( bot.state ).toBe( mockState );
       expect( mockServices.logger.error ).toHaveBeenCalledWith( `Failed to log initial state: ${ logError.message }` );
+    } );
+
+    test( 'should initialize global.previousPlayedSong when initial state has nowPlaying', async () => {
+      // Clear any existing global state
+      global.previousPlayedSong = null;
+
+      const mockState = {
+        roomId: 'test-room',
+        users: [],
+        allUsers: [],
+        allUserData: {},
+        djs: [ { uuid: 'dj-123' } ],
+        settings: {},
+        vibeMeter: 0,
+        nowPlaying: {
+          song: {
+            artistName: 'Test Artist',
+            trackName: 'Test Track'
+          }
+        },
+        voteCounts: {
+          likes: 5,
+          dislikes: 2,
+          stars: 1
+        }
+      };
+      bot._joinRoomWithTimeout = jest.fn().mockResolvedValue( { state: mockState } );
+
+      await bot._joinSocketRoom();
+
+      expect( global.previousPlayedSong ).toEqual( {
+        djUuid: 'dj-123',
+        artistName: 'Test Artist',
+        trackName: 'Test Track',
+        voteCounts: { likes: 5, dislikes: 2, stars: 1 }
+      } );
+      expect( mockServices.logger.debug ).toHaveBeenCalledWith(
+        '[bot] Initialized global.previousPlayedSong from initial state:',
+        expect.objectContaining( {
+          djUuid: 'dj-123',
+          trackName: 'Test Track',
+          artistName: 'Test Artist'
+        } )
+      );
+    } );
+
+    test( 'should not initialize global.previousPlayedSong when no nowPlaying in initial state', async () => {
+      // Clear any existing global state
+      global.previousPlayedSong = null;
+
+      const mockState = {
+        roomId: 'test-room',
+        users: [],
+        allUsers: [],
+        allUserData: {},
+        djs: [ { uuid: 'dj-123' } ],
+        settings: {},
+        vibeMeter: 0
+        // No nowPlaying object
+      };
+      bot._joinRoomWithTimeout = jest.fn().mockResolvedValue( { state: mockState } );
+
+      await bot._joinSocketRoom();
+
+      expect( global.previousPlayedSong ).toBeNull();
+      expect( mockServices.logger.debug ).toHaveBeenCalledWith(
+        '[bot] No currently playing song in initial state - global.previousPlayedSong not initialized'
+      );
     } );
   } );
 

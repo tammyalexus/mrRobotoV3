@@ -1,6 +1,7 @@
 {
   "welcomeMessage": "Hi {username}, welcome to {hangoutName}",
   "nowPlayingMessage": "{username} is now playing {trackName} by {artistName}",
+  "justPlayedMessage": "{username} played...\n{trackName} by {artistName}\nStats: 👍 {likes} 👎 {dislikes} ❤️ {stars}",
   "disabledCommands": [
   ],
   "disabledFeatures": [

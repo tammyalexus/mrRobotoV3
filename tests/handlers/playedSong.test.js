@@ -6,8 +6,11 @@ describe( 'playedSong handler', () => {
   let services;
 
   beforeEach( () => {
+    // Clear global state
+    global.previousPlayedSong = null;
+
     services = {
-      logger: { debug: jest.fn(), error: jest.fn() },
+      logger: { debug: jest.fn(), error: jest.fn(), info: jest.fn() },
       hangSocketServices: { upVote: jest.fn().mockResolvedValue() },
       hangoutState: {},
       socket: { id: 'socket1' },
@@ -19,6 +22,9 @@ describe( 'playedSong handler', () => {
         getValue: jest.fn().mockImplementation( ( key ) => {
           if ( key === 'nowPlayingMessage' ) {
             return '{username} is now playing {trackName} by {artistName}';
+          }
+          if ( key === 'justPlayedMessage' ) {
+            return '{username} played {trackName} by {artistName} 👍{likes} 👎{dislikes} ⭐{stars}';
           }
           return null;
         } )
@@ -347,11 +353,11 @@ describe( 'playedSong handler', () => {
 
     // Should check if feature is enabled
     expect( services.featuresService.isFeatureEnabled ).toHaveBeenCalledWith( 'nowPlayingMessage' );
-    
+
     // Should not send any messages when feature is disabled
     expect( services.messageService.formatMention ).not.toHaveBeenCalled();
     expect( services.messageService.sendGroupMessage ).not.toHaveBeenCalled();
-    
+
     // Timer should still work regardless of feature status
     expect( global.playedSongTimer ).not.toBeNull();
   } );
@@ -366,12 +372,20 @@ describe( 'playedSong handler', () => {
             trackName: 'Previous Track'
           }
         },
-        djs: [{ uuid: 'dj-uuid-123' }],
+        djs: [ { uuid: 'dj-uuid-123' } ],
         voteCounts: { likes: 5, dislikes: 2, stars: 1 }
       };
     } );
 
     test( 'should announce just played song when feature is enabled', () => {
+      // Store a previous song that was playing
+      global.previousPlayedSong = {
+        djUuid: 'dj-uuid-123',
+        artistName: 'Previous Artist',
+        trackName: 'Previous Track',
+        voteCounts: { likes: 5, dislikes: 2, stars: 1 }
+      };
+
       services.featuresService.isFeatureEnabled.mockImplementation( ( feature ) => {
         if ( feature === 'justPlayed' ) return true;
         if ( feature === 'nowPlayingMessage' ) return false; // Disable other announcements for clarity
@@ -380,10 +394,15 @@ describe( 'playedSong handler', () => {
 
       services.dataService.getValue.mockImplementation( ( key ) => {
         if ( key === 'justPlayedMessage' ) {
-          return '{username} just played {trackName} by {artistName} 👍{likes} 👎{dislikes} ⭐{stars}';
+          return '{username} played {trackName} by {artistName} 👍{likes} 👎{dislikes} ⭐{stars}';
         }
         return null;
       } );
+
+      services.hangoutState = {
+        djs: [ { uuid: 'new-dj-uuid-456' } ],
+        voteCounts: { likes: 3, dislikes: 1, stars: 0 }
+      };
 
       const message = {
         statePatch: [
@@ -395,7 +414,7 @@ describe( 'playedSong handler', () => {
 
       expect( services.messageService.formatMention ).toHaveBeenCalledWith( 'dj-uuid-123' );
       expect( services.messageService.sendGroupMessage ).toHaveBeenCalledWith(
-        '<@uid:dj-uuid-123> just played Previous Track by Previous Artist 👍5 👎2 ⭐1',
+        '<@uid:dj-uuid-123> played Previous Track by Previous Artist 👍5 👎2 ⭐1',
         { services }
       );
     } );
@@ -421,6 +440,14 @@ describe( 'playedSong handler', () => {
     } );
 
     test( 'should use default template when justPlayedMessage is not configured', () => {
+      // Store a previous song that was playing
+      global.previousPlayedSong = {
+        djUuid: 'dj-uuid-123',
+        artistName: 'Previous Artist',
+        trackName: 'Previous Track',
+        voteCounts: { likes: 5, dislikes: 2, stars: 1 }
+      };
+
       services.featuresService.isFeatureEnabled.mockImplementation( ( feature ) => {
         if ( feature === 'justPlayed' ) return true;
         if ( feature === 'nowPlayingMessage' ) return false;
@@ -429,6 +456,11 @@ describe( 'playedSong handler', () => {
 
       services.dataService.getValue.mockReturnValue( null ); // No custom template
 
+      services.hangoutState = {
+        djs: [ { uuid: 'new-dj-uuid-456' } ],
+        voteCounts: { likes: 3, dislikes: 1, stars: 0 }
+      };
+
       const message = {
         statePatch: [
           { op: 'replace', path: '/nowPlaying', value: { song: { artistName: 'New Artist', trackName: 'New Track' } } }
@@ -438,13 +470,25 @@ describe( 'playedSong handler', () => {
       playedSong( message, {}, services );
 
       expect( services.messageService.sendGroupMessage ).toHaveBeenCalledWith(
-        '<@uid:dj-uuid-123> just played Previous Track by Previous Artist 👍5 👎2 ⭐1',
+        '<@uid:dj-uuid-123> played...\n      Previous Track by Previous Artist\n      Stats: 👍 5 👎 2 ❤️ 1',
         { services }
       );
     } );
 
     test( 'should handle missing vote counts gracefully', () => {
-      services.hangoutState.voteCounts = null; // No vote counts
+      // Store a previous song that was playing (with no vote counts stored)
+      global.previousPlayedSong = {
+        djUuid: 'dj-uuid-123',
+        artistName: 'Previous Artist',
+        trackName: 'Previous Track'
+        // No voteCounts property - this tests the graceful handling
+      };
+
+      services.hangoutState = {
+        djs: [ { uuid: 'new-dj-uuid-456' } ],
+        voteCounts: null // No vote counts in hangout state either
+      };
+
       services.featuresService.isFeatureEnabled.mockImplementation( ( feature ) => {
         if ( feature === 'justPlayed' ) return true;
         if ( feature === 'nowPlayingMessage' ) return false;
@@ -460,7 +504,7 @@ describe( 'playedSong handler', () => {
       playedSong( message, {}, services );
 
       expect( services.messageService.sendGroupMessage ).toHaveBeenCalledWith(
-        '<@uid:dj-uuid-123> just played Previous Track by Previous Artist 👍0 👎0 ⭐0',
+        '<@uid:dj-uuid-123> played Previous Track by Previous Artist 👍0 👎0 ⭐0',
         { services }
       );
     } );
@@ -490,7 +534,7 @@ describe( 'playedSong handler', () => {
       // Set up scenario where the same song is just starting to play
       services.hangoutState = {
         nowPlaying: null, // No song was playing before
-        djs: [{ uuid: 'dj-uuid-123' }],
+        djs: [ { uuid: 'dj-uuid-123' } ],
         voteCounts: { likes: 0, dislikes: 0, stars: 0 }
       };
 
@@ -502,15 +546,15 @@ describe( 'playedSong handler', () => {
 
       const message = {
         statePatch: [
-          { 
-            op: 'replace', 
-            path: '/nowPlaying', 
-            value: { 
-              song: { 
-                artistName: 'The Sundays', 
-                trackName: "Here's Where The Story Ends" 
-              } 
-            } 
+          {
+            op: 'replace',
+            path: '/nowPlaying',
+            value: {
+              song: {
+                artistName: 'The Sundays',
+                trackName: "Here's Where The Story Ends"
+              }
+            }
           }
         ]
       };
@@ -523,6 +567,14 @@ describe( 'playedSong handler', () => {
     } );
 
     test( 'should announce just played when song ends (nowPlaying becomes null)', () => {
+      // Store a previous song that was playing
+      global.previousPlayedSong = {
+        djUuid: 'dj-uuid-123',
+        artistName: 'Previous Artist',
+        trackName: 'Previous Track',
+        voteCounts: { likes: 5, dislikes: 2, stars: 1 }
+      };
+
       services.hangoutState = {
         nowPlaying: {
           song: {
@@ -530,7 +582,7 @@ describe( 'playedSong handler', () => {
             trackName: 'Previous Track'
           }
         },
-        djs: [{ uuid: 'dj-uuid-123' }],
+        djs: [ { uuid: 'dj-uuid-123' } ],
         voteCounts: { likes: 5, dislikes: 2, stars: 1 }
       };
 
@@ -550,12 +602,20 @@ describe( 'playedSong handler', () => {
 
       expect( services.messageService.formatMention ).toHaveBeenCalledWith( 'dj-uuid-123' );
       expect( services.messageService.sendGroupMessage ).toHaveBeenCalledWith(
-        '<@uid:dj-uuid-123> just played Previous Track by Previous Artist 👍5 👎2 ⭐1',
+        '<@uid:dj-uuid-123> played Previous Track by Previous Artist 👍5 👎2 ⭐1',
         { services }
       );
     } );
 
     test( 'should announce just played when different song starts playing', () => {
+      // Store a previous song that was playing
+      global.previousPlayedSong = {
+        djUuid: 'dj-uuid-123',
+        artistName: 'Previous Artist',
+        trackName: 'Previous Track',
+        voteCounts: { likes: 3, dislikes: 1, stars: 0 }
+      };
+
       services.hangoutState = {
         nowPlaying: {
           song: {
@@ -563,7 +623,7 @@ describe( 'playedSong handler', () => {
             trackName: 'Previous Track'
           }
         },
-        djs: [{ uuid: 'dj-uuid-123' }],
+        djs: [ { uuid: 'dj-uuid-123' } ],
         voteCounts: { likes: 3, dislikes: 1, stars: 0 }
       };
 
@@ -573,18 +633,12 @@ describe( 'playedSong handler', () => {
         return false;
       } );
 
+      // New song starts playing (different from the stored previous song)
       const message = {
         statePatch: [
-          { 
-            op: 'replace', 
-            path: '/nowPlaying', 
-            value: { 
-              song: { 
-                artistName: 'New Artist', 
-                trackName: 'New Track' 
-              } 
-            } 
-          }
+          { op: 'replace', path: '/djs/0/uuid', value: 'dj-uuid-456' },
+          { op: 'replace', path: '/nowPlaying/song/artistName', value: 'New Artist' },
+          { op: 'replace', path: '/nowPlaying/song/trackName', value: 'New Track' }
         ]
       };
 
@@ -592,7 +646,7 @@ describe( 'playedSong handler', () => {
 
       expect( services.messageService.formatMention ).toHaveBeenCalledWith( 'dj-uuid-123' );
       expect( services.messageService.sendGroupMessage ).toHaveBeenCalledWith(
-        '<@uid:dj-uuid-123> just played Previous Track by Previous Artist 👍3 👎1 ⭐0',
+        '<@uid:dj-uuid-123> played Previous Track by Previous Artist 👍3 👎1 ⭐0',
         { services }
       );
     } );
