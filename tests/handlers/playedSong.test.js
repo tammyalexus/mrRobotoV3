@@ -355,4 +355,246 @@ describe( 'playedSong handler', () => {
     // Timer should still work regardless of feature status
     expect( global.playedSongTimer ).not.toBeNull();
   } );
+
+  describe( 'justPlayed functionality', () => {
+    beforeEach( () => {
+      // Mock previous song in hangout state
+      services.hangoutState = {
+        nowPlaying: {
+          song: {
+            artistName: 'Previous Artist',
+            trackName: 'Previous Track'
+          }
+        },
+        djs: [{ uuid: 'dj-uuid-123' }],
+        voteCounts: { likes: 5, dislikes: 2, stars: 1 }
+      };
+    } );
+
+    test( 'should announce just played song when feature is enabled', () => {
+      services.featuresService.isFeatureEnabled.mockImplementation( ( feature ) => {
+        if ( feature === 'justPlayed' ) return true;
+        if ( feature === 'nowPlayingMessage' ) return false; // Disable other announcements for clarity
+        return false;
+      } );
+
+      services.dataService.getValue.mockImplementation( ( key ) => {
+        if ( key === 'justPlayedMessage' ) {
+          return '{username} just played {trackName} by {artistName} 👍{likes} 👎{dislikes} ⭐{stars}';
+        }
+        return null;
+      } );
+
+      const message = {
+        statePatch: [
+          { op: 'replace', path: '/nowPlaying', value: { song: { artistName: 'New Artist', trackName: 'New Track' } } }
+        ]
+      };
+
+      playedSong( message, {}, services );
+
+      expect( services.messageService.formatMention ).toHaveBeenCalledWith( 'dj-uuid-123' );
+      expect( services.messageService.sendGroupMessage ).toHaveBeenCalledWith(
+        '<@uid:dj-uuid-123> just played Previous Track by Previous Artist 👍5 👎2 ⭐1',
+        { services }
+      );
+    } );
+
+    test( 'should not announce just played song when feature is disabled', () => {
+      services.featuresService.isFeatureEnabled.mockImplementation( ( feature ) => {
+        if ( feature === 'justPlayed' ) return false;
+        if ( feature === 'nowPlayingMessage' ) return false;
+        return false;
+      } );
+
+      const message = {
+        statePatch: [
+          { op: 'replace', path: '/nowPlaying', value: { song: { artistName: 'New Artist', trackName: 'New Track' } } }
+        ]
+      };
+
+      playedSong( message, {}, services );
+
+      // Should not call any message functions
+      expect( services.messageService.formatMention ).not.toHaveBeenCalled();
+      expect( services.messageService.sendGroupMessage ).not.toHaveBeenCalled();
+    } );
+
+    test( 'should use default template when justPlayedMessage is not configured', () => {
+      services.featuresService.isFeatureEnabled.mockImplementation( ( feature ) => {
+        if ( feature === 'justPlayed' ) return true;
+        if ( feature === 'nowPlayingMessage' ) return false;
+        return false;
+      } );
+
+      services.dataService.getValue.mockReturnValue( null ); // No custom template
+
+      const message = {
+        statePatch: [
+          { op: 'replace', path: '/nowPlaying', value: { song: { artistName: 'New Artist', trackName: 'New Track' } } }
+        ]
+      };
+
+      playedSong( message, {}, services );
+
+      expect( services.messageService.sendGroupMessage ).toHaveBeenCalledWith(
+        '<@uid:dj-uuid-123> just played Previous Track by Previous Artist 👍5 👎2 ⭐1',
+        { services }
+      );
+    } );
+
+    test( 'should handle missing vote counts gracefully', () => {
+      services.hangoutState.voteCounts = null; // No vote counts
+      services.featuresService.isFeatureEnabled.mockImplementation( ( feature ) => {
+        if ( feature === 'justPlayed' ) return true;
+        if ( feature === 'nowPlayingMessage' ) return false;
+        return false;
+      } );
+
+      const message = {
+        statePatch: [
+          { op: 'replace', path: '/nowPlaying', value: { song: { artistName: 'New Artist', trackName: 'New Track' } } }
+        ]
+      };
+
+      playedSong( message, {}, services );
+
+      expect( services.messageService.sendGroupMessage ).toHaveBeenCalledWith(
+        '<@uid:dj-uuid-123> just played Previous Track by Previous Artist 👍0 👎0 ⭐0',
+        { services }
+      );
+    } );
+
+    test( 'should not announce just played when no previous song data exists', () => {
+      services.hangoutState.nowPlaying = null; // No previous song
+      services.featuresService.isFeatureEnabled.mockImplementation( ( feature ) => {
+        if ( feature === 'justPlayed' ) return true;
+        if ( feature === 'nowPlayingMessage' ) return false;
+        return false;
+      } );
+
+      const message = {
+        statePatch: [
+          { op: 'replace', path: '/nowPlaying', value: { song: { artistName: 'New Artist', trackName: 'New Track' } } }
+        ]
+      };
+
+      playedSong( message, {}, services );
+
+      // Should not call message functions since there's no previous song
+      expect( services.messageService.formatMention ).not.toHaveBeenCalled();
+      expect( services.messageService.sendGroupMessage ).not.toHaveBeenCalled();
+    } );
+
+    test( 'should not announce just played when song starts playing (same song)', () => {
+      // Set up scenario where the same song is just starting to play
+      services.hangoutState = {
+        nowPlaying: null, // No song was playing before
+        djs: [{ uuid: 'dj-uuid-123' }],
+        voteCounts: { likes: 0, dislikes: 0, stars: 0 }
+      };
+
+      services.featuresService.isFeatureEnabled.mockImplementation( ( feature ) => {
+        if ( feature === 'justPlayed' ) return true;
+        if ( feature === 'nowPlayingMessage' ) return false;
+        return false;
+      } );
+
+      const message = {
+        statePatch: [
+          { 
+            op: 'replace', 
+            path: '/nowPlaying', 
+            value: { 
+              song: { 
+                artistName: 'The Sundays', 
+                trackName: "Here's Where The Story Ends" 
+              } 
+            } 
+          }
+        ]
+      };
+
+      playedSong( message, {}, services );
+
+      // Should not announce justPlayed since there was no previous song
+      expect( services.messageService.formatMention ).not.toHaveBeenCalled();
+      expect( services.messageService.sendGroupMessage ).not.toHaveBeenCalled();
+    } );
+
+    test( 'should announce just played when song ends (nowPlaying becomes null)', () => {
+      services.hangoutState = {
+        nowPlaying: {
+          song: {
+            artistName: 'Previous Artist',
+            trackName: 'Previous Track'
+          }
+        },
+        djs: [{ uuid: 'dj-uuid-123' }],
+        voteCounts: { likes: 5, dislikes: 2, stars: 1 }
+      };
+
+      services.featuresService.isFeatureEnabled.mockImplementation( ( feature ) => {
+        if ( feature === 'justPlayed' ) return true;
+        if ( feature === 'nowPlayingMessage' ) return false;
+        return false;
+      } );
+
+      const message = {
+        statePatch: [
+          { op: 'replace', path: '/nowPlaying', value: null } // Song ends
+        ]
+      };
+
+      playedSong( message, {}, services );
+
+      expect( services.messageService.formatMention ).toHaveBeenCalledWith( 'dj-uuid-123' );
+      expect( services.messageService.sendGroupMessage ).toHaveBeenCalledWith(
+        '<@uid:dj-uuid-123> just played Previous Track by Previous Artist 👍5 👎2 ⭐1',
+        { services }
+      );
+    } );
+
+    test( 'should announce just played when different song starts playing', () => {
+      services.hangoutState = {
+        nowPlaying: {
+          song: {
+            artistName: 'Previous Artist',
+            trackName: 'Previous Track'
+          }
+        },
+        djs: [{ uuid: 'dj-uuid-123' }],
+        voteCounts: { likes: 3, dislikes: 1, stars: 0 }
+      };
+
+      services.featuresService.isFeatureEnabled.mockImplementation( ( feature ) => {
+        if ( feature === 'justPlayed' ) return true;
+        if ( feature === 'nowPlayingMessage' ) return false;
+        return false;
+      } );
+
+      const message = {
+        statePatch: [
+          { 
+            op: 'replace', 
+            path: '/nowPlaying', 
+            value: { 
+              song: { 
+                artistName: 'New Artist', 
+                trackName: 'New Track' 
+              } 
+            } 
+          }
+        ]
+      };
+
+      playedSong( message, {}, services );
+
+      expect( services.messageService.formatMention ).toHaveBeenCalledWith( 'dj-uuid-123' );
+      expect( services.messageService.sendGroupMessage ).toHaveBeenCalledWith(
+        '<@uid:dj-uuid-123> just played Previous Track by Previous Artist 👍3 👎1 ⭐0',
+        { services }
+      );
+    } );
+  } );
 } );

@@ -3,6 +3,81 @@
 if ( !global.playedSongTimer ) global.playedSongTimer = null;
 
 /**
+ * Captures the previous song information before it gets replaced by state patches
+ * @param {Object} services - Services container for accessing hangout state
+ * @returns {Object|null} Previous song info object or null if not found
+ */
+function capturePreviousSongInfo( services ) {
+  try {
+    const hangoutState = services.hangoutState;
+    if ( !hangoutState?.nowPlaying?.song ) {
+      return null;
+    }
+
+    const nowPlaying = hangoutState.nowPlaying;
+    const djUuid = hangoutState.djs && hangoutState.djs.length > 0 ? hangoutState.djs[0].uuid : null;
+    const voteCounts = hangoutState.voteCounts || { likes: 0, dislikes: 0, stars: 0 };
+
+    if ( djUuid && nowPlaying.song.artistName && nowPlaying.song.trackName ) {
+      return {
+        djUuid,
+        artistName: nowPlaying.song.artistName,
+        trackName: nowPlaying.song.trackName,
+        voteCounts: { ...voteCounts } // Create a copy to avoid reference issues
+      };
+    }
+
+    return null;
+  } catch ( error ) {
+    return null;
+  }
+}
+
+/**
+ * Announces the just-finished song with vote counts to the public chat
+ * @param {Object} previousSongInfo - Previous song information object
+ * @param {Object} services - Services container
+ */
+async function announceJustPlayed( previousSongInfo, services ) {
+  try {
+    const messageTemplate = services.dataService.getValue( 'justPlayedMessage' ) || 
+      "{username} just played {trackName} by {artistName} 👍{likes} 👎{dislikes} ⭐{stars}";
+
+    // Replace placeholders with actual values
+    const djMention = services.messageService.formatMention( previousSongInfo.djUuid );
+    
+    const announcement = messageTemplate
+      .replace( '{username}', djMention )
+      .replace( '{trackName}', previousSongInfo.trackName )
+      .replace( '{artistName}', previousSongInfo.artistName )
+      .replace( '{likes}', previousSongInfo.voteCounts.likes || 0 )
+      .replace( '{dislikes}', previousSongInfo.voteCounts.dislikes || 0 )
+      .replace( '{stars}', previousSongInfo.voteCounts.stars || 0 );
+    
+    await services.messageService.sendGroupMessage( announcement, { services } );
+  } catch ( error ) {
+    services.logger.error( `Failed to announce just played song: ${ error.message }` );
+  }
+}
+
+/**
+ * Extracts the new nowPlaying value from the state patch
+ * @param {Object} message - The stateful message containing patch data
+ * @returns {Object|null} The new nowPlaying value or undefined if not found in patch
+ */
+function extractNowPlayingFromPatch( message ) {
+  const statePatch = message.statePatch || [];
+  
+  for ( const patch of statePatch ) {
+    if ( patch.op === 'replace' && patch.path === '/nowPlaying' ) {
+      return patch.value;
+    }
+  }
+  
+  return undefined; // Not found in patch
+}
+
+/**
  * Extracts song information from the state patch and full state
  * @param {Object} message - The stateful message containing patch data
  * @param {Object} services - Services container for accessing hangout state
@@ -71,8 +146,31 @@ async function announceSong ( songInfo, services ) {
 
 function playedSong ( message, state, services ) {
   try {
-    // Extract and announce song information
+    // Capture the previous song info BEFORE extracting new song info
+    const previousSongInfo = capturePreviousSongInfo( services );
+    
+    // Extract and announce new song information
     const songInfo = extractSongInfo( message, services );
+    
+    // Announce the just-finished song if the feature is enabled and we have previous song data
+    // Only announce if there was actually a previous song that finished
+    if ( previousSongInfo && services.featuresService.isFeatureEnabled( 'justPlayed' ) ) {
+      // Check if this playedSong message indicates the end of a song (nowPlaying becomes null)
+      // or if there's a new song replacing the previous one
+      const newNowPlaying = extractNowPlayingFromPatch( message );
+      
+      // Only announce if the song is actually ending (nowPlaying becomes null) 
+      // or if a different song is starting (different track/artist)
+      const shouldAnnounce = newNowPlaying === null || 
+        (newNowPlaying?.song && (
+          newNowPlaying.song.trackName !== previousSongInfo.trackName ||
+          newNowPlaying.song.artistName !== previousSongInfo.artistName
+        ));
+      
+      if ( shouldAnnounce ) {
+        announceJustPlayed( previousSongInfo, services );
+      }
+    }
     
     if ( songInfo && services.featuresService.isFeatureEnabled( 'nowPlayingMessage' ) ) {
       // Only announce if the feature is enabled
