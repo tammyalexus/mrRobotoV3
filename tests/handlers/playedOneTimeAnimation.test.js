@@ -21,10 +21,8 @@ describe( 'playedOneTimeAnimation handler', () => {
 
     test( 'should handle no stored previous song gracefully', () => {
         const message = {
-            message: {
-                name: 'playedOneTimeAnimation',
-                params: { userUuid: 'user-123', animation: 'jump' }
-            }
+            name: 'playedOneTimeAnimation',
+            params: { userUuid: 'user-123', animation: 'jump' }
         };
 
         expect( () => playedOneTimeAnimation( message, {}, services ) ).not.toThrow();
@@ -40,10 +38,8 @@ describe( 'playedOneTimeAnimation handler', () => {
         };
 
         const message = {
-            message: {
-                name: 'playedOneTimeAnimation',
-                params: { userUuid: 'user-123', animation: 'jump' }
-            }
+            name: 'playedOneTimeAnimation',
+            params: { userUuid: 'user-123', animation: 'jump' }
         };
 
         playedOneTimeAnimation( message, {}, services );
@@ -66,10 +62,8 @@ describe( 'playedOneTimeAnimation handler', () => {
         services.hangoutState = {}; // No voteCounts
 
         const message = {
-            message: {
-                name: 'playedOneTimeAnimation',
-                params: { userUuid: 'user-123', animation: 'jump' }
-            }
+            name: 'playedOneTimeAnimation',
+            params: { userUuid: 'user-123', animation: 'jump' }
         };
 
         playedOneTimeAnimation( message, {}, services );
@@ -79,13 +73,11 @@ describe( 'playedOneTimeAnimation handler', () => {
 
     test( 'should increment stars when snag emoji is detected', () => {
         const message = {
-            message: {
-                name: 'playedOneTimeAnimation',
-                params: {
-                    userUuid: 'current-dj-123',
-                    animation: 'emoji',
-                    emoji: '💜'
-                }
+            name: 'playedOneTimeAnimation',
+            params: {
+                userUuid: 'current-dj-123',
+                animation: 'emoji',
+                emoji: '💜'
             }
         };
 
@@ -104,13 +96,11 @@ describe( 'playedOneTimeAnimation handler', () => {
             services.hangoutState.voteCounts.stars = 5;
 
             const message = {
-                message: {
-                    name: 'playedOneTimeAnimation',
-                    params: {
-                        userUuid: 'current-dj-123',
-                        animation: 'emoji',
-                        emoji: emoji
-                    }
+                name: 'playedOneTimeAnimation',
+                params: {
+                    userUuid: 'current-dj-123',
+                    animation: 'emoji',
+                    emoji: emoji
                 }
             };
 
@@ -122,13 +112,11 @@ describe( 'playedOneTimeAnimation handler', () => {
 
     test( 'should not increment stars for non-snag emojis', () => {
         const message = {
-            message: {
-                name: 'playedOneTimeAnimation',
-                params: {
-                    userUuid: 'current-dj-123',
-                    animation: 'emoji',
-                    emoji: '😀'
-                }
+            name: 'playedOneTimeAnimation',
+            params: {
+                userUuid: 'current-dj-123',
+                animation: 'emoji',
+                emoji: '😀'
             }
         };
 

@@ -42,7 +42,7 @@ function updatePreviousSongVoteCountsFromState ( services ) {
  * @param {Object} services - Services container
  */
 function handleSnagEmojiVote ( message, services ) {
-  const emoji = message.message?.params?.emoji;
+  const emoji = message.params?.emoji;
 
   if ( !emoji ) {
     services.logger.debug( '[playedOneTimeAnimation] No emoji in message' );
@@ -67,7 +67,7 @@ function handleSnagEmojiVote ( message, services ) {
 
   // Also update stored previous song if it's the same song (in case this is still the "previous" song)
   if ( global.previousPlayedSong?.voteCounts ) {
-    const userUuid = message.message?.params?.userUuid;
+    const userUuid = message.params?.userUuid;
     const currentDj = services.hangoutState?.djs?.[ 0 ]?.uuid;
 
     // Only increment previous song stars if this snag is from the current DJ playing that song

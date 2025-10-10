@@ -217,12 +217,29 @@ async function playedSong ( message, state, services ) {
 
     // Store the current song info for the next playedSong call
     if ( currentSongInfo ) {
-      // Get current vote counts from hangout state
-      const voteCounts = services.hangoutState?.voteCounts || { likes: 0, dislikes: 0, stars: 0 };
+      let initialVoteCounts;
+
+      // If no previous song is stored (bot just started), initialize from hangout state
+      // Otherwise, reset vote counts to 0 for new song
+      if ( !global.previousPlayedSong ) {
+        // Bot startup: use current vote counts from hangout state
+        initialVoteCounts = services.hangoutState?.voteCounts || { likes: 0, dislikes: 0, stars: 0 };
+        services.logger.debug( '[playedSong] Bot startup: initializing vote counts from hangout state:', initialVoteCounts );
+      } else {
+        // Normal operation: reset vote counts for new song
+        initialVoteCounts = { likes: 0, dislikes: 0, stars: 0 };
+        services.logger.debug( '[playedSong] New song: resetting vote counts to 0' );
+
+        // Also reset the hangout state vote counts for the new song
+        if ( services.hangoutState && services.hangoutState.voteCounts ) {
+          services.hangoutState.voteCounts = { likes: 0, dislikes: 0, stars: 0 };
+          services.logger.debug( '[playedSong] Reset hangout state vote counts for new song' );
+        }
+      }
 
       global.previousPlayedSong = {
         ...currentSongInfo,
-        voteCounts: { ...voteCounts } // Initialize with current vote counts
+        voteCounts: { ...initialVoteCounts }
       };
       services.logger.debug( `[playedSong] Stored current song for next comparison: ${ JSON.stringify( global.previousPlayedSong, null, 2 ) }` );
     }
