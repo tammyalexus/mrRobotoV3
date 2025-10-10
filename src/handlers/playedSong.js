@@ -123,7 +123,7 @@ async function announceSong ( songInfo, services ) {
   }
 }
 
-function playedSong ( message, state, services ) {
+async function playedSong ( message, state, services ) {
   try {
     services.logger.debug( `[playedSong] Handler called with message patches: ${ message.statePatch?.length || 0 } patches` );
 
@@ -201,7 +201,7 @@ function playedSong ( message, state, services ) {
         const voteCounts = previousSongInfo.voteCounts || services.hangoutState?.voteCounts || { likes: 0, dislikes: 0, stars: 0 };
         const previousSongWithVotes = { ...previousSongInfo, voteCounts };
 
-        announceJustPlayed( previousSongWithVotes, services );
+        await announceJustPlayed( previousSongWithVotes, services );
       }
     } else {
       if ( !previousSongInfo ) {
@@ -227,9 +227,9 @@ function playedSong ( message, state, services ) {
       services.logger.debug( `[playedSong] Stored current song for next comparison: ${ JSON.stringify( global.previousPlayedSong, null, 2 ) }` );
     }
 
-    // Announce the new song if the feature is enabled
+    // Announce the new song if the feature is enabled (after justPlayed announcement)
     if ( currentSongInfo && services.featuresService.isFeatureEnabled( 'nowPlayingMessage' ) ) {
-      announceSong( currentSongInfo, services );
+      await announceSong( currentSongInfo, services );
     }
 
     const nowPlaying = services.hangoutState?.nowPlaying;
