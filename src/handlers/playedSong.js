@@ -43,38 +43,64 @@ async function announceJustPlayed ( previousSongInfo, services ) {
 }
 
 /**
+ * Extracts the new nowPlaying value from the state patch
+ * @param {Object} message - The stateful message containing patch data
+ * @returns {Object|null} The new nowPlaying value or undefined if not found in patch
+ */
+function extractNowPlayingFromPatch( message ) {
+  const statePatch = message.statePatch || [];
+  
+  for ( const patch of statePatch ) {
+    if ( patch.op === 'replace' && patch.path === '/nowPlaying' ) {
+      return patch.value;
+    }
+  }
+  
+  return undefined; // Not found in patch
+}
+
+/**
+ * Checks if the playId has changed, indicating a new song play
+ * @param {Object} message - The stateful message containing patch data
+ * @returns {boolean} True if playId has changed
+ */
+function hasPlayIdChanged( message ) {
+  const statePatch = message.statePatch || [];
+  
+  for ( const patch of statePatch ) {
+    if ( patch.op === 'replace' && patch.path === '/nowPlaying/playId' ) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
  * Extracts song information from the state patch and full state
  * @param {Object} message - The stateful message containing patch data
  * @param {Object} services - Services container for accessing hangout state
  * @returns {Object|null} Song info object or null if not found
  */
 function extractSongInfo ( message, services ) {
-  services.logger.debug( '[playedSong] Extracting song info from patches...' );
-
   const statePatch = message.statePatch || [];
   let djUuid = null;
   let artistName = null;
   let trackName = null;
-
-  services.logger.debug( `[playedSong] Processing ${ statePatch.length } patches for song info` );
 
   // Look through the patches to find the song and DJ information
   for ( const patch of statePatch ) {
     if ( patch.op === 'replace' ) {
       if ( patch.path === '/djs/0/uuid' ) {
         djUuid = patch.value;
-        services.logger.debug( `[playedSong] Found DJ UUID in patch: ${ djUuid }` );
       } else if ( patch.path === '/nowPlaying/song/artistName' ) {
         artistName = patch.value;
-        services.logger.debug( `[playedSong] Found artist name in patch: ${ artistName }` );
       } else if ( patch.path === '/nowPlaying/song/trackName' ) {
         trackName = patch.value;
-        services.logger.debug( `[playedSong] Found track name in patch: ${ trackName }` );
       } else if ( patch.path === '/nowPlaying' && patch.value?.song ) {
         // Handle case where entire nowPlaying object is replaced
         artistName = patch.value.song.artistName;
         trackName = patch.value.song.trackName;
-        services.logger.debug( `[playedSong] Found full nowPlaying object in patch: ${ JSON.stringify( { artistName, trackName }, null, 2 ) }` );
       }
     }
   }
@@ -82,21 +108,15 @@ function extractSongInfo ( message, services ) {
   // If we have song info but no DJ UUID from patch, try to get it from full state
   if ( !djUuid && ( artistName || trackName ) ) {
     if ( services.hangoutState?.djs && services.hangoutState.djs.length > 0 ) {
-      djUuid = services.hangoutState.djs[ 0 ].uuid;
-      services.logger.debug( '[playedSong] Got DJ UUID from hangout state:', djUuid );
+      djUuid = services.hangoutState.djs[0].uuid;
     }
   }
 
-  services.logger.debug( '[playedSong] Final extracted values:', { djUuid, artistName, trackName } );
-
   // Only return song info if we have all required pieces
   if ( djUuid && artistName && trackName ) {
-    const songInfo = { djUuid, artistName, trackName };
-    services.logger.debug( '[playedSong] Successfully extracted complete song info:', songInfo );
-    return songInfo;
+    return { djUuid, artistName, trackName };
   }
 
-  services.logger.debug( '[playedSong] Incomplete song info - missing required fields' );
   return null;
 }
 
@@ -155,10 +175,14 @@ function playedSong ( message, state, services ) {
       patch.op === 'replace' && patch.path === '/nowPlaying' && patch.value === null
     );
 
+    // Check if playId changed - this indicates a new song play even if song details aren't in the patch
+    const playIdChanged = hasPlayIdChanged( message );
+
     // Announce the just-finished song if we have a previous song and either:
     // 1. Current song is different from previous, OR
-    // 2. Song ended (nowPlaying became null)
-    if ( previousSongInfo && justPlayedEnabled && ( currentSongInfo || nowPlayingBecameNull ) ) {
+    // 2. Song ended (nowPlaying became null), OR
+    // 3. PlayId changed (indicating same song played again)
+    if ( previousSongInfo && justPlayedEnabled && ( currentSongInfo || nowPlayingBecameNull || playIdChanged ) ) {
       let shouldAnnounce = false;
 
       if ( nowPlayingBecameNull ) {
@@ -173,7 +197,11 @@ function playedSong ( message, state, services ) {
           currentSongInfo.djUuid !== previousSongInfo.djUuid
         );
 
-        services.logger.debug( `[playedSong] Song changed: ${ songChanged }` );
+        // Check if playId changed - this indicates a new song play even if song details are the same
+        const songPlayIdChanged = hasPlayIdChanged( message );
+        
+        services.logger.debug( `[playedSong] Song changed: ${ songChanged }, PlayId changed: ${ songPlayIdChanged }` );
+        
         if ( songChanged ) {
           const comparison = {
             newTrack: currentSongInfo.trackName,
@@ -188,9 +216,15 @@ function playedSong ( message, state, services ) {
           };
           services.logger.debug( `[playedSong] Song comparison: ${ JSON.stringify( comparison, null, 2 ) }` );
           shouldAnnounce = true;
+        } else if ( songPlayIdChanged ) {
+          services.logger.debug( '[playedSong] PlayId changed - will announce justPlayed (same song played again)' );
+          shouldAnnounce = true;
         } else {
-          services.logger.debug( '[playedSong] Not announcing justPlayed - same song as previous' );
+          services.logger.debug( '[playedSong] Not announcing justPlayed - same song as previous and no playId change' );
         }
+      } else {
+        services.logger.debug( '[playedSong] PlayId changed but no current song info - will announce justPlayed using previous song data' );
+        shouldAnnounce = true;
       }
 
       if ( shouldAnnounce ) {

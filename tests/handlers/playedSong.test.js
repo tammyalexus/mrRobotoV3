@@ -633,6 +633,13 @@ describe( 'playedSong handler', () => {
         return false;
       } );
 
+      services.dataService.getValue.mockImplementation( ( key ) => {
+        if ( key === 'justPlayedMessage' ) {
+          return '{username} just played {trackName} by {artistName} 👍{likes} 👎{dislikes} ⭐{stars}';
+        }
+        return null;
+      } );
+
       // New song starts playing (different from the stored previous song)
       const message = {
         statePatch: [
@@ -646,7 +653,60 @@ describe( 'playedSong handler', () => {
 
       expect( services.messageService.formatMention ).toHaveBeenCalledWith( 'dj-uuid-123' );
       expect( services.messageService.sendGroupMessage ).toHaveBeenCalledWith(
-        '<@uid:dj-uuid-123> played Previous Track by Previous Artist 👍3 👎1 ⭐0',
+        '<@uid:dj-uuid-123> just played Previous Track by Previous Artist 👍3 👎1 ⭐0',
+        { services }
+      );
+    } );
+
+    test( 'should announce just played when playId changes (same song played again)', () => {
+      // Set up previous song data
+      global.previousPlayedSong = {
+        trackName: 'Hanging On The Telephone - Remastered',
+        artistName: 'L7',
+        djUuid: 'dj-uuid-123',
+        playId: 'previous-play-id-123',
+        voteCounts: { likes: 2, dislikes: 0, stars: 1 }
+      };
+
+      services.hangoutState = {
+        nowPlaying: {
+          song: {
+            artistName: 'L7',
+            trackName: 'Hanging On The Telephone - Remastered'
+          }
+        },
+        djs: [{ uuid: 'dj-uuid-123' }],
+        voteCounts: { likes: 2, dislikes: 0, stars: 1 }
+      };
+
+      services.featuresService.isFeatureEnabled.mockImplementation( ( feature ) => {
+        if ( feature === 'justPlayed' ) return true;
+        if ( feature === 'nowPlayingMessage' ) return false;
+        return false;
+      } );
+
+      services.dataService.getValue.mockImplementation( ( key ) => {
+        if ( key === 'justPlayedMessage' ) {
+          return '{username} just played {trackName} by {artistName} 👍{likes} 👎{dislikes} ⭐{stars}';
+        }
+        return null;
+      } );
+
+      // Message with playId change but no song details (like in 000015 log)
+      const message = {
+        statePatch: [
+          { op: 'replace', path: '/nowPlaying/playId', value: '317598a6-57e3-41ac-a22d-099c7a680a52' },
+          { op: 'replace', path: '/nowPlaying/endTime', value: 1760265800452 },
+          { op: 'replace', path: '/nowPlaying/startTime', value: 1760265671452 },
+          { op: 'replace', path: '/nowPlaying/song/crateSongUuid', value: 'c99e0d8a-f2bc-49f6-96c8-f02b3dd5be10' }
+        ]
+      };
+
+      playedSong( message, {}, services );
+
+      expect( services.messageService.formatMention ).toHaveBeenCalledWith( 'dj-uuid-123' );
+      expect( services.messageService.sendGroupMessage ).toHaveBeenCalledWith(
+        '<@uid:dj-uuid-123> just played Hanging On The Telephone - Remastered by L7 👍2 👎0 ⭐1',
         { services }
       );
     } );
