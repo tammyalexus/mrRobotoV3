@@ -22,6 +22,9 @@ Every command file should follow this template:
 ```javascript
 // Set the required permission level
 const requiredRole = 'USER';  // Can be: 'OWNER', 'MODERATOR', or 'USER'
+const description = 'Brief description of what this command does';
+const example = 'commandname argument example';  // Example usage without the command prefix
+const hidden = false;  // Set to true to hide from help listing
 
 /**
  * Handle the XXX command
@@ -55,8 +58,11 @@ async function handleXXXCommand(commandParams) {
     };
 }
 
-// Attach role level to the function
+// Attach metadata to the function
 handleXXXCommand.requiredRole = requiredRole;
+handleXXXCommand.description = description;
+handleXXXCommand.example = example;
+handleXXXCommand.hidden = hidden;
 
 module.exports = handleXXXCommand;
 ```
@@ -145,6 +151,142 @@ Permission hierarchy (highest to lowest):
 2. **MODERATOR** (includes: owner, coOwner, moderator roles)  
 3. **USER** (includes: all roles)
 
+## Help System Integration
+
+The bot includes an intelligent help system that automatically discovers and displays your commands. To integrate with the help system, you need to provide metadata about your command.
+
+### Required Metadata
+
+Every command should include these metadata properties:
+
+```javascript
+const requiredRole = 'USER';           // Permission level required
+const description = 'Brief description of what this command does';
+const example = 'commandname argument example';  // Example usage (without ! prefix)
+const hidden = false;                  // Whether to hide from help listing
+```
+
+### Metadata Guidelines
+
+#### **Description**
+- Keep it concise (under 50 characters)
+- Clearly explain what the command does
+- Use present tense ("Send a message", not "Sends a message")
+
+Examples:
+```javascript
+const description = 'Echo back your message';
+const description = 'Check if bot is responding';
+const description = 'Change the bot name';
+```
+
+#### **Example**
+- Show realistic usage with actual arguments
+- Don't include the command prefix (`!`)
+- Use placeholder values that make sense
+
+Examples:
+```javascript
+const example = 'echo Hello everyone!';
+const example = 'changebotname MyAwesomeBot';
+const example = 'welcome Hi {username}, welcome to {hangoutName}!';
+```
+
+#### **Hidden**
+- Set to `true` for internal/utility commands
+- Set to `false` for user-facing commands
+- Hidden commands won't appear in help listings
+
+#### **Command State Management**
+Commands are enabled by default. To disable commands at runtime:
+- Use the `togglecommand` command (owner only): `!togglecommand disable commandname`
+- Disabled commands are stored in `data.json` outside of git
+- Commands can be re-enabled with: `!togglecommand enable commandname`
+- Check status with: `!togglecommand status commandname`
+
+```javascript
+const hidden = false;  // Normal user command
+const hidden = true;   // Internal/utility command
+```
+
+### Help System Features
+
+The help system provides two types of assistance:
+
+#### **General Help** (`!help`)
+Shows all available commands organized by permission level:
+
+```
+🤖 Available Commands:
+
+👤 User Commands:
+!echo - Echo back your message
+!ping - Check if bot is responding
+
+🛡️ Moderator Commands:
+!welcome - Update the welcome message template
+
+👑 Owner Commands:
+!changebotname - Change the bot name
+
+💡 Tip: Type !help [command] to see specific examples and usage.
+```
+
+#### **Specific Command Help** (`!help commandname`)
+Shows detailed information for a specific command:
+
+```
+🤖 Help for command: !echo
+
+📝 Description: Echo back your message
+🎯 Example: !echo Hello everyone!
+👤 Required Role: USER
+```
+
+#### **Error Handling**
+If a user asks for help on a non-existent command:
+
+```
+❌ Command "nonexistent" does not exist.
+Type !help to see all available commands.
+```
+
+### Complete Metadata Example
+
+```javascript
+// Command metadata
+const requiredRole = 'MODERATOR';
+const description = 'Update the welcome message template';
+const example = 'editwelcome Hi {username}, welcome to {hangoutName}!';
+const hidden = false;
+
+async function handleEditwelcomeCommand(commandParams) {
+    // Command implementation here
+}
+
+// Attach ALL metadata to the function
+handleEditwelcomeCommand.requiredRole = requiredRole;
+handleEditwelcomeCommand.description = description;
+handleEditwelcomeCommand.example = example;
+handleEditwelcomeCommand.hidden = hidden;
+
+module.exports = handleEditwelcomeCommand;
+```
+
+### Automatic Discovery
+
+Commands are automatically discovered when:
+1. They're placed in the `src/commands/` directory
+2. They follow the `handleXXXCommand.js` naming pattern
+3. They include the required metadata properties
+4. They're not marked as `hidden: true`
+
+The help system will automatically:
+- Extract the command name from the filename
+- Sort commands alphabetically within permission levels
+- Display appropriate role-based information
+- Handle case-insensitive help requests
+
 ## Command Response Format
 
 Your command must return an object with:
@@ -180,16 +322,25 @@ if (!args.trim()) {
 
 ## Example Command
 
-Here's a complete example of a simple greeting command:
+Here's a complete example of a simple greeting command with proper help system integration:
 
 ```javascript
+// Command metadata
 const requiredRole = 'USER';
+const description = 'Send a friendly greeting';
+const example = 'greet Alice';
+const hidden = false;
 
+/**
+ * Handle the greet command
+ * @param {Object} commandParams - Standard command parameters
+ * @returns {Promise<Object>} Command result
+ */
 async function handleGreetCommand(commandParams) {
     const { args, services, context, responseChannel = 'request' } = commandParams;
     const { messageService } = services;
 
-    const name = args || context.sender;
+    const name = args.trim() || context.sender;
     const response = `👋 Hello, ${name}!`;
     
     await messageService.sendResponse(response, {
@@ -206,10 +357,20 @@ async function handleGreetCommand(commandParams) {
     };
 }
 
+// Attach metadata to the function
 handleGreetCommand.requiredRole = requiredRole;
+handleGreetCommand.description = description;
+handleGreetCommand.example = example;
+handleGreetCommand.hidden = hidden;
 
 module.exports = handleGreetCommand;
 ```
+
+This command will:
+- Appear in `!help` under "👤 User Commands" as: `!greet - Send a friendly greeting`
+- Show detailed help with `!help greet`: includes description, example, and required role
+- Accept an optional name argument, defaulting to the sender's ID if none provided
+- Respond in the same channel as the original command (public or private)
 
 ## Testing Your Command
 
@@ -217,5 +378,179 @@ module.exports = handleGreetCommand;
 2. Test different permission levels
 3. Test with various arguments
 4. Test error conditions
+5. **Test help system integration**
+
+### Help System Testing
+
+Include tests to verify your command integrates properly with the help system:
+
+```javascript
+const handleGreetCommand = require('../../src/commands/handleGreetCommand');
+
+describe('handleGreetCommand', () => {
+    // ... other tests ...
+
+    it('should have proper metadata for help system', () => {
+        expect(handleGreetCommand.requiredRole).toBe('USER');
+        expect(handleGreetCommand.description).toBe('Send a friendly greeting');
+        expect(handleGreetCommand.example).toBe('greet Alice');
+        expect(handleGreetCommand.hidden).toBe(false);
+    });
+
+    it('should appear in help command listing', async () => {
+        // Test that your command appears when !help is called
+        const handleHelpCommand = require('../../src/commands/handleHelpCommand');
+        const result = await handleHelpCommand({
+            args: '',
+            services: mockServices,
+            context: { sender: 'testUser' }
+        });
+        
+        expect(result.response).toContain('!greet - Send a friendly greeting');
+    });
+
+    it('should show specific help when requested', async () => {
+        // Test that !help greet shows detailed information
+        const handleHelpCommand = require('../../src/commands/handleHelpCommand');
+        const result = await handleHelpCommand({
+            args: 'greet',
+            services: mockServices,
+            context: { sender: 'testUser' }
+        });
+        
+        expect(result.response).toContain('Help for command: !greet');
+        expect(result.response).toContain('Description: Send a friendly greeting');
+        expect(result.response).toContain('Example: !greet Alice');
+        expect(result.response).toContain('Required Role: USER');
+    });
+});
+```
 
 The command will be automatically loaded by the bot when you add it to the `src/commands` directory.
+
+## Quick Reference Checklist
+
+When creating a new command, ensure you:
+
+- [ ] **File naming**: Use `handleXXXCommand.js` pattern
+- [ ] **Metadata**: Include `requiredRole`, `description`, `example`, and `hidden`
+- [ ] **Function signature**: Accept `commandParams` object with proper destructuring
+- [ ] **Response handling**: Use `messageService.sendResponse()` with proper channel routing
+- [ ] **Return format**: Return object with `success`, `shouldRespond`, and `response`
+- [ ] **Metadata attachment**: Attach all metadata properties to the function
+- [ ] **Export**: Use `module.exports = handleXXXCommand`
+- [ ] **Testing**: Create comprehensive tests including help system integration
+- [ ] **Documentation**: Clear JSDoc comments explaining parameters and return values
+
+### Command Metadata Template
+
+```javascript
+const requiredRole = 'USER';           // 'USER' | 'MODERATOR' | 'OWNER'
+const description = 'Brief description';  // Under 50 characters
+const example = 'command arg1 arg2';    // Realistic example without !
+const hidden = false;                   // true to hide from help
+```
+
+### Help System Commands for Testing
+
+- `!help` - Shows all available commands
+- `!help commandname` - Shows specific command help
+- `!help nonexistent` - Tests error handling
+
+Your command will automatically be included in the help system when properly configured!
+
+## Command Administration
+
+The bot includes a powerful command administration system that allows owners to enable/disable commands at runtime without modifying source code.
+
+### Toggle Command System
+
+Commands are **enabled by default**. The `togglecommand` allows owners to manage command states:
+
+#### Syntax
+```
+!togglecommand <action> <commandname>
+```
+
+#### Actions
+- **`enable`** - Enable a disabled command
+- **`disable`** - Disable an enabled command  
+- **`status`** - Check if a command is enabled or disabled
+
+#### Examples
+```
+!togglecommand disable ping     # Disable the ping command
+!togglecommand enable ping      # Re-enable the ping command
+!togglecommand status ping      # Check ping command status
+```
+
+#### How It Works
+- Disabled commands are stored in `data.json` (outside of git)
+- Changes persist across bot restarts
+- No source code modifications needed
+- Git repository stays clean and synchronized
+- Deployment-specific command states
+
+#### Safety Features
+- Cannot disable the `unknown` command (handles unrecognized commands)
+- Only owners can use `togglecommand`
+- Validates command exists before toggling
+- Clear status messages for all operations
+
+#### When Commands Are Disabled
+Users attempting to use disabled commands receive:
+```
+❌ The "commandname" command is currently disabled.
+```
+
+## Command Administration
+
+### Enabling and Disabling Commands
+
+Commands can be dynamically enabled or disabled at runtime using the `togglecommand` feature. This provides fine-grained control over which commands are available without requiring a bot restart.
+
+#### The `enabled` Flag
+
+Every command should include an `enabled` flag in its metadata:
+
+```javascript
+const enabled = true;  // Command is active and can be executed
+// or
+const enabled = false; // Command is disabled
+```
+
+When a command is disabled:
+- Users receive a "Command 'commandname' is currently disabled" message
+- The command still appears in help listings (unless also marked as `hidden`)
+- Only the owner can re-enable it using `togglecommand`
+
+#### The `togglecommand` Command
+
+The `togglecommand` command allows owners to enable/disable other commands at runtime:
+
+```
+!togglecommand enable commandname    # Enable a command
+!togglecommand disable commandname   # Disable a command
+!togglecommand status commandname    # Check command status
+```
+
+**Examples:**
+```
+!togglecommand disable echo          # Disables the echo command
+!togglecommand enable echo           # Re-enables the echo command
+!togglecommand status ping           # Shows: "Command 'ping' is currently enabled"
+```
+
+**Features:**
+- Owner-only access (highest permission level)
+- Persistent changes (survives bot restarts)
+- Real-time effect (no restart required)
+- Built-in validation (prevents disabling critical commands like help)
+- Clear feedback messages
+
+#### Best Practices
+
+1. **Default State**: Always set new commands to `enabled = true`
+2. **Testing**: Use `togglecommand` to test command disable/enable flows
+3. **Maintenance**: Temporarily disable problematic commands instead of removing them
+4. **Critical Commands**: The system prevents disabling essential commands like `help` and `togglecommand` itself

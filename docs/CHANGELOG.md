@@ -7,8 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0_beta] - 2025-10-12
+### Added
+- **Command & Feature Management System**: Complete system for enabling/disabling bot commands & features
+  - New `command` command for owners to manage bot commands (list, enable, disable, status)
+  - New `feature` command for owners to control optional bot features (list, enable, disable, status)
+  - Commands & features can be disabled and re-enabled without restart
+  - Persistent command state stored in data.json
+  
+- **"Just Played" Announcement feature**:
+  - Announces completed songs with detailed voting statistics (likes, dislikes, stars)
+  - Smart detection of song transitions using playId tracking
+  - Customizable message templates via data.json configuration
+  
+- **"Now Playing" Announcement feature**: 
+  - Now Playing messages for new song starts
+  - Intelligent fallback to hangout state when patch data is incomplete
+  
+- **Enhanced Help System**: Improved command discovery and usage
+  - `help {commandname}` will show usage examples
+
+### Changed
+- **Service Architecture Improvements**:
+  - New featuresService now includes comprehensive feature management
+  - Enhanced service container with improved feature toggle support
+
 ### Notes
-- All releases are currently in alpha state
+- All releases are currently in beta state
 - Features may be incomplete or subject to breaking changes
 - API stability not guaranteed until 1.0.0 release
 
@@ -119,7 +144,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.3_alpha] - 2025-08-25
 ### Added
-- New `welcome` command for moderators to customize the welcome message
+- New `editwelcome` command for moderators to customize the welcome message
 - DataService for managing global configuration via data.json
 - Configurable welcome messages with dynamic placeholders ({username}, {hangoutName})
 - data.json file for persistent bot configuration

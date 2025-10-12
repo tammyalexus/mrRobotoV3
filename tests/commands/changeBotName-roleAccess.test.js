@@ -2,10 +2,37 @@
 // These tests verify that the command service properly enforces role restrictions
 
 // Mock all external dependencies
+jest.mock('fs', () => ({
+  readFileSync: jest.fn().mockReturnValue(JSON.stringify({
+    welcomeMessage: "Hey {username}, welcome to {hangoutName}",
+    nowPlayingMessage: "{username} is now playing \"{trackName}\" by {artistName}",
+    disabledCommands: [], // Ensure no commands are disabled for role testing
+    disabledFeatures: [],
+    botData: {
+      CHAT_AVATAR_ID: "bot-1",
+      CHAT_NAME: "K.D.A.M.",
+      CHAT_COLOUR: "ff9900"
+    }
+  })),
+  readdirSync: jest.fn().mockReturnValue([
+    'handleChangebotnameCommand.js',
+    'handleCommandCommand.js',
+    'handleEchoCommand.js',
+    'handleEditwelcomeCommand.js',
+    'handleFeatureCommand.js',
+    'handleHelpCommand.js',
+    'handlePingCommand.js',
+    'handleStateCommand.js',
+    'handleStatusCommand.js',
+    'handleUnknownCommand.js'
+  ])
+}));
+
 jest.mock('../../src/lib/logging.js', () => ({
   logger: {
     debug: jest.fn(),
-    error: jest.fn()
+    error: jest.fn(),
+    warn: jest.fn()
   }
 }));
 
@@ -14,6 +41,7 @@ jest.mock('../../src/config.js', () => ({
 }));
 
 const commandService = require('../../src/services/commandService.js');
+const fs = require('fs');
 
 describe('changeBotName command - Role-based Access Control', () => {
   let mockServices;

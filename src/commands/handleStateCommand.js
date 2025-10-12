@@ -1,8 +1,11 @@
-const fs = require('fs').promises;
-const path = require('path');
+const fs = require( 'fs' ).promises;
+const path = require( 'path' );
 
 // Set required role level for this command
 const requiredRole = 'OWNER';
+const description = 'Dump current hangout state to log file';
+const example = 'state';
+const hidden = false;
 
 /**
  * Handles the state command - dumps current hangout state to a log file
@@ -14,50 +17,50 @@ const requiredRole = 'OWNER';
  * @param {string} commandParams.responseChannel - Response channel ('public' or 'request')
  * @returns {Promise<Object>} Command result
  */
-async function handleStateCommand(commandParams) {
+async function handleStateCommand ( commandParams ) {
   const { services, context, responseChannel = 'request' } = commandParams;
   try {
     const state = services?.hangoutState || null;
-    if (!state) {
+    if ( !state ) {
       const response = '⚠️ No hangout state available to save.';
-      await services.messageService.sendResponse(response, {
+      await services.messageService.sendResponse( response, {
         responseChannel,
         isPrivateMessage: context?.fullMessage?.isPrivateMessage,
         sender: context?.sender,
         services
-      });
+      } );
       return {
         success: false,
         response,
         shouldRespond: true
       };
     }
-    const logsDir = path.join(process.cwd(), 'logs');
-    const datetime = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `currentState_${datetime}.log`;
-    const filePath = path.join(logsDir, filename);
-    const logEntry = `${datetime}: ${JSON.stringify(state, null, 2)}\n`;
-    await fs.appendFile(filePath, logEntry);
-    const response = `✅ Current hangout state saved to ${filename}`;
-    await services.messageService.sendResponse(response, {
+    const logsDir = path.join( process.cwd(), 'logs' );
+    const datetime = new Date().toISOString().replace( /[:.]/g, '-' );
+    const filename = `currentState_${ datetime }.log`;
+    const filePath = path.join( logsDir, filename );
+    const logEntry = `${ datetime }: ${ JSON.stringify( state, null, 2 ) }\n`;
+    await fs.appendFile( filePath, logEntry );
+    const response = `✅ Current hangout state saved to ${ filename }`;
+    await services.messageService.sendResponse( response, {
       responseChannel,
       isPrivateMessage: context?.fullMessage?.isPrivateMessage,
       sender: context?.sender,
       services
-    });
+    } );
     return {
       success: true,
       response,
       shouldRespond: true
     };
-  } catch (error) {
-    const response = `❌ Failed to save hangout state: ${error.message}`;
-    await services.messageService.sendResponse(response, {
+  } catch ( error ) {
+    const response = `❌ Failed to save hangout state: ${ error.message }`;
+    await services.messageService.sendResponse( response, {
       responseChannel,
       isPrivateMessage: context?.fullMessage?.isPrivateMessage,
       sender: context?.sender,
       services
-    });
+    } );
     return {
       success: false,
       response,
@@ -66,7 +69,10 @@ async function handleStateCommand(commandParams) {
   }
 }
 
-// Attach role level to the function
+// Attach metadata to the function
 handleStateCommand.requiredRole = requiredRole;
+handleStateCommand.description = description;
+handleStateCommand.example = example;
+handleStateCommand.hidden = hidden;
 
 module.exports = handleStateCommand;

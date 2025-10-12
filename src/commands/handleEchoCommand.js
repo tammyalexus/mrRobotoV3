@@ -1,5 +1,8 @@
 // Set required role level for this command
 const requiredRole = 'USER';
+const description = 'Echo back your message';
+const example = 'echo Hello everyone!';
+const hidden = false;
 
 /**
  * Echoes a message back to the chat
@@ -11,48 +14,39 @@ const requiredRole = 'USER';
  * @param {string} commandParams.responseChannel - Response channel ('public' or 'request')
  * @returns {Promise<Object>} Command result
  */
-async function handleEchoCommand(commandParams) {
+async function handleEchoCommand ( commandParams ) {
   const { args, services, context, responseChannel = 'public' } = commandParams;
-  const { messageService, hangUserService } = services;
-  
+  const { messageService } = services;
+
   // Force responseChannel to 'public' for echo command
   const actualResponseChannel = 'public';
-  
-  if (!args.trim()) {
+
+  if ( !args.trim() ) {
     const response = '❓ Echo what? Please provide a message to echo.';
-    await messageService.sendResponse(response, {
+    await messageService.sendResponse( response, {
       responseChannel: actualResponseChannel,
       isPrivateMessage: context?.fullMessage?.isPrivateMessage,
       sender: context?.sender,
       services
-    });
+    } );
     return {
       success: false,
       response,
       shouldRespond: true
     };
   }
+
   const senderUuid = context && typeof context.sender === 'string' && context.sender.trim().length
     ? context.sender
     : null;
-  let senderDisplay = 'unknown';
-  if (senderUuid && hangUserService && typeof hangUserService.getUserNicknameByUuid === 'function') {
-    try {
-      const nickname = await hangUserService.getUserNicknameByUuid(senderUuid);
-      if (nickname && typeof nickname === 'string') {
-        senderDisplay = nickname;
-      }
-    } catch (e) {
-      // Swallow lookup errors; keep 'unknown'
-    }
-  }
-  const response = `🔊 Echo: ${args} (from ${senderDisplay})`;
-  await messageService.sendResponse(response, {
+
+  const response = `🔊 Echo: ${ args } (from ${ messageService.formatMention( senderUuid ) })`;
+  await messageService.sendResponse( response, {
     responseChannel: actualResponseChannel,
     isPrivateMessage: context?.fullMessage?.isPrivateMessage,
     sender: context?.sender,
     services
-  });
+  } );
   return {
     success: true,
     response,
@@ -60,7 +54,10 @@ async function handleEchoCommand(commandParams) {
   };
 }
 
-// Attach role level to the function
+// Attach metadata to the function
 handleEchoCommand.requiredRole = requiredRole;
+handleEchoCommand.description = description;
+handleEchoCommand.example = example;
+handleEchoCommand.hidden = hidden;
 
 module.exports = handleEchoCommand;

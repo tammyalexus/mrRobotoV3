@@ -10,6 +10,7 @@ const config = require( '../config.js' );
 const hangUserService = require( './hangUserService.js' );
 const StateService = require( './stateService.js' );
 const DataService = require( './dataService.js' );
+const FeaturesService = require( './featuresService.js' );
 
 // Shared state that all services can access and modify
 const sharedState = {
@@ -25,6 +26,9 @@ const sharedState = {
 // Services container with shared references
 // Initialize dataService
 const dataService = require( './dataService.js' );
+
+// Initialize featuresService with dataService dependency
+const featuresService = new FeaturesService( dataService );
 
 // Load data and make it available in the services container
 const initializeData = async () => {
@@ -49,6 +53,7 @@ const services = {
   logger,
   config,
   dataService,
+  featuresService,
   data: {}, // Will be populated by initializeData()
 
   // Shared state
