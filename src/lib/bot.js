@@ -589,7 +589,26 @@ class Bot {
       // Log payload to file
       await this._writeSocketMessagesToLogFile( 'serverMessage.log', payload );
 
-      // TODO: Add specific handler logic based on payload.message.name
+      // Handle specific message types
+      try {
+        // Only handle certain message types via serverMessage - others should be handled by statefulMessage only
+        const serverMessageOnlyHandlers = [ 'playedOneTimeAnimation' ];
+
+        if ( serverMessageOnlyHandlers.includes( payload.message.name ) ) {
+          const handlers = require( '../handlers' );
+          const handlerFn = handlers[ payload.message.name ];
+          if ( typeof handlerFn === 'function' ) {
+            this.services.logger.debug( `Calling handler for serverMessage: ${ payload.message.name }` );
+            await handlerFn( payload.message, this.state, this.services );
+          } else {
+            this.services.logger.debug( `No handler found for serverMessage: ${ payload.message.name }` );
+          }
+        } else {
+          this.services.logger.debug( `Skipping serverMessage handler for ${ payload.message.name } - handled by statefulMessage only` );
+        }
+      } catch ( err ) {
+        this.services.logger.error( `Error calling handler for serverMessage ${ payload.message.name }: ${ err.message }` );
+      }
     } );
   }
 
