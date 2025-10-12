@@ -104,7 +104,7 @@ describe( 'FeaturesService', () => {
       const result = featuresService.getAllFeatures();
       
       expect( result ).toEqual( {
-        enabled: ['welcomeMessage'],
+        enabled: ['welcomeMessage', 'justPlayed'],
         disabled: ['nowPlayingMessage']
       } );
     } );
@@ -115,7 +115,7 @@ describe( 'FeaturesService', () => {
       const result = featuresService.getAllFeatures();
       
       expect( result ).toEqual( {
-        enabled: ['welcomeMessage', 'nowPlayingMessage'],
+        enabled: ['welcomeMessage', 'nowPlayingMessage', 'justPlayed'],
         disabled: []
       } );
     } );
@@ -126,7 +126,7 @@ describe( 'FeaturesService', () => {
       const result = featuresService.getAllFeatures();
       
       expect( result ).toEqual( {
-        enabled: ['welcomeMessage'],
+        enabled: ['welcomeMessage', 'justPlayed'],
         disabled: ['nowPlayingMessage']
       } );
     } );

@@ -61,7 +61,8 @@ class FeaturesService {
     // Define all available features
     const allFeatures = [
       'welcomeMessage',
-      'nowPlayingMessage'
+      'nowPlayingMessage',
+      'justPlayed'
     ];
     
     const disabledFeatures = this.dataService.getValue( 'disabledFeatures' ) || [];
