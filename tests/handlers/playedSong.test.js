@@ -710,5 +710,49 @@ describe( 'playedSong handler', () => {
         { services }
       );
     } );
+
+    test( 'should announce nowPlaying when playId changes (same song played again)', () => {
+      // Set up hangout state with current song
+      services.hangoutState = {
+        nowPlaying: {
+          song: {
+            artistName: 'Test Artist',
+            trackName: 'Test Track'
+          }
+        },
+        djs: [{ uuid: 'dj-uuid-123' }]
+      };
+
+      services.featuresService.isFeatureEnabled.mockImplementation( ( feature ) => {
+        if ( feature === 'nowPlayingMessage' ) return true;
+        if ( feature === 'justPlayed' ) return false; // Disable to focus on nowPlaying
+        return false;
+      } );
+
+      services.dataService.getValue.mockImplementation( ( key ) => {
+        if ( key === 'nowPlayingMessage' ) {
+          return '{username} is now playing {trackName} by {artistName}';
+        }
+        return null;
+      } );
+
+      // Message with playId change but no song details (same song replayed)
+      const message = {
+        statePatch: [
+          { op: 'replace', path: '/nowPlaying/playId', value: 'new-play-id-456' },
+          { op: 'replace', path: '/nowPlaying/startTime', value: 1760265800000 },
+          { op: 'replace', path: '/nowPlaying/endTime', value: 1760265920000 }
+        ]
+      };
+
+      playedSong( message, {}, services );
+
+      // Should announce nowPlaying using hangout state since no song info in patch
+      expect( services.messageService.formatMention ).toHaveBeenCalledWith( 'dj-uuid-123' );
+      expect( services.messageService.sendGroupMessage ).toHaveBeenCalledWith(
+        '<@uid:dj-uuid-123> is now playing Test Track by Test Artist',
+        { services }
+      );
+    } );
   } );
 } );

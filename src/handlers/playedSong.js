@@ -279,8 +279,28 @@ async function playedSong ( message, state, services ) {
     }
 
     // Announce the new song if the feature is enabled (after justPlayed announcement)
-    if ( currentSongInfo && services.featuresService.isFeatureEnabled( 'nowPlayingMessage' ) ) {
-      await announceSong( currentSongInfo, services );
+    if ( services.featuresService.isFeatureEnabled( 'nowPlayingMessage' ) ) {
+      let songToAnnounce = currentSongInfo;
+      
+      // If no song info was extracted from patch but playId changed,
+      // get song info from current hangout state (same song being replayed)
+      if ( !songToAnnounce && playIdChanged && services.hangoutState?.nowPlaying?.song ) {
+        const hangoutSong = services.hangoutState.nowPlaying.song;
+        const currentDj = services.hangoutState?.djs?.[0]?.uuid;
+        
+        if ( hangoutSong.artistName && hangoutSong.trackName && currentDj ) {
+          songToAnnounce = {
+            djUuid: currentDj,
+            artistName: hangoutSong.artistName,
+            trackName: hangoutSong.trackName
+          };
+          services.logger.debug( '[playedSong] Using hangout state for nowPlaying announcement (playId changed, same song)' );
+        }
+      }
+      
+      if ( songToAnnounce ) {
+        await announceSong( songToAnnounce, services );
+      }
     }
 
     const nowPlaying = services.hangoutState?.nowPlaying;
