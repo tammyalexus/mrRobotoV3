@@ -14,10 +14,14 @@ async function announceJustPlayed ( previousSongInfo, services ) {
   try {
     services.logger.debug( '[playedSong] Starting announceJustPlayed with data:', previousSongInfo );
 
-    const messageTemplate = services.dataService.getValue( 'justPlayedMessage' ) ||
-      `{username} played...
+    let messageTemplate = services.dataService.getValue( 'editableMessages.justPlayedMessage' );
+    if ( !messageTemplate ) {
+      // Fallback to old structure for backward compatibility
+      messageTemplate = services.dataService.getValue( 'justPlayedMessage' ) ||
+        `{username} played...
       {trackName} by {artistName}
       Stats: 👍 {likes} 👎 {dislikes} ❤️ {stars}`;
+    }
 
     services.logger.debug( '[playedSong] Using justPlayedMessage template:', messageTemplate );
 
@@ -127,7 +131,11 @@ function extractSongInfo ( message, services ) {
  */
 async function announceSong ( songInfo, services ) {
   try {
-    const messageTemplate = services.dataService.getValue( 'nowPlayingMessage' ) || "{username} is now playing {trackName} by {artistName}";
+    let messageTemplate = services.dataService.getValue( 'editableMessages.nowPlayingMessage' );
+    if ( !messageTemplate ) {
+      // Fallback to old structure for backward compatibility
+      messageTemplate = services.dataService.getValue( 'nowPlayingMessage' ) || "{username} is now playing {trackName} by {artistName}";
+    }
 
     // Replace placeholders with actual values
     const djMention = services.messageService.formatMention( songInfo.djUuid );

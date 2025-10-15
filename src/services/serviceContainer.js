@@ -11,6 +11,7 @@ const hangUserService = require( './hangUserService.js' );
 const StateService = require( './stateService.js' );
 const DataService = require( './dataService.js' );
 const FeaturesService = require( './featuresService.js' );
+const MachineLearningService = require( './machineLearningService.js' );
 
 // Shared state that all services can access and modify
 const sharedState = {
@@ -29,6 +30,9 @@ const dataService = require( './dataService.js' );
 
 // Initialize featuresService with dataService dependency
 const featuresService = new FeaturesService( dataService );
+
+// Initialize machineLearningService
+const machineLearningService = new MachineLearningService();
 
 // Load data and make it available in the services container
 const initializeData = async () => {
@@ -54,6 +58,7 @@ const services = {
   config,
   dataService,
   featuresService,
+  machineLearningService,
   data: {}, // Will be populated by initializeData()
 
   // Shared state

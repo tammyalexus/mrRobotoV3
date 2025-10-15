@@ -104,7 +104,11 @@ async function sendWelcomeMessage ( userData, services ) {
 
   // Get welcome message template from data service, fallback to default if not found
   services.logger.debug( 'Getting welcome message from dataService...' );
-  const messageTemplate = services.dataService.getValue( 'welcomeMessage' ) || "👋 Welcome to {hangoutName}, {username}!";
+  let messageTemplate = services.dataService.getValue( 'editableMessages.welcomeMessage' );
+  if ( !messageTemplate ) {
+    // Fallback to old structure for backward compatibility
+    messageTemplate = services.dataService.getValue( 'welcomeMessage' ) || "👋 Welcome to {hangoutName}, {username}!";
+  }
   services.logger.debug( `Retrieved welcome message template: ${ messageTemplate }` );
 
   // Replace placeholders with actual values

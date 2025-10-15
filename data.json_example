@@ -1,7 +1,10 @@
 {
-  "welcomeMessage": "Hi {username}, welcome to {hangoutName}",
-  "nowPlayingMessage": "{username} is now playing {trackName} by {artistName}",
-  "justPlayedMessage": "{username} played...\n{trackName} by {artistName}\nStats: 👍 {likes} 👎 {dislikes} ❤️ {stars}",
+  "editableMessages": {
+    "welcomeMessage": "Hi {username}, welcome to {hangoutName}",
+    "nowPlayingMessage": "{username} is now playing {trackName} by {artistName}",
+    "justPlayedMessage": "{username} played...\n{trackName} by {artistName}\nStats: 👍 {likes} 👎 {dislikes} ❤️ {stars}",
+    "popfactsMessage": "The song I'm currently listening to is ${trackName} by ${artistName}. Tell me three short interesting facts about the song and/or the artist. When searching note that it may or may not be a cover version. Do not tell me that you're giving me three facts as part of the reply"
+  },
   "disabledCommands": [
   ],
   "disabledFeatures": [
