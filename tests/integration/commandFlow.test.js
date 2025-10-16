@@ -21,7 +21,6 @@ jest.mock( 'fs', () => ( {
   readdirSync: jest.fn().mockReturnValue( [
     'handleChangebotnameCommand.js',
     'handleEchoCommand.js',
-    'handleEditnowplayingCommand.js',
     'handleFeatureCommand.js',
     'handleHelpCommand.js',
     'handlePingCommand.js',

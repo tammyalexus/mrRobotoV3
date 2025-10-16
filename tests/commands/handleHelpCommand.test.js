@@ -1,64 +1,63 @@
 // Mock config module to avoid environment dependencies
 jest.mock( '../../src/config.js', () => ( {
-  COMMAND_SWITCH: '!',
-  COMETCHAT_API_KEY: 'test-api-key',
-  COMETCHAT_AUTH_TOKEN: 'test-auth-token',
-  LOG_LEVEL: 'INFO',
-  SOCKET_MESSAGE_LOG_LEVEL: 'OFF',
-  BOT_UID: 'test-bot-uid',
-  HANGOUT_ID: 'test-hangout-id',
-  BOT_USER_TOKEN: 'test-bot-token',
-  CHAT_AVATAR_ID: 'test-avatar',
-  CHAT_NAME: 'TestBot',
-  CHAT_COLOUR: 'ff0000',
-  COMETCHAT_RECEIVER_UID: 'test-receiver-uid',
-  TTFM_GATEWAY_BASE_URL: 'http://test.example.com'
+    COMMAND_SWITCH: '!',
+    COMETCHAT_API_KEY: 'test-api-key',
+    COMETCHAT_AUTH_TOKEN: 'test-auth-token',
+    LOG_LEVEL: 'INFO',
+    SOCKET_MESSAGE_LOG_LEVEL: 'OFF',
+    BOT_UID: 'test-bot-uid',
+    HANGOUT_ID: 'test-hangout-id',
+    BOT_USER_TOKEN: 'test-bot-token',
+    CHAT_AVATAR_ID: 'test-avatar',
+    CHAT_NAME: 'TestBot',
+    CHAT_COLOUR: 'ff0000',
+    COMETCHAT_RECEIVER_UID: 'test-receiver-uid',
+    TTFM_GATEWAY_BASE_URL: 'http://test.example.com'
 } ) );
 
 // Mock logging module to prevent file system operations
 jest.mock( '../../src/lib/logging.js', () => ( {
-  info: jest.fn(),
-  debug: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  verbose: jest.fn()
+    info: jest.fn(),
+    debug: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    verbose: jest.fn()
 } ) );
 
 // Mock fs module to prevent reading actual data.json file
 jest.mock( 'fs', () => ( {
-  readFileSync: jest.fn().mockImplementation( ( filePath ) => {
-    // Return mock data.json content for any data.json path
-    if ( filePath.includes( 'data.json' ) ) {
-      return JSON.stringify( {
-        disabledCommands: [],
-        disabledFeatures: [],
-        welcomeMessage: "Hey {username}, welcome to {hangoutName}",
-        nowPlayingMessage: "{username} is now playing \"{trackName}\" by {artistName}",
-        botData: {
-          CHAT_AVATAR_ID: "test-avatar",
-          CHAT_NAME: "TestBot",
-          CHAT_COLOUR: "ff0000"
+    readFileSync: jest.fn().mockImplementation( ( filePath ) => {
+        // Return mock data.json content for any data.json path
+        if ( filePath.includes( 'data.json' ) ) {
+            return JSON.stringify( {
+                disabledCommands: [],
+                disabledFeatures: [],
+                welcomeMessage: "Hey {username}, welcome to {hangoutName}",
+                nowPlayingMessage: "{username} is now playing \"{trackName}\" by {artistName}",
+                botData: {
+                    CHAT_AVATAR_ID: "test-avatar",
+                    CHAT_NAME: "TestBot",
+                    CHAT_COLOUR: "ff0000"
+                }
+            } );
         }
-      } );
-    }
-    // Default fallback for other files
-    return '{}';
-  } ),
-  readdirSync: jest.fn().mockReturnValue( [
-    'handleChangebotnameCommand.js',
-    'handleEchoCommand.js',
-    'handleEditnowplayingCommand.js',
-    'handleEditwelcomeCommand.js',
-    'handleFeatureCommand.js',
-    'handleHelpCommand.js',
-    'handlePingCommand.js',
-    'handleStateCommand.js',
-    'handleStatusCommand.js',
-    'handleCommandCommand.js',
-    'handleUnknownCommand.js'
-  ] ),
-  existsSync: jest.fn().mockReturnValue( true ),
-  mkdirSync: jest.fn()
+        // Default fallback for other files
+        return '{}';
+    } ),
+    readdirSync: jest.fn().mockReturnValue( [
+        'handleChangebotnameCommand.js',
+        'handleEchoCommand.js',
+        'handleEditCommand.js',
+        'handleFeatureCommand.js',
+        'handleHelpCommand.js',
+        'handlePingCommand.js',
+        'handleStateCommand.js',
+        'handleStatusCommand.js',
+        'handleCommandCommand.js',
+        'handleUnknownCommand.js'
+    ] ),
+    existsSync: jest.fn().mockReturnValue( true ),
+    mkdirSync: jest.fn()
 } ) );
 
 const handleHelpCommand = require( '../../src/commands/handleHelpCommand' );
@@ -113,8 +112,6 @@ describe( 'handleHelpCommand', () => {
         expect( result.response ).toContain( '!status - Show bot status' );
 
         // Check for Moderator commands
-        expect( result.response ).toContain( '!editnowplaying - Update the now playing message template' );
-        expect( result.response ).toContain( '!editwelcome - Update the welcome message template' );
 
         // Check for Owner commands
         expect( result.response ).toContain( '!changebotname - Change the bot name' );

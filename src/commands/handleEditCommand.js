@@ -1,6 +1,4 @@
 const config = require( '../config.js' );
-const fs = require( 'fs' ).promises;
-const path = require( 'path' );
 
 // Set required role level for this command - requires moderator or higher
 const requiredRole = 'MODERATOR';
@@ -10,26 +8,26 @@ const hidden = false;
 
 // Define which messages are editable
 const EDITABLE_MESSAGES = {
-  'welcomeMessage': {
-    name: 'Welcome Message',
-    availableTokens: ['{username}', '{hangoutName}'],
-    example: 'Hi {username}, welcome to {hangoutName}!'
-  },
-  'nowPlayingMessage': {
-    name: 'Now Playing Message',
-    availableTokens: ['{username}', '{trackName}', '{artistName}'],
-    example: '{username} is now playing {trackName} by {artistName}'
-  },
-  'justPlayedMessage': {
-    name: 'Just Played Message',
-    availableTokens: ['{username}', '{trackName}', '{artistName}', '{likes}', '{dislikes}', '{stars}'],
-    example: '{username} played...\n{trackName} by {artistName}\nStats: 👍 {likes} 👎 {dislikes} ❤️ {stars}'
-  },
-  'popfactsMessage': {
-    name: 'Popfacts AI Question Template',
-    availableTokens: ['${trackName}', '${artistName}'],
-    example: 'Tell me about the song ${trackName} by ${artistName}. Please provide interesting facts.'
-  }
+    'welcomeMessage': {
+        name: 'Welcome Message',
+        availableTokens: [ '{username}', '{hangoutName}' ],
+        example: 'Hi {username}, welcome to {hangoutName}!'
+    },
+    'nowPlayingMessage': {
+        name: 'Now Playing Message',
+        availableTokens: [ '{username}', '{trackName}', '{artistName}' ],
+        example: '{username} is now playing {trackName} by {artistName}'
+    },
+    'justPlayedMessage': {
+        name: 'Just Played Message',
+        availableTokens: [ '{username}', '{trackName}', '{artistName}', '{likes}', '{dislikes}', '{stars}' ],
+        example: '{username} played...\n{trackName} by {artistName}\nStats: 👍 {likes} 👎 {dislikes} ❤️ {stars}'
+    },
+    'popfactsMessage': {
+        name: 'Popfacts AI Question Template',
+        availableTokens: [ '${trackName}', '${artistName}' ],
+        example: 'Tell me about the song ${trackName} by ${artistName}. Please provide interesting facts.'
+    }
 };
 
 /**
@@ -50,7 +48,7 @@ async function handleEditCommand ( commandParams ) {
     if ( !args || args.trim().length === 0 ) {
         const availableMessages = Object.keys( EDITABLE_MESSAGES ).join( ', ' );
         const response = `❌ Please specify a message type and new content.\n\n**Usage:** \`${ config.COMMAND_SWITCH }edit <messageType> <newMessage>\`\n\n**Available message types:** ${ availableMessages }\n\n**Example:** \`${ config.COMMAND_SWITCH }edit nowPlayingMessage {username} is now playing {trackName} by {artistName}\``;
-        
+
         await messageService.sendResponse( response, {
             responseChannel,
             isPrivateMessage: context?.fullMessage?.isPrivateMessage,
@@ -66,14 +64,14 @@ async function handleEditCommand ( commandParams ) {
 
     // Split args into messageType and newMessage
     const argParts = args.split( ' ' );
-    const messageType = argParts[0];
+    const messageType = argParts[ 0 ];
     const newMessage = argParts.slice( 1 ).join( ' ' );
 
     // Validate message type
-    if ( !EDITABLE_MESSAGES[messageType] ) {
+    if ( !EDITABLE_MESSAGES[ messageType ] ) {
         const availableMessages = Object.keys( EDITABLE_MESSAGES ).join( ', ' );
-        const response = `❌ Invalid message type: "${messageType}"\n\n**Available message types:** ${ availableMessages }`;
-        
+        const response = `❌ Invalid message type: "${ messageType }"\n\n**Available message types:** ${ availableMessages }`;
+
         await messageService.sendResponse( response, {
             responseChannel,
             isPrivateMessage: context?.fullMessage?.isPrivateMessage,
@@ -84,15 +82,15 @@ async function handleEditCommand ( commandParams ) {
             success: false,
             shouldRespond: true,
             response,
-            error: `Invalid message type: ${messageType}`
+            error: `Invalid message type: ${ messageType }`
         };
     }
 
     // Validate new message content
     if ( !newMessage || newMessage.trim().length === 0 ) {
-        const messageInfo = EDITABLE_MESSAGES[messageType];
-        const response = `❌ Please provide a new ${messageInfo.name.toLowerCase()}.\n\n**Available tokens:** ${ messageInfo.availableTokens.join( ', ' ) }\n\n**Example:** \`${ config.COMMAND_SWITCH }edit ${ messageType } ${ messageInfo.example }\``;
-        
+        const messageInfo = EDITABLE_MESSAGES[ messageType ];
+        const response = `❌ Please provide a new ${ messageInfo.name.toLowerCase() }.\n\n**Available tokens:** ${ messageInfo.availableTokens.join( ', ' ) }\n\n**Example:** \`${ config.COMMAND_SWITCH }edit ${ messageType } ${ messageInfo.example }\``;
+
         await messageService.sendResponse( response, {
             responseChannel,
             isPrivateMessage: context?.fullMessage?.isPrivateMessage,
@@ -107,87 +105,22 @@ async function handleEditCommand ( commandParams ) {
         };
     }
 
-    const messageInfo = EDITABLE_MESSAGES[messageType];
+    const messageInfo = EDITABLE_MESSAGES[ messageType ];
     logger.info( `Starting ${ messageInfo.name.toLowerCase() } update process` );
 
     try {
-        // Load current data
+        // Load current data to ensure we have the latest
         logger.debug( 'Loading current data...' );
         await dataService.loadData();
-        const currentData = dataService.getAllData();
-        logger.debug( `Current data before update: ${ JSON.stringify( currentData ) }` );
 
-        // Update the data structure
-        let newData;
-        if ( currentData.editableMessages ) {
-            // New structure: update within editableMessages
-            newData = {
-                ...currentData,
-                editableMessages: {
-                    ...currentData.editableMessages,
-                    [messageType]: newMessage
-                }
-            };
-        } else {
-            // Legacy structure: update at root level and create new structure
-            newData = {
-                ...currentData,
-                editableMessages: {
-                    welcomeMessage: currentData.welcomeMessage || 'Hi {username}, welcome to {hangoutName}!',
-                    nowPlayingMessage: currentData.nowPlayingMessage || '{username} is now playing {trackName} by {artistName}',
-                    justPlayedMessage: currentData.justPlayedMessage || '{username} played...\n{trackName} by {artistName}\nStats: 👍 {likes} 👎 {dislikes} ❤️ {stars}',
-                    [messageType]: newMessage
-                }
-            };
-            // Remove old root-level properties
-            delete newData.welcomeMessage;
-            delete newData.nowPlayingMessage;
-            delete newData.justPlayedMessage;
-        }
+        // Update the message using dataService
+        const messageKey = `editableMessages.${ messageType }`;
+        logger.debug( `Setting ${ messageKey } to: ${ newMessage }` );
 
-        logger.debug( `New data to write: ${ JSON.stringify( newData ) }` );
+        await dataService.setValue( messageKey, newMessage );
 
-        // Write to file
-        const dataFilePath = path.join( process.cwd(), 'data.json' );
-        logger.debug( `Writing to file: ${ dataFilePath }` );
-        
-        try {
-            await fs.writeFile( dataFilePath, JSON.stringify( newData, null, 2 ), 'utf8' );
-        } catch ( error ) {
-            const response = `❌ Failed to update ${ messageInfo.name.toLowerCase() }: ${ error.message }`;
-            await messageService.sendResponse( response, {
-                responseChannel,
-                isPrivateMessage: context?.fullMessage?.isPrivateMessage,
-                sender: context?.sender,
-                services
-            } );
-            return {
-                success: false,
-                shouldRespond: true,
-                response,
-                error: error.message
-            };
-        }
-
-        // Verify file was written correctly
-        const fileContent = await fs.readFile( dataFilePath, 'utf8' );
-        logger.debug( `File content after write: ${ fileContent }` );
-
-        // Reload the data in the service to ensure it's up to date
-        logger.debug( 'Reloading data into service...' );
-        await dataService.loadData();
-
-        // Verify the update in memory
-        const reloadedData = dataService.getAllData();
-        logger.debug( `Data in memory after reload: ${ JSON.stringify( reloadedData ) }` );
-
-        // Verify the specific message was updated (check both old and new locations)
-        let updatedMessage = dataService.getValue( `editableMessages.${messageType}` );
-        if ( !updatedMessage ) {
-            // Fallback to old location for backward compatibility
-            updatedMessage = dataService.getValue( messageType );
-        }
-        
+        // Verify the update
+        const updatedMessage = dataService.getValue( messageKey );
         logger.debug( `Updated ${ messageType } in service: ${ updatedMessage }` );
 
         if ( updatedMessage !== newMessage ) {
@@ -213,7 +146,7 @@ async function handleEditCommand ( commandParams ) {
             sender: context?.sender,
             services
         } );
-        
+
         return {
             success: true,
             shouldRespond: true,

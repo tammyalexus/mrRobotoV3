@@ -23,14 +23,12 @@ jest.mock( 'fs', () => ( {
   readdirSync: jest.fn().mockReturnValue( [
     'handleChangebotnameCommand.js',
     'handleEchoCommand.js',
-    'handleEditnowplayingCommand.js',
-    'handleEditwelcomeCommand.js',
     'handleFeatureCommand.js',
     'handleHelpCommand.js',
     'handlePingCommand.js',
     'handleStateCommand.js',
     'handleStatusCommand.js',
-        'handleCommandCommand.js',
+    'handleCommandCommand.js',
     'handleUnknownCommand.js'
   ] ),
   promises: {
@@ -227,7 +225,7 @@ describe( 'commandService', () => {
       expect( result.shouldRespond ).toBe( true );
       expect( result.response ).toContain( 'Now playing message template updated' );
       expect( mockServices.dataService.loadData ).toHaveBeenCalled();
-      
+
       // Check that fs.promises.writeFile was called (from our mock)
       const fs = require( 'fs' );
       expect( fs.promises.writeFile ).toHaveBeenCalled();
