@@ -37,6 +37,18 @@ const EDITABLE_MESSAGES = {
         availableTokens: [ '${trackName}', '${artistName}' ],
         example: 'In what year was the song ${trackName} by ${artistName} originally released?',
         dataKey: 'mlQuestions.whatyearQuestion'
+    },
+    'meaningQuestion': {
+        name: 'Meaning AI Question Template',
+        availableTokens: [ '${trackName}', '${artistName}' ],
+        example: 'What is the meaning behind the lyrics of ${trackName} by ${artistName}?',
+        dataKey: 'mlQuestions.meaningQuestion'
+    },
+    'bandQuestion': {
+        name: 'Band AI Question Template',
+        availableTokens: [ '${artistName}' ],
+        example: 'Tell me about ${artistName}?',
+        dataKey: 'mlQuestions.bandQuestion'
     }
 };
 

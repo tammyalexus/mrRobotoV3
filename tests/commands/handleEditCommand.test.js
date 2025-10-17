@@ -207,6 +207,26 @@ describe( 'handleEditCommand', () => {
       expect( result.success ).toBe( true );
       expect( result.response ).toContain( 'Popfacts AI Question Template updated to' );
     } );
+
+    it( 'should update bandQuestion', async () => {
+      const expectedMessage = 'Tell me about the artist ${artistName}. Include their history, notable achievements, and chart performance.';
+
+      // Set up getValue mock to return the new message during verification
+      mockServices.dataService.getValue.mockImplementation( ( key ) => {
+        if ( key === 'mlQuestions.bandQuestion' ) return expectedMessage;
+        return undefined;
+      } );
+
+      const result = await handleEditCommand( {
+        args: `bandQuestion ${ expectedMessage }`,
+        services: mockServices,
+        context: mockContext,
+        responseChannel: 'public'
+      } );
+
+      expect( result.success ).toBe( true );
+      expect( result.response ).toContain( 'Band AI Question Template updated to' );
+    } );
   } );
 
   describe( 'migration from old structure', () => {
