@@ -19,7 +19,7 @@ This guide will walk you through setting up your environment for the bot. Expect
    - [Step 6: Getting the Bot UUID](#step-6-getting-the-bot-uuid)
    - [Step 7: Tell the bot which Hangout enter](#step-7-tell-the-bot-which-hangout-enter)
    - [Step 8: Configuring the Command Prefix](#step-8-configuring-the-command-prefix)
-
+   - [Step 9: Adding a Google API key for Machine Learning services (optional)](#step-9-adding-a-google-api-key-for-machine-learning-services-optional)
 
 [The data.json file](#understanding-datajson)
    - [Step 1: Creating your data.json file](#step-1-creating-your-datajson-file)
@@ -187,6 +187,47 @@ Finally, you need to decide how the bot will identify commands. The Bot will ign
    * eg. hello would be ignored, but if you pick '/' as youd command switch then /hello would send a command to the Bot
    * the characters / or ! are typically used but you can choose anything that suits your Hangout
 
+## Step 9: Adding a Google API key for Machine Learning services (optional)
+**Time: ~10 minutes**
+
+The bot includes Machine Learning features that can answer questions about songs using Google's Gemini AI. If you want to use commands like `!popfacts` and `!whatyear`, you'll need to create a Google AI API key.
+
+> 💡 **NOTE**: This step is optional. The bot will work without an API key, but ML commands will show error messages if used unless disabled.
+
+1. Navigate to Google AI Studio: https://aistudio.google.com/welcome
+
+2. Click **"Get started"** and sign in with your Google account (or create one if needed)
+
+3. Once logged in, look for **"Get API key"** in the bottom left corner and click it
+
+4. Click **"Create API key"** in the top right of the page
+
+5. Give your key a name
+
+6. You'll be prompted to create or select a project:
+   * Select an existing project if you have one, or if this is your first time, select **"Create project"**
+   * Give your project a descriptive name like "HangBot ML Features"
+   * Click **"Create Project"**
+
+7. Finally, click **"Create key"**
+
+8. Your API key will be generated and displayed in a list.
+
+9. The end of the key is displayed as a link underneath the heading Key. Click it
+
+10. Click the **copy icon** to copy the key to your clipboard
+
+11. Open your `.env` file and find the line that says:
+   ```
+   GOOGLE_AI_API_KEY=your-google-ai-api-key-here
+   ```
+
+12. Replace `your-google-ai-api-key-here` with your actual API key (keep the quotes if they're there)
+
+> 🔒 **SECURITY WARNING**: Your API key gives access to your Google AI account. Never share it publicly or commit it to version control!
+
+> 💰 **BILLING NOTE**: Google AI Studio provides free tier usage that should be sufficient for most bot usage. Monitor your usage in the Google Cloud Console if you're concerned about costs.
+
 ---
 
 ## Understanding data.json
@@ -217,21 +258,26 @@ This file contains the Bot's "memory" and serves two purposes:
 } 
 ```
 
-## Step 2: Message Template Configuration
-First we update the value for "welcomeMessage"
-   * this is used by the Bot to greet people when they arrive in the Hangout
-   * the token {username} will be automatically converted to a mention of the user joining the Hangout
-   * the token {hangoutName} will be substituted for the name/title of the Hangout
-
-Next we update the value for "nowPlayingMessage"
-   * this is used by the Bot to announce when a new song starts playing
-   * the token {username} will be automatically converted to a mention of the DJ playing the song
-   * the token {trackName} will be substituted for the name of the song
-   * the token {artistName} will be substituted for the name of the artist
-   * **TIP**: After setup, you can use the `editnowplaying` command to modify this template while the bot is running
-
-## Step 3: Bot Data Configuration
+## Step 2: Bot Data Configuration
 Next we have to update the botData section
    * this is data used with Hang.fm itself, as well as the Chat provider CometChat
    * the data in this section *MUST* mirror the data entered when the Bot was registered
    * if the data here (matching the [registration example above](#example-registration)) was used to register the Bot, then the data.json file should be as in the example above
+
+## Step 3: Message & Question Template Configurations
+The Bot can send messages in chat related to Hangout users and the songs that are playing. In all of the following sections the following substitutions apply
+   * the token {username} will be automatically converted to the name of the user
+   * the token {trackName} will be substituted for the name of the song playing
+   * the token {artistName} will be substituted for the name of the artist playing
+   * the token {hangoutName} will be substituted for the name of the Hangout
+
+All of the items in the "editableMessages" and "mlQuestions" sections can be updated while the Bot is running using the "edit" command, but feel free to update them directly in the data.json file before starting the Bot instead
+
+**Messages**
+   * "welcomeMessage": this is used by the Bot to greet people when they arrive in the Hangout
+   * "nowPlayingMessage": this is sent by the Bot when a new track starts playing
+   * "justPlayedMessage": this is sent when a new track starts playing and gives the details and stats for the last played track
+
+**Questions**
+
+Items in this section such as "popfactsQuestion" and "whatyearQuestion" are sent to the Google Gemini "AI" and the responses sent back in chat. The same substitutions for trackName etc used in the messages above apply to these questions

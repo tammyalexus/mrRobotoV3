@@ -1,4 +1,4 @@
-const config = require( '../config.js' );
+const config = require( '../../config.js' );
 const fs = require( 'fs' );
 const path = require( 'path' );
 
@@ -15,7 +15,7 @@ const hidden = false;
  */
 function isCommandDisabled ( commandName ) {
   try {
-    const dataPath = path.join( __dirname, '../../data.json' );
+    const dataPath = path.join( __dirname, '../../../data.json' );
     const data = JSON.parse( fs.readFileSync( dataPath, 'utf8' ) );
     return Array.isArray( data.disabledCommands ) && data.disabledCommands.includes( commandName );
   } catch ( error ) {
@@ -24,65 +24,106 @@ function isCommandDisabled ( commandName ) {
 }
 
 /**
- * Dynamically loads all available commands and their metadata
- * @returns {Object} Commands organized by role
+ * Loads commands from a specific directory
+ * @param {string} dirPath - Directory path to scan
+ * @param {string} folderName - Name of the folder (for grouping)
+ * @param {Object} commandsByFolder - Object to populate with commands grouped by folder
  */
-function loadAvailableCommands () {
-  const commands = {};
-  const commandsDir = path.join( __dirname, '../commands' );
-
-  fs.readdirSync( commandsDir ).forEach( file => {
-    if ( file.endsWith( '.js' ) ) {
+function loadCommandsFromSpecificDirectory(dirPath, folderName, commandsByFolder) {
+  let items;
+  try {
+    items = fs.readdirSync(dirPath);
+  } catch (error) {
+    // Skip directories that can't be accessed
+    return;
+  }
+  
+  items.forEach(item => {
+    if (item.endsWith('.js')) {
       // Extract command name from filename: handleStateCommand.js -> state
-      const match = file.match( /^handle(.*)Command\.js$/ );
-      if ( match && match[ 1 ] ) {
-        const commandName = match[ 1 ].toLowerCase();
-        const commandModule = require( path.join( commandsDir, file ) );
-
-        // Skip commands that are hidden, disabled, or don't have required metadata
-        if ( !commandModule.hidden &&
-          !isCommandDisabled( commandName ) &&
-          commandModule.requiredRole &&
-          commandModule.description ) {
-          commands[ commandName ] = {
-            name: commandName,
-            role: commandModule.requiredRole,
-            description: commandModule.description,
-            example: commandModule.example || commandName, // Use the example or fallback to command name
-            hidden: commandModule.hidden || false
-          };
+      const match = item.match(/^handle(.*)Command\.js$/);
+      if (match && match[1]) {
+        const commandName = match[1].toLowerCase();
+        
+        try {
+          const commandModule = require(path.join(dirPath, item));
+          
+          // Skip commands that are hidden, disabled, or don't have required metadata
+          if (!commandModule.hidden &&
+            !isCommandDisabled(commandName) &&
+            commandModule.requiredRole &&
+            commandModule.description) {
+            
+            // Initialize folder array if it doesn't exist
+            if (!commandsByFolder[folderName]) {
+              commandsByFolder[folderName] = [];
+            }
+            
+            commandsByFolder[folderName].push({
+              name: commandName,
+              role: commandModule.requiredRole,
+              description: commandModule.description,
+              example: commandModule.example || commandName,
+              hidden: commandModule.hidden || false
+            });
+          }
+        } catch (error) {
+          // Skip commands that can't be loaded
+          console.warn(`Failed to load command ${commandName}: ${error.message}`);
         }
       }
     }
-  } );
-
-  return commands;
+  });
 }
 
 /**
- * Groups commands by role and sorts them alphabetically
- * @param {Object} commands - All available commands
- * @returns {Object} Commands organized by role
+ * Dynamically loads all available commands and their metadata organized by folder
+ * @returns {Object} Commands organized by folder
  */
-function organizeCommandsByRole ( commands ) {
-  const organized = {
-    USER: [],
-    MODERATOR: [],
-    OWNER: []
-  };
+function loadAvailableCommands() {
+  const commandsByFolder = {};
+  const baseDir = path.join(__dirname, '../../commands');
+  
+  // Define static folder structure
+  const folders = [
+    { path: 'Bot Commands', name: 'Bot Commands' },
+    { path: 'Debug Commands', name: 'Debug Commands' },
+    { path: 'Edit Commands', name: 'Edit Commands' },
+    { path: 'General Commands', name: 'General Commands' },
+    { path: 'ML Commands', name: 'ML Commands' }
+  ];
+  
+  // Load commands from each defined folder
+  folders.forEach(folder => {
+    const folderPath = path.join(baseDir, folder.path);
+    loadCommandsFromSpecificDirectory(folderPath, folder.name, commandsByFolder);
+  });
+  
+  // Load commands from root directory (like handleUnknownCommand.js)
+  loadCommandsFromSpecificDirectory(baseDir, 'Other Commands', commandsByFolder);
+  
+  // Sort commands within each folder alphabetically
+  Object.keys(commandsByFolder).forEach(folder => {
+    commandsByFolder[folder].sort((a, b) => a.name.localeCompare(b.name));
+  });
+  
+  return commandsByFolder;
+}
 
-  Object.values( commands ).forEach( command => {
-    if ( organized[ command.role ] ) {
-      organized[ command.role ].push( command );
+/**
+ * Finds a specific command from the commands organized by folder
+ * @param {Object} commandsByFolder - Commands organized by folder
+ * @param {string} commandName - Name of the command to find
+ * @returns {Object|null} Command object or null if not found
+ */
+function findCommand(commandsByFolder, commandName) {
+  for (const folder of Object.keys(commandsByFolder)) {
+    const command = commandsByFolder[folder].find(cmd => cmd.name === commandName);
+    if (command) {
+      return command;
     }
-  } );
-
-  // Sort each role's commands alphabetically
-  Object.keys( organized ).forEach( role => {
-    organized[ role ].sort( ( a, b ) => a.name.localeCompare( b.name ) );
-  } );
-
-  return organized;
+  }
+  return null;
 }
 
 /**
@@ -100,12 +141,12 @@ async function handleHelpCommand ( commandParams ) {
   const { messageService } = services;
 
   try {
-    const availableCommands = loadAvailableCommands();
+    const commandsByFolder = loadAvailableCommands();
 
     // If a specific command is requested
     if ( args && args.trim() ) {
       const requestedCommand = args.trim().toLowerCase();
-      const command = availableCommands[ requestedCommand ];
+      const command = findCommand(commandsByFolder, requestedCommand);
 
       if ( command ) {
         // Show specific command help
@@ -166,37 +207,25 @@ async function handleHelpCommand ( commandParams ) {
       }
     }
 
-    // Show general help (all commands)
-    const organizedCommands = organizeCommandsByRole( availableCommands );
-
+    // Show general help (all commands grouped by folder)
     let helpText = '🤖 Available Commands:\n\n';
 
-    // Add User commands
-    if ( organizedCommands.USER.length > 0 ) {
-      helpText += '👤 User Commands:\n';
-      organizedCommands.USER.forEach( command => {
-        helpText += `${ config.COMMAND_SWITCH }${ command.name } - ${ command.description }\n`;
-      } );
-      helpText += '\n';
-    }
+    // Sort folders alphabetically
+    const sortedFolders = Object.keys(commandsByFolder).sort();
 
-    // Add Moderator commands
-    if ( organizedCommands.MODERATOR.length > 0 ) {
-      helpText += '🛡️ Moderator Commands:\n';
-      organizedCommands.MODERATOR.forEach( command => {
-        helpText += `${ config.COMMAND_SWITCH }${ command.name } - ${ command.description }\n`;
-      } );
-      helpText += '\n';
-    }
-
-    // Add Owner commands
-    if ( organizedCommands.OWNER.length > 0 ) {
-      helpText += '👑 Owner Commands:\n';
-      organizedCommands.OWNER.forEach( command => {
-        helpText += `${ config.COMMAND_SWITCH }${ command.name } - ${ command.description }\n`;
-      } );
-      helpText += '\n';
-    }
+    sortedFolders.forEach(folderName => {
+      const commands = commandsByFolder[folderName];
+      if (commands.length > 0) {
+        // Use folder name as header (skip "Root" folder name for commands in the root)
+        const displayName = folderName === 'Root' ? 'Other Commands' : folderName;
+        helpText += `� ${displayName}:\n`;
+        
+        commands.forEach(command => {
+          helpText += `${config.COMMAND_SWITCH}${command.name} (${command.role}) - ${command.description}\n`;
+        });
+        helpText += '\n';
+      }
+    });
 
     // Add footer with specific help instructions
     helpText += `💡 Tip: Type ${ config.COMMAND_SWITCH }help [command] to see specific examples and usage.`;
