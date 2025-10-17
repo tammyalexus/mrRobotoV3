@@ -20,23 +20,54 @@ function isCommandDisabled ( commandName ) {
   }
 }
 
+/**
+ * Recursively loads command files from directories
+ * @param {string} dirPath - Directory path to scan
+ * @param {Object} commands - Commands object to populate
+ */
+function loadCommandsFromDirectory(dirPath, commands) {
+  const items = fs.readdirSync(dirPath);
+  
+  items.forEach(item => {
+    const itemPath = path.join(dirPath, item);
+    let stats;
+    try {
+      stats = fs.statSync(itemPath);
+    } catch (error) {
+      // Skip items that can't be accessed
+      return;
+    }
+    
+    if (stats.isDirectory()) {
+      // Recursively load commands from subdirectory
+      loadCommandsFromDirectory(itemPath, commands);
+    } else if (item.endsWith('.js')) {
+      // Extract command name from filename: handleStateCommand.js -> state
+      const match = item.match(/^handle(.*)Command\.js$/);
+      if (match && match[1]) {
+        const commandName = match[1].toLowerCase();
+        try {
+          commands[commandName] = require(itemPath);
+        } catch (error) {
+          logger.warn(`Failed to load command ${commandName}: ${error.message}`);
+        }
+      }
+      // Also support handleUnknownCommand.js as 'unknown'
+      if (item === 'handleUnknownCommand.js') {
+        try {
+          commands['unknown'] = require(itemPath);
+        } catch (error) {
+          logger.warn(`Failed to load unknown command handler: ${error.message}`);
+        }
+      }
+    }
+  });
+}
+
 // Dynamically load all command handlers from src/commands
 const commands = {};
-const commandsDir = path.join( __dirname, '../commands' );
-fs.readdirSync( commandsDir ).forEach( file => {
-  if ( file.endsWith( '.js' ) ) {
-    // Extract command name from filename: handleStateCommand.js -> state
-    const match = file.match( /^handle(.*)Command\.js$/ );
-    if ( match && match[ 1 ] ) {
-      const commandName = match[ 1 ].toLowerCase();
-      commands[ commandName ] = require( path.join( commandsDir, file ) );
-    }
-    // Also support handleUnknownCommand.js as 'unknown'
-    if ( file === 'handleUnknownCommand.js' ) {
-      commands[ 'unknown' ] = require( path.join( commandsDir, file ) );
-    }
-  }
-} );
+const commandsDir = path.join(__dirname, '../commands');
+loadCommandsFromDirectory(commandsDir, commands);
 
 /**
  * Processes bot commands and generates appropriate responses

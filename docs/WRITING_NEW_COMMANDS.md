@@ -4,16 +4,64 @@ This guide explains how to create new bot commands for mrRobotoV3.
 
 ## File Structure
 
-1. Create a new file in the `src/commands` directory
-2. Name the file following the pattern: `handleXXXCommand.js` (where XXX is your command name)
-3. The command name in the bot will be extracted from this filename
+Commands are organized in logical folders within the `src/commands` directory for better organization and developer clarity.
+
+### Command Folders
+
+1. **`Bot Commands/`** - Bot management and administration commands
+   - Example: changebotname, status, feature
+2. **`General Commands/`** - General user-facing commands  
+   - Example: echo, help, ping
+3. **`Edit Commands/`** - Commands for editing bot messages and templates
+   - Example: edit (for message templates)
+4. **`Debug Commands/`** - Debugging and diagnostic commands (usually hidden)
+   - Example: state
+5. **`ML Commands/`** - Machine learning and AI-powered commands
+   - Example: popfacts
+
+### Creating New Commands
+
+1. **Choose the appropriate folder** based on your command's purpose
+2. **Create a new file** following the pattern: `handleXXXCommand.js` (where XXX is your command name)
+3. **The command name** will be extracted from the filename automatically
 
 Example:
 ```javascript
-// For a command !ping
-// Create: src/commands/handlePingCommand.js
+// For a command !ping that checks bot responsiveness
+// Create: src/commands/General Commands/handlePingCommand.js
 // Users will type: !ping
+
+// For a command !restart that manages the bot (owner-only)
+// Create: src/commands/Bot Commands/handleRestartCommand.js
+// Users will type: !restart
 ```
+
+### Folder Guidelines
+
+**Bot Commands** - Use for:
+- Bot configuration and settings
+- Administrative functions
+- Owner/moderator management tools
+
+**General Commands** - Use for:
+- User-friendly utility commands
+- Fun or entertainment commands
+- Basic bot interactions
+
+**Edit Commands** - Use for:
+- Template editing commands
+- Message customization features
+- Content management tools
+
+**Debug Commands** - Use for:
+- Diagnostic and troubleshooting commands
+- Internal state inspection
+- Developer tools (usually hidden)
+
+**ML Commands** - Use for:
+- AI-powered features
+- Machine learning integrations
+- Advanced content generation
 
 ## Basic Command Structure
 
@@ -153,7 +201,28 @@ Permission hierarchy (highest to lowest):
 
 ## Help System Integration
 
-The bot includes an intelligent help system that automatically discovers and displays your commands. To integrate with the help system, you need to provide metadata about your command.
+The bot includes an intelligent help system that automatically discovers and displays your commands organized by folder. Commands are displayed grouped by their folder location with role requirements clearly marked.
+
+### Help Display Format
+
+The help system shows commands organized by folder:
+
+```
+🤖 Available Commands:
+
+🗂 Bot Commands:
+!changebotname (OWNER) - Change the bot name
+!status (MODERATOR) - Show bot status
+
+🗂 General Commands:
+!echo (USER) - Echo back your message
+!ping (USER) - Check if bot is responding
+
+🗂 Edit Commands:
+!edit (MODERATOR) - Edit message templates
+
+💡 Tip: Type !help [command] to see specific examples and usage.
+```
 
 ### Required Metadata
 
@@ -214,20 +283,21 @@ const hidden = true;   // Internal/utility command
 The help system provides two types of assistance:
 
 #### **General Help** (`!help`)
-Shows all available commands organized by permission level:
+Shows all available commands organized by folder:
 
 ```
 🤖 Available Commands:
 
-👤 User Commands:
-!echo - Echo back your message
-!ping - Check if bot is responding
+� Bot Commands:
+!changebotname (OWNER) - Change the bot name
+!status (MODERATOR) - Show bot status
 
-🛡️ Moderator Commands:
-!welcome - Update the welcome message template
+🗂 General Commands:
+!echo (USER) - Echo back your message
+!ping (USER) - Check if bot is responding
 
-👑 Owner Commands:
-!changebotname - Change the bot name
+� Edit Commands:
+!edit (MODERATOR) - Edit message templates
 
 💡 Tip: Type !help [command] to see specific examples and usage.
 ```
@@ -276,16 +346,24 @@ module.exports = handleEditwelcomeCommand;
 ### Automatic Discovery
 
 Commands are automatically discovered when:
-1. They're placed in the `src/commands/` directory
+1. They're placed in one of the command folders within `src/commands/`
 2. They follow the `handleXXXCommand.js` naming pattern
 3. They include the required metadata properties
 4. They're not marked as `hidden: true`
 
 The help system will automatically:
 - Extract the command name from the filename
-- Sort commands alphabetically within permission levels
-- Display appropriate role-based information
+- Group commands by their folder location
+- Sort commands alphabetically within each folder
+- Display role requirements in brackets after each command name
 - Handle case-insensitive help requests
+
+### Folder-Based Organization Benefits
+
+- **Developer Clarity**: Easy to find commands by purpose
+- **User Understanding**: Logical grouping in help display
+- **Maintenance**: Better code organization and navigation
+- **Scalability**: New command types can have dedicated folders
 
 ## Command Response Format
 
@@ -325,6 +403,8 @@ if (!args.trim()) {
 Here's a complete example of a simple greeting command with proper help system integration:
 
 ```javascript
+// File: src/commands/General Commands/handleGreetCommand.js
+
 // Command metadata
 const requiredRole = 'USER';
 const description = 'Send a friendly greeting';
@@ -367,7 +447,7 @@ module.exports = handleGreetCommand;
 ```
 
 This command will:
-- Appear in `!help` under "👤 User Commands" as: `!greet - Send a friendly greeting`
+- Appear in `!help` under "� General Commands" as: `!greet (USER) - Send a friendly greeting`
 - Show detailed help with `!help greet`: includes description, example, and required role
 - Accept an optional name argument, defaulting to the sender's ID if none provided
 - Respond in the same channel as the original command (public or private)
@@ -379,13 +459,14 @@ This command will:
 3. Test with various arguments
 4. Test error conditions
 5. **Test help system integration**
+6. **Test folder organization** (ensure command appears in correct folder in help)
 
 ### Help System Testing
 
 Include tests to verify your command integrates properly with the help system:
 
 ```javascript
-const handleGreetCommand = require('../../src/commands/handleGreetCommand');
+const handleGreetCommand = require('../../src/commands/General Commands/handleGreetCommand');
 
 describe('handleGreetCommand', () => {
     // ... other tests ...
@@ -397,21 +478,22 @@ describe('handleGreetCommand', () => {
         expect(handleGreetCommand.hidden).toBe(false);
     });
 
-    it('should appear in help command listing', async () => {
-        // Test that your command appears when !help is called
-        const handleHelpCommand = require('../../src/commands/handleHelpCommand');
+    it('should appear in help command listing under correct folder', async () => {
+        // Test that your command appears in the right folder when !help is called
+        const handleHelpCommand = require('../../src/commands/General Commands/handleHelpCommand');
         const result = await handleHelpCommand({
             args: '',
             services: mockServices,
             context: { sender: 'testUser' }
         });
         
-        expect(result.response).toContain('!greet - Send a friendly greeting');
+        expect(result.response).toContain('🗂 General Commands:');
+        expect(result.response).toContain('!greet (USER) - Send a friendly greeting');
     });
 
     it('should show specific help when requested', async () => {
         // Test that !help greet shows detailed information
-        const handleHelpCommand = require('../../src/commands/handleHelpCommand');
+        const handleHelpCommand = require('../../src/commands/General Commands/handleHelpCommand');
         const result = await handleHelpCommand({
             args: 'greet',
             services: mockServices,
@@ -426,12 +508,13 @@ describe('handleGreetCommand', () => {
 });
 ```
 
-The command will be automatically loaded by the bot when you add it to the `src/commands` directory.
+The command will be automatically loaded by the bot when you add it to the appropriate folder in `src/commands`.
 
 ## Quick Reference Checklist
 
 When creating a new command, ensure you:
 
+- [ ] **Folder placement**: Choose the appropriate folder for your command type
 - [ ] **File naming**: Use `handleXXXCommand.js` pattern
 - [ ] **Metadata**: Include `requiredRole`, `description`, `example`, and `hidden`
 - [ ] **Function signature**: Accept `commandParams` object with proper destructuring
@@ -439,8 +522,18 @@ When creating a new command, ensure you:
 - [ ] **Return format**: Return object with `success`, `shouldRespond`, and `response`
 - [ ] **Metadata attachment**: Attach all metadata properties to the function
 - [ ] **Export**: Use `module.exports = handleXXXCommand`
-- [ ] **Testing**: Create comprehensive tests including help system integration
+- [ ] **Testing**: Create comprehensive tests including help system integration and folder placement
 - [ ] **Documentation**: Clear JSDoc comments explaining parameters and return values
+
+### Command Folder Reference
+
+| Folder | Purpose | Examples |
+|--------|---------|----------|
+| `Bot Commands/` | Bot administration & management | changebotname, status, feature |
+| `General Commands/` | User-facing utility commands | echo, ping, help |
+| `Edit Commands/` | Template & content editing | edit (message templates) |
+| `Debug Commands/` | Diagnostic & development tools | state (usually hidden) |
+| `ML Commands/` | AI & machine learning features | popfacts, generate |
 
 ### Command Metadata Template
 

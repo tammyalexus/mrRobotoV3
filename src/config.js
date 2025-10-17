@@ -15,4 +15,5 @@ module.exports = {
   COMMAND_SWITCH: process.env.COMMAND_SWITCH,
   COMETCHAT_RECEIVER_UID: process.env.COMETCHAT_RECEIVER_UID,
   TTFM_GATEWAY_BASE_URL: process.env.TTFM_GATEWAY_BASE_URL,
+  googleAIKey: process.env.googleAIKey,
 };
