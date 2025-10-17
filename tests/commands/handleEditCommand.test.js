@@ -188,17 +188,17 @@ describe( 'handleEditCommand', () => {
       expect( result.response ).toContain( 'Just Played Message updated to' );
     } );
 
-    it( 'should update popfactsMessage', async () => {
+    it( 'should update popfactsQuestion', async () => {
       const expectedMessage = 'Please tell me interesting facts about the song ${trackName} by ${artistName}. Include historical context and trivia.';
 
       // Set up getValue mock to return the new message during verification
       mockServices.dataService.getValue.mockImplementation( ( key ) => {
-        if ( key === 'editableMessages.popfactsMessage' ) return expectedMessage;
+        if ( key === 'mlQuestions.popfactsQuestion' ) return expectedMessage;
         return undefined;
       } );
 
       const result = await handleEditCommand( {
-        args: `popfactsMessage ${ expectedMessage }`,
+        args: `popfactsQuestion ${ expectedMessage }`,
         services: mockServices,
         context: mockContext,
         responseChannel: 'public'

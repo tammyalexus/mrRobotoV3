@@ -11,22 +11,32 @@ const EDITABLE_MESSAGES = {
     'welcomeMessage': {
         name: 'Welcome Message',
         availableTokens: [ '{username}', '{hangoutName}' ],
-        example: 'Hi {username}, welcome to {hangoutName}!'
+        example: 'Hi {username}, welcome to {hangoutName}!',
+        dataKey: 'editableMessages.welcomeMessage'
     },
     'nowPlayingMessage': {
         name: 'Now Playing Message',
         availableTokens: [ '{username}', '{trackName}', '{artistName}' ],
-        example: '{username} is now playing {trackName} by {artistName}'
+        example: '{username} is now playing {trackName} by {artistName}',
+        dataKey: 'editableMessages.nowPlayingMessage'
     },
     'justPlayedMessage': {
         name: 'Just Played Message',
         availableTokens: [ '{username}', '{trackName}', '{artistName}', '{likes}', '{dislikes}', '{stars}' ],
-        example: '{username} played...\n{trackName} by {artistName}\nStats: 👍 {likes} 👎 {dislikes} ❤️ {stars}'
+        example: '{username} played...\n{trackName} by {artistName}\nStats: 👍 {likes} 👎 {dislikes} ❤️ {stars}',
+        dataKey: 'editableMessages.justPlayedMessage'
     },
-    'popfactsMessage': {
+    'popfactsQuestion': {
         name: 'Popfacts AI Question Template',
         availableTokens: [ '${trackName}', '${artistName}' ],
-        example: 'Tell me about the song ${trackName} by ${artistName}. Please provide interesting facts.'
+        example: 'Tell me about the song ${trackName} by ${artistName}. Please provide interesting facts.',
+        dataKey: 'mlQuestions.popfactsQuestion'
+    },
+    'whatyearQuestion': {
+        name: 'What Year AI Question Template',
+        availableTokens: [ '${trackName}', '${artistName}' ],
+        example: 'In what year was the song ${trackName} by ${artistName} originally released?',
+        dataKey: 'mlQuestions.whatyearQuestion'
     }
 };
 
@@ -113,8 +123,8 @@ async function handleEditCommand ( commandParams ) {
         logger.debug( 'Loading current data...' );
         await dataService.loadData();
 
-        // Update the message using dataService
-        const messageKey = `editableMessages.${ messageType }`;
+        // Update the message using dataService with the correct data key
+        const messageKey = messageInfo.dataKey;
         logger.debug( `Setting ${ messageKey } to: ${ newMessage }` );
 
         await dataService.setValue( messageKey, newMessage );

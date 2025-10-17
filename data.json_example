@@ -1,17 +1,20 @@
 {
-  "editableMessages": {
-    "welcomeMessage": "Hi {username}, welcome to {hangoutName}",
-    "nowPlayingMessage": "{username} is now playing {trackName} by {artistName}",
-    "justPlayedMessage": "{username} played...\n{trackName} by {artistName}\nStats: 👍 {likes} 👎 {dislikes} ❤️ {stars}",
-    "popfactsMessage": "The song I'm currently listening to is ${trackName} by ${artistName}. Tell me three short interesting facts about the song and/or the artist. When searching note that it may or may not be a cover version. Do not tell me that you're giving me three facts as part of the reply"
-  },
-  "disabledCommands": [
-  ],
-  "disabledFeatures": [
-  ],
   "botData": {
     "CHAT_AVATAR_ID": "bot-1",
     "CHAT_NAME": "HangBot",
     "CHAT_COLOUR": "00ccff"
-  }
+  },
+  "editableMessages": {
+    "welcomeMessage": "Hi {username}, welcome to {hangoutName}",
+    "nowPlayingMessage": "{username} is now playing {trackName} by {artistName}",
+    "justPlayedMessage": "{username} played...\n{trackName} by {artistName}\nStats: 👍 {likes} 👎 {dislikes} ❤️ {stars}"
+  },
+  "mlQuestions": {
+    "popfactsQuestion": "The song I'm currently listening to is ${trackName} by ${artistName}. Tell me three short interesting facts about the song and/or the artist. When searching note that it may or may not be a cover version. Do not tell me that you're giving me three facts as part of the reply",
+    "whatyearQuestion": "In what year was the song ${trackName} by ${artistName} originally released? Reply with just the year unless there's something particularly interesting about the release."
+  },
+  "disabledCommands": [
+  ],
+  "disabledFeatures": [
+  ]
 }

@@ -34,8 +34,9 @@ applyTo: '**/*.js, **/*.mjs, **/*.cjs'
 ## Command Development Guidelines
 
 ### Command Structure
-- All commands must follow the `handleXXXCommand.js` naming pattern in `src/commands/`
+- All commands must follow the `handleXXXCommand.js` naming pattern in `src/commands/{folder}/`
 - Commands are automatically discovered by the help system through filename parsing
+- Command pathways are explicitly stored for the help command. If a new pathway is created the help command must be updated accordingly
 - Each command must export required metadata: `requiredRole`, `description`, `example`, and `hidden`
 - Use the standard command parameter object: `{command, args, services, context, responseChannel}`
 - Always attach metadata to the exported function before module.exports

@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **Machine Learning Commands**: New AI-powered song information commands
+  - `!popfacts` command: Get interesting facts about the currently playing song using Google Gemini AI
+  - `!whatyear` command: Find out what year the currently playing song was released
+  - Configurable AI question templates via `!edit` command
+  - Optional Google AI API integration for enhanced music knowledge
+
+- **Command Organization System**: Improved command file structure
+  - Commands now organized in logical folders (ML Commands, Edit Commands, etc.)
+  - Better separation of concerns and easier command management
+  - Automatic command discovery from organized folder structure
+
+- **Enhanced Edit Command**: Extended message editing capabilities
+  - Support for editing both bot messages and AI question templates
+  - New ML question template editing: `popfactsQuestion`, `whatyearQuestion`
+  - Flexible data key routing for different message types
+
+### Changed
+- **Data Structure Reorganization**: Improved data.json organization
+  - Separated `mlQuestions` section from `editableMessages` for better clarity
+  - Reordered JSON structure with `botData` section first for logical flow
+  - Renamed ML templates from "Message" to "Question" for consistency
+  - Updated example file to reflect new structure
+
+- **Codebase Architecture**: Reduced code duplication and improved maintainability
+  - Created `songAICommandHelper` utility for shared ML command functionality
+  - Generalized AI command pattern reducing individual command code by ~75%
+  - Enhanced error handling and response formatting for ML commands
+
+### Technical
+- **Test Coverage**: Comprehensive testing for all new features
+  - Full test suite for ML commands and helper utilities
+  - Updated existing tests to support new data structure
+  - Maintained 100% test coverage for affected components
 
 ## [0.7.0_beta] - 2025-10-12
 ### Added
