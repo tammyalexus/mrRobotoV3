@@ -6,7 +6,7 @@ jest.mock('fs', () => ({
     existsSync: jest.fn()
 }));
 
-const handleCommandCommand = require('../../src/commands/handleCommandCommand');
+const handleCommandCommand = require('../../src/commands/Bot Commands/handleCommandCommand');
 const fs = require('fs');
 
 describe('handleCommandCommand', () => {

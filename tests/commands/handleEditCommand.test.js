@@ -1,4 +1,4 @@
-const handleEditCommand = require( '../../src/commands/handleEditCommand' );
+const handleEditCommand = require( '../../src/commands/Edit Commands/handleEditCommand' );
 
 // Mock fs.promises more completely
 const mockWriteFile = jest.fn();

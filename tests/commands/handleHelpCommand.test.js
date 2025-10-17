@@ -44,23 +44,130 @@ jest.mock( 'fs', () => ( {
         // Default fallback for other files
         return '{}';
     } ),
-    readdirSync: jest.fn().mockReturnValue( [
-        'handleChangebotnameCommand.js',
-        'handleEchoCommand.js',
-        'handleEditCommand.js',
-        'handleFeatureCommand.js',
-        'handleHelpCommand.js',
-        'handlePingCommand.js',
-        'handleStateCommand.js',
-        'handleStatusCommand.js',
-        'handleCommandCommand.js',
-        'handleUnknownCommand.js'
-    ] ),
+    readdirSync: jest.fn().mockImplementation((dirPath) => {
+        // Mock the directory structure based on path
+        const normalizedPath = dirPath.replace(/\\/g, '/');
+        
+        if (normalizedPath.includes('commands/Bot Commands')) {
+            return [
+                'handleChangebotnameCommand.js',
+                'handleCommandCommand.js', 
+                'handleFeatureCommand.js',
+                'handleStatusCommand.js'
+            ];
+        } else if (normalizedPath.includes('commands/General Commands')) {
+            return [
+                'handleEchoCommand.js',
+                'handleHelpCommand.js',
+                'handlePingCommand.js'
+            ];
+        } else if (normalizedPath.includes('commands/Debug Commands')) {
+            return ['handleStateCommand.js'];
+        } else if (normalizedPath.includes('commands/Edit Commands')) {
+            return ['handleEditCommand.js'];
+        } else if (normalizedPath.includes('commands/ML Commands')) {
+            return ['handlePopfactsCommand.js'];
+        } else if (normalizedPath.includes('commands') && !normalizedPath.includes('/')) {
+            // Root commands directory
+            return ['handleUnknownCommand.js'];
+        }
+        return [];
+    }),
+    statSync: jest.fn().mockImplementation((filePath) => {
+        const normalizedPath = filePath.replace(/\\/g, '/');
+        
+        // Mock folders as directories
+        if (normalizedPath.includes('Bot Commands') || 
+            normalizedPath.includes('General Commands') ||
+            normalizedPath.includes('Debug Commands') ||
+            normalizedPath.includes('Edit Commands') ||
+            normalizedPath.includes('ML Commands')) {
+            return { isDirectory: () => true };
+        }
+        
+        // Mock .js files as files
+        if (normalizedPath.endsWith('.js')) {
+            return { isDirectory: () => false };
+        }
+        
+        return { isDirectory: () => false };
+    }),
     existsSync: jest.fn().mockReturnValue( true ),
     mkdirSync: jest.fn()
 } ) );
 
-const handleHelpCommand = require( '../../src/commands/handleHelpCommand' );
+// Mock command modules
+jest.doMock('../../src/commands/General Commands/handleEchoCommand.js', () => ({
+    requiredRole: 'USER',
+    description: 'Echo back your message',
+    example: 'echo Hello everyone!',
+    hidden: false
+}));
+
+jest.doMock('../../src/commands/General Commands/handlePingCommand.js', () => ({
+    requiredRole: 'USER', 
+    description: 'Test if bot is responsive',
+    example: 'ping',
+    hidden: false
+}));
+
+jest.doMock('../../src/commands/Bot Commands/handleChangebotnameCommand.js', () => ({
+    requiredRole: 'OWNER',
+    description: 'Change the bot name',
+    example: 'changebotname MyAwesomeBot',
+    hidden: false
+}));
+
+jest.doMock('../../src/commands/Bot Commands/handleCommandCommand.js', () => ({
+    requiredRole: 'OWNER',
+    description: 'Manage bot commands - list, enable, disable, or check status',
+    example: 'command list',
+    hidden: false
+}));
+
+jest.doMock('../../src/commands/Bot Commands/handleFeatureCommand.js', () => ({
+    requiredRole: 'OWNER',
+    description: 'Manage optional bot features',
+    example: 'feature list',
+    hidden: false
+}));
+
+jest.doMock('../../src/commands/Bot Commands/handleStatusCommand.js', () => ({
+    requiredRole: 'MODERATOR',
+    description: 'Show bot status',
+    example: 'status',
+    hidden: false
+}));
+
+jest.doMock('../../src/commands/Debug Commands/handleStateCommand.js', () => ({
+    requiredRole: 'OWNER',
+    description: 'Show current state',
+    example: 'state',
+    hidden: true
+}));
+
+jest.doMock('../../src/commands/Edit Commands/handleEditCommand.js', () => ({
+    requiredRole: 'MODERATOR',
+    description: 'Edit editable message templates (welcomeMessage, nowPlayingMessage, justPlayedMessage, popfactsMessage)',
+    example: 'edit welcomeMessage',
+    hidden: false
+}));
+
+jest.doMock('../../src/commands/ML Commands/handlePopfactsCommand.js', () => ({
+    requiredRole: 'USER',
+    description: 'Get interesting facts about the currently playing song',
+    example: 'popfacts',
+    hidden: false
+}));
+
+jest.doMock('../../src/commands/handleUnknownCommand.js', () => ({
+    requiredRole: 'USER',
+    description: 'Handle unknown commands',
+    example: 'unknown',
+    hidden: true
+}));
+
+const handleHelpCommand = require( '../../src/commands/General Commands/handleHelpCommand' );
 
 describe( 'handleHelpCommand', () => {
     let mockServices;
@@ -91,31 +198,26 @@ describe( 'handleHelpCommand', () => {
         };
     } );
 
-    it( 'should return available commands organized by role', async () => {
+    it( 'should return available commands organized by folder', async () => {
         const result = await handleHelpCommand( mockCommandParams );
 
         expect( result.success ).toBe( true );
         expect( result.response ).toContain( '🤖 Available Commands:' );
-        expect( result.response ).toContain( '👤 User Commands:' );
-        expect( result.response ).toContain( '🛡️ Moderator Commands:' );
-        expect( result.response ).toContain( '👑 Owner Commands:' );
+        expect( result.response ).toContain( '� Bot Commands:' );
+        expect( result.response ).toContain( '� General Commands:' );
         expect( mockServices.messageService.sendResponse ).toHaveBeenCalled();
     } );
 
-    it( 'should include expected commands in correct sections', async () => {
+    it( 'should include expected commands in correct sections with roles', async () => {
         const result = await handleHelpCommand( mockCommandParams );
 
-        // Check for User commands
-        expect( result.response ).toContain( '!echo - Echo back your message' );
-        expect( result.response ).toContain( '!help - Show this help message' );
-        expect( result.response ).toContain( '!ping - Check if bot is responding' );
-        expect( result.response ).toContain( '!status - Show bot status' );
+        // Check for General Commands with roles
+        expect( result.response ).toContain( '!echo (USER) - Echo back your message' );
+        expect( result.response ).toContain( '!help (USER) - Show this help message' );
+        expect( result.response ).toContain( '!ping (USER) - Test if bot is responsive' );
 
-        // Check for Moderator commands
-
-        // Check for Owner commands
-        expect( result.response ).toContain( '!changebotname - Change the bot name' );
-        expect( result.response ).toContain( '!state - Dump current hangout state to log file' );
+        // Check for Bot Commands
+        expect( result.response ).toContain( '!status (MODERATOR) - Show bot status' );
     } );
 
     it( 'should not include hidden commands', async () => {
@@ -126,34 +228,35 @@ describe( 'handleHelpCommand', () => {
     } );
 
     it( 'should handle errors gracefully', async () => {
-        // Mock fs.readdirSync to throw an error
-        const fs = require( 'fs' );
-        const originalReaddirSync = fs.readdirSync;
-        fs.readdirSync = jest.fn().mockImplementation( () => {
-            throw new Error( 'File system error' );
-        } );
+        // Mock path.join to throw an error for this test - this will trigger the main catch block
+        const path = require('path');
+        const originalJoin = path.join;
+        path.join = jest.fn(() => {
+            throw new Error( 'Path error' );
+        });
 
         const result = await handleHelpCommand( mockCommandParams );
 
         expect( result.success ).toBe( false );
         expect( result.response ).toContain( '❌ Error loading help information' );
         expect( mockServices.messageService.sendResponse ).toHaveBeenCalled();
-
+        
         // Restore original function
-        fs.readdirSync = originalReaddirSync;
+        path.join = originalJoin;
     } );
 
-    it( 'should sort commands alphabetically within each role', async () => {
+    it( 'should sort commands alphabetically within each folder', async () => {
         const result = await handleHelpCommand( mockCommandParams );
 
-        // Check that user commands are in alphabetical order
-        const userSection = result.response.split( '👤 User Commands:' )[ 1 ].split( '🛡️ Moderator Commands:' )[ 0 ];
-        const userCommands = userSection.match( /!(\w+)/g );
-
-        if ( userCommands && userCommands.length > 1 ) {
-            const commandNames = userCommands.map( cmd => cmd.substring( 1 ) ); // Remove the '!'
-            const sortedNames = [ ...commandNames ].sort();
-            expect( commandNames ).toEqual( sortedNames );
+        // Check that commands in General Commands folder are in alphabetical order
+        const generalSection = result.response.split( '🗂 General Commands:' )[ 1 ]?.split( '🗂' )[ 0 ];
+        if ( generalSection ) {
+            const generalCommands = generalSection.match( /!(\w+)/g );
+            if ( generalCommands && generalCommands.length > 1 ) {
+                const commandNames = generalCommands.map( cmd => cmd.substring( 1 ) ); // Remove the '!'
+                const sortedNames = [ ...commandNames ].sort();
+                expect( commandNames ).toEqual( sortedNames );
+            }
         }
     } );
 

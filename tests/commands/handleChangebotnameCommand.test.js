@@ -1,6 +1,6 @@
 const fs = require('fs').promises;
 const path = require('path');
-const handleChangebotnameCommand = require('../../src/commands/handleChangebotnameCommand.js');
+const handleChangebotnameCommand = require('../../src/commands/Bot Commands/handleChangebotnameCommand.js');
 
 // Mock the command service to test role-based access control
 const commandService = require('../../src/services/commandService.js');

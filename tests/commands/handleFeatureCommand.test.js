@@ -1,4 +1,4 @@
-const handleFeatureCommand = require( '../../src/commands/handleFeatureCommand' );
+const handleFeatureCommand = require( '../../src/commands/Bot Commands/handleFeatureCommand' );
 
 describe( 'handleFeatureCommand', () => {
   let services;

@@ -1,4 +1,4 @@
-const handlePopfactsCommand = require('../../src/commands/handlePopfactsCommand.js');
+const handlePopfactsCommand = require('../../src/commands/ML Commands/handlePopfactsCommand.js');
 
 describe('handlePopfactsCommand', () => {
   let mockServices;

@@ -1,4 +1,4 @@
-const config = require( '../config.js' );
+const config = require( '../../config.js' );
 
 // Set required role level for this command - requires moderator or higher
 const requiredRole = 'MODERATOR';
