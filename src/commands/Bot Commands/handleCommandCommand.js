@@ -9,30 +9,40 @@ const example = 'command list';
 const hidden = false;
 
 /**
- * Get all available commands by scanning the commands directory
+ * Get all available commands by scanning the commands directory recursively
  * @returns {Array} Array of command names
  */
 function getAllCommands() {
     try {
-        const commandsDir = path.join( __dirname, '../commands' );
-        const files = fs.readdirSync( commandsDir );
+        const commandsDir = path.join( __dirname, '../../commands' );
         const commands = [];
         
-        files.forEach( file => {
-            if ( file.endsWith( '.js' ) ) {
-                // Extract command name from filename: handleStateCommand.js -> state
-                const match = file.match( /^handle(.*)Command\.js$/ );
-                if ( match && match[ 1 ] ) {
-                    const commandName = match[ 1 ].toLowerCase();
-                    commands.push( commandName );
+        // Function to recursively scan directories
+        function scanDirectory(dirPath) {
+            const items = fs.readdirSync(dirPath);
+            
+            items.forEach(item => {
+                const itemPath = path.join(dirPath, item);
+                const stat = fs.statSync(itemPath);
+                
+                if (stat.isDirectory()) {
+                    // Recursively scan subdirectories
+                    scanDirectory(itemPath);
+                } else if (item.endsWith('.js')) {
+                    // Extract command name from filename: handleStateCommand.js -> state
+                    const match = item.match(/^handle(.*)Command\.js$/);
+                    if (match && match[1]) {
+                        const commandName = match[1].toLowerCase();
+                        // Avoid duplicate entries
+                        if (!commands.includes(commandName)) {
+                            commands.push(commandName);
+                        }
+                    }
                 }
-                // Also support handleUnknownCommand.js as 'unknown'
-                if ( file === 'handleUnknownCommand.js' ) {
-                    commands.push( 'unknown' );
-                }
-            }
-        } );
+            });
+        }
         
+        scanDirectory(commandsDir);
         return commands.sort();
     } catch ( error ) {
         return [];
@@ -45,7 +55,7 @@ function getAllCommands() {
  */
 function getDisabledCommands() {
     try {
-        const dataPath = path.join( __dirname, '../../data.json' );
+        const dataPath = path.join( __dirname, '../../../data.json' );
         const data = JSON.parse( fs.readFileSync( dataPath, 'utf8' ) );
         return Array.isArray( data.disabledCommands ) ? data.disabledCommands : [];
     } catch ( error ) {
@@ -58,21 +68,51 @@ function getDisabledCommands() {
  * @param {Array} disabledCommands - Array of disabled command names
  */
 function updateDisabledCommands( disabledCommands ) {
-    const dataPath = path.join( __dirname, '../../data.json' );
+    const dataPath = path.join( __dirname, '../../../data.json' );
     const data = JSON.parse( fs.readFileSync( dataPath, 'utf8' ) );
     data.disabledCommands = disabledCommands;
     fs.writeFileSync( dataPath, JSON.stringify( data, null, 2 ), 'utf8' );
 }
 
 /**
- * Check if a command exists by looking for its file
+ * Check if a command exists by looking for its file recursively
  * @param {string} commandName - The command name to check
  * @returns {boolean} True if command exists
  */
 function commandExists( commandName ) {
-    const commandsDir = path.join( __dirname, '../commands' );
-    const commandFileName = `handle${ commandName.charAt( 0 ).toUpperCase() + commandName.slice( 1 ) }Command.js`;
-    return fs.existsSync( path.join( commandsDir, commandFileName ) );
+    try {
+        const commandsDir = path.join( __dirname, '../../commands' );
+        const commandFileName = `handle${ commandName.charAt( 0 ).toUpperCase() + commandName.slice( 1 ) }Command.js`;
+        
+        // Function to recursively search for the command file
+        function searchDirectory(dirPath) {
+            const items = fs.readdirSync(dirPath);
+            
+            for (const item of items) {
+                const itemPath = path.join(dirPath, item);
+                const stat = fs.statSync(itemPath);
+                
+                if (stat.isDirectory()) {
+                    // Recursively search subdirectories
+                    if (searchDirectory(itemPath)) {
+                        return true;
+                    }
+                } else if (item === commandFileName) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        // Special case for unknown command (in root commands directory)
+        if (commandName === 'unknown') {
+            return fs.existsSync(path.join(commandsDir, 'handleUnknownCommand.js'));
+        }
+        
+        return searchDirectory(commandsDir);
+    } catch (error) {
+        return false;
+    }
 }
 
 /**
