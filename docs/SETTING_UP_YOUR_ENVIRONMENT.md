@@ -21,7 +21,6 @@ This guide will walk you through setting up your environment for the bot. Expect
    - [Step 8: Configuring the Command Prefix](#step-8-configuring-the-command-prefix)
    - [Step 9: Adding a Google API key for Machine Learning services (optional)](#step-9-adding-a-google-api-key-for-machine-learning-services-optional)
 
-
 [The data.json file](#understanding-datajson)
    - [Step 1: Creating your data.json file](#step-1-creating-your-datajson-file)
    - [Step 2: Welcome Message Configuration](#step-2-welcome-message-configuration)
